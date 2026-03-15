@@ -154,8 +154,14 @@
   .badge.login-needed { background: #3b1010; color: #ef4444; }
   .acct-select { background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; padding: 2px 4px; border-radius: 4px; font-size: 10px; cursor: pointer; max-width: 100px; }
 
-  /* Grid */
-  #panels.grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
+  /* Grid — adaptive layout based on panel count */
+  #panels.grid { display: grid; gap: 2px; }
+  #panels.grid.grid-1 { grid-template-columns: 1fr; }
+  #panels.grid.grid-2 { grid-template-columns: 1fr 1fr; }
+  #panels.grid.grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  #panels.grid.grid-3 .panel:last-child { grid-column: 1 / -1; }
+  #panels.grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  #panels.grid.grid-many { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
   #panels.grid .panel { position: relative; display: block !important; }
   #panels.grid .panel.hidden-grid { display: none !important; }
 
@@ -452,8 +458,18 @@ function setLayout(mode) {
   document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
   if (mode === 'grid') {
     panels.classList.add('grid');
+    // Remove old grid-N classes
+    panels.className = panels.className.replace(/grid-\S+/g, '').trim();
+    panels.classList.add('grid');
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.getElementById('panel-dashboard')?.classList.add('hidden-grid');
+    // Count visible panels and apply adaptive class
+    const visible = document.querySelectorAll('#panels .panel:not(.hidden-grid)').length;
+    if (visible <= 1) panels.classList.add('grid-1');
+    else if (visible === 2) panels.classList.add('grid-2');
+    else if (visible === 3) panels.classList.add('grid-3');
+    else if (visible === 4) panels.classList.add('grid-4');
+    else panels.classList.add('grid-many');
   } else {
     panels.classList.remove('grid');
     document.querySelectorAll('.panel').forEach(p => { p.classList.remove('hidden-grid'); p.classList.toggle('active', p.id === `panel-${state.activePanel}`); });
