@@ -2,9 +2,9 @@
 
 ## 当前优先
 
-1. **跟踪 P0 绑定回归修复**: executor 需修复 server.listen 0.0.0.0 → 127.0.0.1
-2. **跟踪单元测试进度**: 零覆盖仍是最大质量风险
-3. **评估 Web UI 认证方案**: reviewer 建议添加 token 认证，需排期
+1. **跟踪 P0 绑定回归修复**: 已二次升级分派 executor（server.listen 0.0.0.0 → 127.0.0.1）
+2. **评估 Web UI 认证方案**: reviewer 建议添加 token 认证，需排期
+3. **评估 executor 工作优先级合理性**: 5 个 feature commit 但 P0 安全未修，需干预
 
 ## 待排期
 
@@ -15,6 +15,7 @@
 
 ## 已完成
 
+- [2026-03-15] Loop #3: 处理 reviewer 安全进度报告，P0 绑定二次升级，更新 status.md
 - [2026-03-15] Loop #2: 审查 executor 修复质量，发现 0.0.0.0 安全回归并分派
 - [2026-03-15] Loop #1: 处理 reviewer P0 审查报告，分派修复任务给 executor
 - [2026-03-15] 更新 status.md、blueprint.md
