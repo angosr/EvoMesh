@@ -786,9 +786,19 @@ async function doLogin() {
   else showError(d.error || 'Wrong password');
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('login-form').style.display !== 'none' ? doLogin() : doSetup(); } });
-// Auto-login if token saved
-const saved = localStorage.getItem('evomesh-token');
-if (saved) { location.href = '/?token=' + encodeURIComponent(saved); } else { init(); }
+// Auto-login: verify saved token before redirecting
+(async () => {
+  const saved = localStorage.getItem('evomesh-token');
+  if (saved) {
+    try {
+      const r = await fetch('/api/projects', { headers: { 'Authorization': 'Bearer ' + saved } });
+      if (r.ok) { location.href = '/?token=' + encodeURIComponent(saved); return; }
+    } catch {}
+    // Token invalid — clear and show login
+    localStorage.removeItem('evomesh-token');
+  }
+  init();
+})();
 </script></body></html>`;
 }
 

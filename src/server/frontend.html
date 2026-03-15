@@ -400,6 +400,8 @@ const state = {
 async function fetchAll() {
   try {
     const [projRes, acctRes] = await Promise.all([authFetch(`${API}/projects`), authFetch(`${API}/accounts`)]);
+    // Auth failed — redirect to login
+    if (projRes.status === 401) { localStorage.removeItem('evomesh-token'); location.href = '/login'; return; }
     const projData = await projRes.json();
     const acctData = await acctRes.json();
     state.accounts = acctData.accounts || [];
