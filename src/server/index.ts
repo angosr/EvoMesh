@@ -6,7 +6,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config/loader.js";
 import { readPid } from "../process/registry.js";
-import { runtimeDir, rolesDir, roleDir } from "../utils/paths.js";
+import { runtimeDir, roleDir } from "../utils/paths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,30 +24,26 @@ export function startServer(root: string, port: number) {
 
   const ttydProcesses: Map<string, TtydProcess> = new Map();
 
-  // --- ttyd management ---
+  // --- ttyd management (bind localhost only, proxied through main server) ---
 
-  function startTtyd(roleName: string, basePort: number): TtydProcess | null {
+  function startTtyd(roleName: string, ttydPort: number): TtydProcess | null {
     const session = `evomesh-${roleName}`;
 
-    // Check tmux session exists
     try {
       execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
     } catch {
       return null;
     }
 
-    const ttydPort = basePort;
-
-    // Kill existing ttyd on this port
     try {
       execFileSync("fuser", ["-k", `${ttydPort}/tcp`], { stdio: "ignore" });
     } catch {}
 
-    // Start ttyd attached to the tmux session (writable)
     const proc = spawn("ttyd", [
       "--port", String(ttydPort),
-      "--writable",              // allow input
-      "--base-path", `/${roleName}`,  // serve at /roleName/
+      "--interface", "127.0.0.1",
+      "--writable",
+      "--base-path", `/terminal/${roleName}`,
       "tmux", "attach-session", "-t", session,
     ], {
       detached: true,
@@ -78,6 +74,96 @@ export function startServer(root: string, port: number) {
     } catch {}
   }
 
+  // --- Reverse proxy: /terminal/{role}/* -> localhost:ttydPort ---
+
+  function proxyRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    targetPort: number
+  ) {
+    const proxyReq = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: targetPort,
+        path: req.url,
+        method: req.method,
+        headers: req.headers,
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+        proxyRes.pipe(res);
+      }
+    );
+    proxyReq.on("error", () => {
+      res.writeHead(502);
+      res.end("ttyd not ready");
+    });
+    req.pipe(proxyReq);
+  }
+
+  // HTTP proxy for ttyd assets/API
+  // Use a raw middleware to preserve the full URL path
+  app.use((req, res, next) => {
+    const match = req.url.match(/^\/terminal\/([a-zA-Z0-9_-]+)(\/.*)?$/);
+    if (!match) return next();
+
+    const roleName = match[1];
+    const ttyd = ttydProcesses.get(roleName);
+    if (!ttyd) {
+      res.status(404).send("Terminal not available. Is the role running?");
+      return;
+    }
+    // Forward with full original URL intact
+    proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port);
+  });
+
+  // WebSocket proxy for ttyd (handles upgrade events)
+  server.on("upgrade", (req, socket, head) => {
+    const url = req.url || "";
+    const match = url.match(/^\/terminal\/([a-zA-Z0-9_-]+)\//);
+    if (!match) return; // not a terminal WS, ignore
+
+    const roleName = match[1];
+    const ttyd = ttydProcesses.get(roleName);
+    if (!ttyd) {
+      socket.destroy();
+      return;
+    }
+
+    const proxyReq = http.request({
+      hostname: "127.0.0.1",
+      port: ttyd.port,
+      path: req.url,
+      method: "GET",
+      headers: req.headers,
+    });
+
+    proxyReq.on("upgrade", (proxyRes, proxySocket, proxyHead) => {
+      // Send the 101 response back to the client
+      let responseHead = `HTTP/1.1 101 Switching Protocols\r\n`;
+      for (const [key, val] of Object.entries(proxyRes.headers)) {
+        if (val) responseHead += `${key}: ${Array.isArray(val) ? val.join(", ") : val}\r\n`;
+      }
+      responseHead += "\r\n";
+
+      socket.write(responseHead);
+      if (proxyHead.length) socket.write(proxyHead);
+      if (head.length) proxySocket.write(head);
+
+      // Bidirectional pipe
+      socket.pipe(proxySocket);
+      proxySocket.pipe(socket);
+
+      socket.on("error", () => proxySocket.destroy());
+      proxySocket.on("error", () => socket.destroy());
+      socket.on("close", () => proxySocket.destroy());
+      proxySocket.on("close", () => socket.destroy());
+    });
+
+    proxyReq.on("error", () => socket.destroy());
+    proxyReq.end();
+  });
+
   // --- REST API ---
 
   app.get("/api/status", (_req, res) => {
@@ -93,7 +179,7 @@ export function startServer(root: string, port: number) {
           description: rc.description,
           running: info?.alive ?? false,
           pid: info?.pid ?? null,
-          ttyd_port: ttyd?.port ?? null,
+          terminal: ttyd ? `/terminal/${name}/` : null,
         };
       });
       res.json({ project: config.name, roles });
@@ -138,16 +224,13 @@ export function startServer(root: string, port: number) {
           const info = readPid(root, name);
           const running = info?.alive ?? false;
 
-          // Read short-term.md for status context
           let status = running ? "Running" : "Stopped";
           try {
             const stm = fs.readFileSync(
               path.join(roleDir(root, name), "memory", "short-term.md"), "utf-8"
             );
-            // Extract the most recent bullet point
             const bullets = stm.match(/^- .+$/gm);
             if (bullets && bullets.length > 0) {
-              // Find the last substantive bullet (not "下一任务" type)
               const recent = bullets.filter(b => !b.startsWith("- 下一")).pop() || bullets[bullets.length - 1];
               status = recent.replace(/^- /, "");
             }
@@ -159,7 +242,6 @@ export function startServer(root: string, port: number) {
       } catch {}
     };
 
-    // Send immediately, then every 5s
     gather();
     const timer = setInterval(gather, 5000);
     _req.on("close", () => clearInterval(timer));
@@ -176,7 +258,6 @@ export function startServer(root: string, port: number) {
         return;
       }
 
-      // Find the lead role
       const config = loadConfig(root);
       const leadName = Object.entries(config.roles).find(([, rc]) => rc.type === "lead")?.[0];
       if (!leadName) {
@@ -184,7 +265,6 @@ export function startServer(root: string, port: number) {
         return;
       }
 
-      // Write message to lead's inbox
       const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
       const filename = `${ts}_user_chat.md`;
       const inboxPath = path.join(roleDir(root, leadName), "inbox", filename);
@@ -193,17 +273,13 @@ export function startServer(root: string, port: number) {
       fs.mkdirSync(path.dirname(inboxPath), { recursive: true });
       fs.writeFileSync(inboxPath, content, "utf-8");
 
-      // Also send to lead's tmux session directly if running
       const leadSession = `evomesh-${leadName}`;
       try {
         execFileSync("tmux", ["has-session", "-t", leadSession], { stdio: "ignore" });
-        // Send the message as input to lead's Claude session
         const prompt = `[用户消息] ${message.trim()}`;
         execFileSync("tmux", ["send-keys", "-t", leadSession, "-l", prompt], { stdio: "ignore" });
         execFileSync("tmux", ["send-keys", "-t", leadSession, "Enter"], { stdio: "ignore" });
-      } catch {
-        // Lead session not running — message saved to inbox, will be picked up on next loop
-      }
+      } catch {}
 
       res.json({ ok: true, delivered_to: leadName, filename });
     } catch (e: any) {
@@ -211,7 +287,7 @@ export function startServer(root: string, port: number) {
     }
   });
 
-  // --- Chat history: read recent chat messages ---
+  // --- Chat history ---
   app.get("/api/chat/history", (_req, res) => {
     try {
       const config = loadConfig(root);
@@ -254,9 +330,8 @@ export function startServer(root: string, port: number) {
     }
   });
 
-  // Start ttyd instances for running roles
+  // Start ttyd instances
   ensureTtydRunning();
-  // Re-check periodically
   setInterval(ensureTtydRunning, 10000);
 
   // Cleanup on exit
@@ -271,11 +346,7 @@ export function startServer(root: string, port: number) {
 
   server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
-    console.log(`    http://0.0.0.0:${port}`);
-    console.log(`\n  ttyd terminals:`);
-    for (const [name, t] of ttydProcesses) {
-      console.log(`    ${name}: http://0.0.0.0:${t.port}/${name}/`);
-    }
-    console.log(`\n  Press Ctrl+C to stop.\n`);
+    console.log(`    http://localhost:${port}`);
+    console.log(`\n  Terminals proxied at /terminal/{role}/\n`);
   });
 }

@@ -158,7 +158,7 @@ function renderSidebar(data) {
       <span class="dot ${role.running ? 'running' : 'stopped'}"></span>
       <span>${role.name}</span>
       <span class="info">${role.loop_interval}</span>`;
-    btn.onclick = () => openTerminal(role.name, role.ttyd_port);
+    btn.onclick = () => openTerminal(role.name, role.terminal);
     list.appendChild(btn);
   }
   const running = data.roles.filter(r => r.running).length;
@@ -174,7 +174,7 @@ function renderDashboard(data) {
       <td>${r.loop_interval}</td>
       <td><span class="badge ${r.running ? 'running' : 'stopped'}">${r.running ? 'running' : 'stopped'}</span></td>
       <td style="color:#888">${r.description}</td>
-      <td>${r.ttyd_port ? `<a href="${location.protocol}//${location.hostname}:${r.ttyd_port}/${r.name}/" target="_blank" style="color:#818cf8">Open</a>` : '-'}</td>
+      <td>${r.terminal ? `<a href="${r.terminal}" target="_blank" style="color:#818cf8">Open</a>` : '-'}</td>
     </tr>`).join('');
 
   el.innerHTML = `
@@ -195,12 +195,12 @@ function renderDashboard(data) {
     </div>`;
 }
 
-function openTerminal(roleName, ttydPort) {
+function openTerminal(roleName, terminalPath) {
   if (state.openPanels[roleName]) {
     switchTo(roleName);
     return;
   }
-  if (!ttydPort) {
+  if (!terminalPath) {
     alert(`No terminal available for ${roleName}. Is it running?`);
     return;
   }
@@ -213,13 +213,12 @@ function openTerminal(roleName, ttydPort) {
   tab.innerHTML = `${roleName} <span class="close" onclick="event.stopPropagation(); closePanel('${roleName}')">&times;</span>`;
   document.getElementById('tabs').appendChild(tab);
 
-  // Create panel with iframe to ttyd
+  // Create panel with iframe to ttyd (proxied through main server)
   const panel = document.createElement('div');
   panel.className = 'panel';
   panel.id = `panel-${roleName}`;
 
-  const ttydUrl = `${location.protocol}//${location.hostname}:${ttydPort}/${roleName}/`;
-  panel.innerHTML = `<iframe src="${ttydUrl}" allow="clipboard-read; clipboard-write"></iframe>`;
+  panel.innerHTML = `<iframe src="${terminalPath}" allow="clipboard-read; clipboard-write"></iframe>`;
   document.getElementById('panels').appendChild(panel);
 
   state.openPanels[roleName] = { tab, panel };
