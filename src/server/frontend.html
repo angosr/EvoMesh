@@ -135,7 +135,7 @@
   .toggle-sidebar-btn:hover { color: #e94560; border-color: #e94560; }
 
   /* Panels */
-  #panels { flex: 1; position: relative; overflow: hidden; }
+  #panels { flex: 1; position: relative; overflow: hidden; height: 100%; }
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
   .panel.active { display: block; }
   .panel iframe { width: 100%; height: 100%; border: none; background: #000; }
@@ -155,9 +155,9 @@
   .acct-select { background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; padding: 2px 4px; border-radius: 4px; font-size: 10px; cursor: pointer; max-width: 100px; }
 
   /* Grid — adaptive layout based on panel count */
-  #panels.grid { display: grid; gap: 2px; }
-  #panels.grid.grid-1 { grid-template-columns: 1fr; }
-  #panels.grid.grid-2 { grid-template-columns: 1fr 1fr; }
+  #panels.grid { display: grid; gap: 2px; height: 100%; }
+  #panels.grid.grid-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  #panels.grid.grid-2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
   #panels.grid.grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
   #panels.grid.grid-3 .panel:last-child { grid-column: 1 / -1; }
   #panels.grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
@@ -429,7 +429,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   iframe.addEventListener('error', () => setTimeout(() => { iframe.src = terminalPath; }, 3000));
   state.openPanels[key] = { panel, iframe, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
-  renderOpenTabs(); switchTo(key);
+  renderOpenTabs(); switchTo(key); saveLayout();
 }
 
 function closePanel(key) {
@@ -565,9 +565,92 @@ async function fetchMetrics() { try { const r = await fetch(`${API}/metrics`); c
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
 function setConnStatus(connected) { if (connected && !serverConnected) { for (const [,p] of Object.entries(state.openPanels)) { if (p.iframe) p.iframe.src = p.iframe.src; } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
 
+// ==================== Layout persistence ====================
+const STORAGE_KEY = 'evomesh-layout';
+
+function saveLayout() {
+  const data = {
+    openPanels: Object.keys(state.openPanels).map(key => {
+      const p = state.openPanels[key];
+      return { key, src: p.iframe?.src || '' };
+    }),
+    activePanel: state.activePanel,
+    layout: state.layout,
+    collapsed: state.collapsed,
+    tabOrder: state.tabOrder,
+    sidebarWidth: document.getElementById('sidebar').style.width || '',
+    chatWidth: document.getElementById('chat-sidebar').style.width || '',
+    sidebarHidden: document.getElementById('sidebar').classList.contains('hidden'),
+    chatHidden: document.getElementById('chat-sidebar').classList.contains('hidden'),
+  };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
+function restoreLayout() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+
+    // Restore collapsed projects
+    if (data.collapsed) state.collapsed = data.collapsed;
+
+    // Restore sidebar/chat widths
+    if (data.sidebarWidth) document.getElementById('sidebar').style.width = data.sidebarWidth;
+    if (data.chatWidth) document.getElementById('chat-sidebar').style.width = data.chatWidth;
+    if (data.sidebarHidden) document.getElementById('sidebar').classList.add('hidden');
+    if (data.chatHidden) document.getElementById('chat-sidebar').classList.add('hidden');
+
+    // Restore open panels (terminals)
+    if (data.openPanels) {
+      for (const p of data.openPanels) {
+        if (p.key === 'dashboard' || !p.src) continue;
+        const parts = p.key.split('/');
+        if (parts.length === 2) {
+          // Extract terminal path from src
+          const url = new URL(p.src, location.origin);
+          openTerminal(parts[0], parts[0], parts[1], url.pathname);
+        }
+      }
+    }
+
+    // Restore tab order
+    if (data.tabOrder) {
+      state.tabOrder = data.tabOrder.filter(k => k === 'dashboard' || state.openPanels[k]);
+    }
+
+    // Restore active panel
+    if (data.activePanel && (data.activePanel === 'dashboard' || state.openPanels[data.activePanel])) {
+      switchTo(data.activePanel);
+    }
+
+    // Restore layout mode
+    if (data.layout === 'grid') setLayout('grid');
+
+    renderOpenTabs();
+  } catch {}
+}
+
+// Auto-save on changes
+const _origSwitchTo = switchTo;
+switchTo = function(name) { _origSwitchTo(name); saveLayout(); };
+const _origClosePanel = closePanel;
+closePanel = function(key) { _origClosePanel(key); saveLayout(); };
+const _origSetLayout = setLayout;
+setLayout = function(mode) { _origSetLayout(mode); saveLayout(); };
+
+// Save on resize end
+const origInitResize = initResize;
+['rh-left', 'rh-right'].forEach(id => {
+  const handle = document.getElementById(id);
+  handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
+});
+
 // ==================== Init ====================
-renderOpenTabs(); fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();
+restoreLayout();
+fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });
+window.addEventListener('beforeunload', saveLayout);
 </script>
 </body>
 </html>
