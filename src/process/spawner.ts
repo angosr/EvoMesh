@@ -44,12 +44,21 @@ export function spawnRole(
   const roleRoot = `.evomesh/roles/${roleName}`;
   const loopPrompt = `你是 ${roleName} 角色。执行 ${roleRoot}/ROLE.md 工作目录: ${roleRoot}/`;
 
+  // Check for saved session ID to resume
+  const sessionFile = path.join(root, roleRoot, ".session-id");
+  let savedSessionId = "";
+  try { savedSessionId = fs.readFileSync(sessionFile, "utf-8").trim(); } catch {}
+
+  const claudeArgs = savedSessionId
+    ? ["--resume", savedSessionId, "--dangerously-skip-permissions"]
+    : ["--name", roleName, "--dangerously-skip-permissions"];
+
   ensureDir(runtimeDir(root));
 
   if (opts.foreground) {
-    return spawnForeground(root, roleName, accountPath, interval, loopPrompt);
+    return spawnForeground(root, roleName, accountPath, interval, loopPrompt, claudeArgs);
   } else {
-    return spawnTmux(root, roleName, accountPath, interval, loopPrompt);
+    return spawnTmux(root, roleName, accountPath, interval, loopPrompt, claudeArgs);
   }
 }
 
@@ -58,14 +67,15 @@ function spawnForeground(
   roleName: string,
   accountPath: string,
   interval: string,
-  loopPrompt: string
+  loopPrompt: string,
+  claudeArgs: string[] = ["--dangerously-skip-permissions"]
 ): SpawnedRole {
   const env: Record<string, string> = {
     ...process.env as Record<string, string>,
     CLAUDE_CONFIG_DIR: accountPath,
   };
 
-  const pty = ptySpawn("claude", ["--dangerously-skip-permissions"], {
+  const pty = ptySpawn("claude", claudeArgs, {
     name: "xterm-256color",
     cols: 120,
     rows: 40,
@@ -130,7 +140,8 @@ function spawnTmux(
   roleName: string,
   accountPath: string,
   interval: string,
-  loopPrompt: string
+  loopPrompt: string,
+  claudeArgs: string[] = ["--name", roleName, "--dangerously-skip-permissions"]
 ): SpawnedRole {
   const session = tmuxSessionName(roleName);
   const logPath = path.join(runtimeDir(root), `${roleName}.log`);
@@ -143,10 +154,10 @@ function spawnTmux(
   // Clear log
   fs.writeFileSync(logPath, "", "utf-8");
 
-  // Create tmux session running claude with env var set via `env`
+  // Create tmux session running claude
   execFileSync("tmux", [
     "new-session", "-d", "-s", session, "-x", "120", "-y", "40",
-    "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", "--name", roleName, "--dangerously-skip-permissions",
+    "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", ...claudeArgs,
   ], { cwd: root, stdio: "ignore" });
 
   // Enable mouse mode for touch scrolling on mobile
@@ -190,6 +201,12 @@ for i in $(seq 1 120); do
       sleep 1.5
     done
     tmux send-keys -t "$EVOMESH_SESSION" "$EVOMESH_LOOP_CMD" Enter
+    # Save session ID for future --resume
+    sleep 5
+    if [ -f "$EVOMESH_ACCOUNT/history.jsonl" ]; then
+      SID=$(tail -1 "$EVOMESH_ACCOUNT/history.jsonl" | grep -o '"sessionId":"[^"]*"' | head -1 | cut -d'"' -f4)
+      [ -n "$SID" ] && echo "$SID" > "$EVOMESH_SESSION_FILE"
+    fi
     exit 0
   fi
   sleep 0.5
@@ -205,6 +222,8 @@ echo "[evomesh] Timed out waiting for Claude readiness" >> "$EVOMESH_LOG"
       EVOMESH_LOG: logPath,
       EVOMESH_SESSION: session,
       EVOMESH_LOOP_CMD: loopCmd,
+      EVOMESH_ACCOUNT: accountPath,
+      EVOMESH_SESSION_FILE: path.join(root, `.evomesh/roles/${roleName}/.session-id`),
     },
   }).unref();
 
