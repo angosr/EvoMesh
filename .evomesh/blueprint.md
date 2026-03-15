@@ -8,21 +8,23 @@
 
 ## 技术路线
 
-### Phase 1 — CLI + 模板 (MVP) ← 当前
+### Phase 1 — CLI + 模板 (MVP) ✅
 - [x] CLI: init / role create|list|delete / start|stop|status|attach
 - [x] 3 个内置模板: lead, executor, reviewer
 - [x] 进程管理: node-pty spawn + PID registry
 - [x] 多账号支持 (CLAUDE_CONFIG_DIR)
 - [x] 自举
 
-### Phase 2 — 协作 + 演进
-- [ ] inbox 消息机制
-- [ ] 自我审查协议实现
-- [ ] Lead 全角色审查
-- [ ] devlog 规范
+### Phase 2 — 协作 + 演进 ← 当前
+- [x] inbox 消息机制（基础实现）
+- [x] 自我审查协议实现（角色 ROLE.md 中定义）
+- [x] Lead 全角色审查
+- [x] devlog 规范
+- [ ] **安全加固: P0 命令注入修复 + 单元测试** ← 阻塞项
+- [ ] 运行时配置校验 (zod)
 
 ### Phase 3 — Web UI
-- [ ] 终端桥接 (node-pty + xterm.js + WebSocket)
+- [x] 终端桥接 (node-pty + xterm.js + WebSocket) — 基础版完成
 - [ ] SSH Key 认证
 - [ ] 面板布局 + Dashboard
 

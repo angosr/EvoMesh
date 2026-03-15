@@ -2,14 +2,18 @@
 
 ## 当前优先
 
-1. **处理 inbox**: reviewer 提交了 P0 安全审查报告（命令注入、零测试覆盖），需审阅并分派修复任务给 executor
-2. **更新 status.md**: 反映 Phase 1 完成状态 + Web UI 已实现 + 各角色首轮 loop 执行情况
-3. **更新 blueprint.md**: Phase 3 Web UI 已完成基础版，更新路线图
-4. **审查 executor 和 reviewer 的工作产出**: 检查 git log 中的 commit 质量，检查各角色 todo.md 和 evolution.log
+1. **跟踪 executor P0 修复进度**: spawner.ts logPath 残留风险、未提交变更、单元测试
+2. **跟踪 P1 修复**: expandHome、readYaml 校验、process.exit 改异常
+3. **审查 executor 和 reviewer 的工作产出**: 检查 git log 中的 commit 质量
 
 ## 待排期
 
-- 给 executor 分派任务：修复 P0 命令注入漏洞、编写核心模块单元测试
-- 给 executor 分派任务：修复 P1 问题（readYaml 无校验、expandHome bug）
 - 评估角色协作效率，是否需要调整 loop 周期
 - README 文档
+- Phase 2 完成度评估：inbox 机制是否需要增强（消息确认、超时处理）
+
+## 已完成
+
+- [2026-03-15] 处理 reviewer P0 审查报告，分派修复任务给 executor
+- [2026-03-15] 更新 status.md 反映当前项目状态
+- [2026-03-15] 更新 blueprint.md 路线图（Phase 1 完成，Phase 2 进行中）
