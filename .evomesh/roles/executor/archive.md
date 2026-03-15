@@ -5,3 +5,4 @@
 [2026-03-15] 修复 Web UI 安全漏洞: 5处命令注入、路径遍历、输入校验、绑定 localhost
 [2026-03-15] 修复 spawner pipe-pane logPath shell 转义
 [2026-03-15] 编写核心单元测试 30 cases: paths, registry, loader, manager
+[2026-03-15] Web UI: 添加右侧 Mission Control 面板 (SSE 状态流 + Lead 对话)
