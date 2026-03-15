@@ -21,3 +21,4 @@
 [2026-03-15] ci: GitHub Actions — push/PR 触发 tsc + test
 [2026-03-15] refactor: 拆分 server/index.ts 800行→ index.ts(242) + routes.ts(359) + terminal.ts(131)
 [2026-03-15] docs: devlog/README.md 规范 — 命名格式、内容模板、使用场景
+[2026-03-15] refactor: 拆分 frontend.html 1167行→ html(181) + css(294) + js(670)，index.ts 新增静态路由

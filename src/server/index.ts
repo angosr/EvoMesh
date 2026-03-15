@@ -206,20 +206,36 @@ export function startServer(port: number, initialRoot?: string) {
   });
 
   // --- Static pages ---
+  function resolveAsset(filename: string): string | null {
+    const srcPath = path.join(__dirname, "..", "..", "src", "server", filename);
+    const distPath = path.join(__dirname, filename);
+    if (fs.existsSync(srcPath)) return srcPath;
+    if (fs.existsSync(distPath)) return distPath;
+    return null;
+  }
+
   app.get("/login", (_req, res) => {
-    const loginSrc = path.join(__dirname, "..", "..", "src", "server", "login.html");
-    const loginDist = path.join(__dirname, "login.html");
-    const loginPath = fs.existsSync(loginSrc) ? loginSrc : loginDist;
-    if (!fs.existsSync(loginPath)) { res.send("Login page not found."); return; }
-    res.type("html").sendFile(path.resolve(loginPath));
+    const p = resolveAsset("login.html");
+    if (!p) { res.send("Login page not found."); return; }
+    res.type("html").sendFile(path.resolve(p));
+  });
+
+  app.get("/app.css", (_req, res) => {
+    const p = resolveAsset("frontend.css");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.type("css").sendFile(path.resolve(p));
+  });
+
+  app.get("/app.js", (_req, res) => {
+    const p = resolveAsset("frontend.js");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.type("js").sendFile(path.resolve(p));
   });
 
   app.get("/", (_req, res) => {
-    const htmlPath = path.join(__dirname, "..", "..", "src", "server", "frontend.html");
-    const distPath = path.join(__dirname, "frontend.html");
-    const filePath = fs.existsSync(htmlPath) ? htmlPath : distPath;
-    if (!fs.existsSync(filePath)) { res.send("Frontend not found."); return; }
-    res.type("html").sendFile(path.resolve(filePath));
+    const p = resolveAsset("frontend.html");
+    if (!p) { res.send("Frontend not found."); return; }
+    res.type("html").sendFile(path.resolve(p));
   });
 
   // --- Start ---
