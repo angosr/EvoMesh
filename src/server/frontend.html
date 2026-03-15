@@ -57,6 +57,12 @@
   #add-form .btns button { flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; }
   #add-form .btn-ok { background: #e94560; color: #fff; }
   #add-form .btn-cancel { background: #333; color: #888; }
+  #add-form { position: relative; }
+  #autocomplete { position: absolute; bottom: 100%; left: 0; right: 0; background: #1a1a2e; border: 1px solid #0f3460; border-radius: 4px; max-height: 200px; overflow-y: auto; display: none; z-index: 10; }
+  #autocomplete.show { display: block; }
+  #autocomplete .ac-item { padding: 6px 8px; cursor: pointer; font-size: 11px; display: flex; justify-content: space-between; }
+  #autocomplete .ac-item:hover, #autocomplete .ac-item.selected { background: #0f3460; }
+  #autocomplete .ac-item .ac-badge { color: #4ade80; font-size: 9px; }
   #status-bar { padding: 10px 12px; border-top: 1px solid #0f3460; font-size: 11px; color: #666; }
   .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 6px 10px; margin: 6px 12px; border-radius: 4px; font-size: 10px; }
 
@@ -135,7 +141,8 @@
   <div id="add-project-area">
     <button id="add-project-btn" onclick="showAddForm()">+ Add Project</button>
     <div id="add-form">
-      <input id="add-input" placeholder="GitHub URL or local path..." />
+      <div id="autocomplete"></div>
+      <input id="add-input" placeholder="GitHub URL or local path (e.g. ~/work/)" autocomplete="off" />
       <div class="btns">
         <button class="btn-ok" onclick="doAddProject()">Add</button>
         <button class="btn-cancel" onclick="hideAddForm()">Cancel</button>
@@ -477,10 +484,82 @@ async function doAddProject() {
   } catch { addFeedMessage('Failed to add project', 'system'); }
 }
 
-document.getElementById('add-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doAddProject();
-  if (e.key === 'Escape') hideAddForm();
+// --- Path autocomplete ---
+let acTimer = null;
+let acIndex = -1;
+
+const addInput = document.getElementById('add-input');
+const acBox = document.getElementById('autocomplete');
+
+addInput.addEventListener('input', () => {
+  clearTimeout(acTimer);
+  const val = addInput.value.trim();
+  if (!val || val.startsWith('http') || val.startsWith('git@')) { acBox.classList.remove('show'); return; }
+  acTimer = setTimeout(() => fetchCompletions(val), 150);
 });
+
+addInput.addEventListener('keydown', e => {
+  const items = acBox.querySelectorAll('.ac-item');
+  if (e.key === 'ArrowDown' && acBox.classList.contains('show')) {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    updateAcSelection(items);
+  } else if (e.key === 'ArrowUp' && acBox.classList.contains('show')) {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    updateAcSelection(items);
+  } else if (e.key === 'Tab' && acBox.classList.contains('show') && items.length > 0) {
+    e.preventDefault();
+    const sel = acIndex >= 0 ? items[acIndex] : items[0];
+    addInput.value = sel.dataset.path;
+    acBox.classList.remove('show');
+    acIndex = -1;
+    // Trigger new completion for the selected directory
+    clearTimeout(acTimer);
+    acTimer = setTimeout(() => fetchCompletions(addInput.value), 150);
+  } else if (e.key === 'Enter') {
+    acBox.classList.remove('show');
+    doAddProject();
+  } else if (e.key === 'Escape') {
+    if (acBox.classList.contains('show')) { acBox.classList.remove('show'); }
+    else hideAddForm();
+  }
+});
+
+addInput.addEventListener('blur', () => {
+  setTimeout(() => acBox.classList.remove('show'), 200);
+});
+
+function updateAcSelection(items) {
+  items.forEach((el, i) => el.classList.toggle('selected', i === acIndex));
+}
+
+async function fetchCompletions(q) {
+  try {
+    const res = await fetch(`${API}/complete-path?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (!data.suggestions.length) { acBox.classList.remove('show'); return; }
+
+    acBox.innerHTML = data.suggestions.map(s =>
+      `<div class="ac-item" data-path="${esc(s.path)}" onmousedown="selectCompletion('${esc(s.path).replace(/'/g, "\\'")}')">
+        <span>${esc(s.path)}</span>
+        ${s.hasEvomesh ? '<span class="ac-badge">evomesh</span>' : ''}
+      </div>`
+    ).join('');
+    acBox.classList.add('show');
+    acIndex = -1;
+  } catch { acBox.classList.remove('show'); }
+}
+
+function selectCompletion(p) {
+  addInput.value = p;
+  acBox.classList.remove('show');
+  acIndex = -1;
+  addInput.focus();
+  // Continue completing subdirectories
+  clearTimeout(acTimer);
+  acTimer = setTimeout(() => fetchCompletions(p), 150);
+}
 
 // --- Role management ---
 

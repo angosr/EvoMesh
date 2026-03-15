@@ -488,6 +488,33 @@ export function startServer(port: number, initialRoot?: string) {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // --- Path autocomplete ---
+  app.get("/api/complete-path", (req, res) => {
+    const partial = String(req.query.q || "");
+    if (!partial) { res.json({ suggestions: [] }); return; }
+
+    try {
+      const expanded = partial.startsWith("~") ? path.join(os.homedir(), partial.slice(1)) : partial;
+      const dir = expanded.endsWith("/") ? expanded : path.dirname(expanded);
+      const prefix = expanded.endsWith("/") ? "" : path.basename(expanded);
+
+      if (!fs.existsSync(dir)) { res.json({ suggestions: [] }); return; }
+
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+        .filter(e => e.isDirectory() && !e.name.startsWith(".") && e.name.toLowerCase().startsWith(prefix.toLowerCase()))
+        .slice(0, 15)
+        .map(e => {
+          const full = path.join(dir, e.name);
+          const display = partial.startsWith("~")
+            ? "~" + full.slice(os.homedir().length)
+            : full;
+          const hasEvomesh = fs.existsSync(path.join(full, ".evomesh", "project.yaml"));
+          return { path: display + "/", hasEvomesh };
+        });
+      res.json({ suggestions: entries });
+    } catch { res.json({ suggestions: [] }); }
+  });
+
   // --- Backward compat: /api/status redirects to first project ---
   app.get("/api/status", (_req, res) => {
     const projects = getProjects();
