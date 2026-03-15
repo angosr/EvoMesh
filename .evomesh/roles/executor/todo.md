@@ -7,4 +7,3 @@
 ## 待排期
 
 - `readYaml` 运行时校验（zod）— 当前风险低，配置由 scaffold 生成
-- Server 路由集成测试
