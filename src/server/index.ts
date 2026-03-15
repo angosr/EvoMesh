@@ -515,6 +515,53 @@ export function startServer(port: number, initialRoot?: string) {
     } catch { res.json({ suggestions: [] }); }
   });
 
+  // --- System metrics ---
+  app.get("/api/metrics", (_req, res) => {
+    try {
+      const cpus = os.cpus();
+      const cpuTotal = cpus.reduce((a, c) => {
+        const t = Object.values(c.times).reduce((s, v) => s + v, 0);
+        return { idle: a.idle + c.times.idle, total: a.total + t };
+      }, { idle: 0, total: 0 });
+      // Read /proc/stat for accurate usage since boot is misleading; use loadavg instead
+      const load1 = os.loadavg()[0];
+      const cpuPercent = Math.min(100, Math.round((load1 / cpus.length) * 100));
+
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const memPercent = Math.round(((totalMem - freeMem) / totalMem) * 100);
+
+      // Disk usage via df
+      let diskPercent = 0;
+      let diskUsed = "";
+      let diskTotal = "";
+      try {
+        const df = execFileSync("df", ["-h", "/"], { encoding: "utf-8" });
+        const line = df.trim().split("\n")[1];
+        const parts = line.split(/\s+/);
+        diskTotal = parts[1];
+        diskUsed = parts[2];
+        diskPercent = parseInt(parts[4], 10) || 0;
+      } catch {}
+
+      res.json({
+        cpu: { percent: cpuPercent, cores: cpus.length, load1: load1.toFixed(2) },
+        memory: {
+          percent: memPercent,
+          used: formatBytes(totalMem - freeMem),
+          total: formatBytes(totalMem),
+        },
+        disk: { percent: diskPercent, used: diskUsed, total: diskTotal },
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
+    if (bytes < 1024 ** 3) return (bytes / (1024 ** 2)).toFixed(1) + " GB";
+    return (bytes / (1024 ** 3)).toFixed(1) + " GB";
+  }
+
   // --- Backward compat: /api/status redirects to first project ---
   app.get("/api/status", (_req, res) => {
     const projects = getProjects();

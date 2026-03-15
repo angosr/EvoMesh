@@ -82,6 +82,15 @@
   #layout-controls button { background: #1a1a2e; border: 1px solid #0f3460; color: #888; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 3px; }
   #layout-controls button:hover, #layout-controls button.active { color: #e94560; border-color: #e94560; }
 
+  /* System metrics */
+  #metrics { display: flex; gap: 10px; padding: 0 10px; align-items: center; flex-shrink: 0; }
+  .metric { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #888; }
+  .metric-bar { width: 40px; height: 6px; background: #1a1a2e; border-radius: 3px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .metric-bar-fill.ok { background: #4ade80; }
+  .metric-bar-fill.warn { background: #fbbf24; }
+  .metric-bar-fill.crit { background: #ef4444; }
+
   /* Panels */
   #panels { flex: 1; position: relative; overflow: hidden; }
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
@@ -159,6 +168,23 @@
   <div id="tab-bar">
     <div id="tabs">
       <button class="tab active" data-panel="dashboard" onclick="switchTo('dashboard')">Dashboard</button>
+    </div>
+    <div id="metrics">
+      <div class="metric" title="CPU">
+        <span>CPU</span>
+        <div class="metric-bar"><div class="metric-bar-fill ok" id="m-cpu" style="width:0%"></div></div>
+        <span id="m-cpu-val">-</span>
+      </div>
+      <div class="metric" title="Memory">
+        <span>MEM</span>
+        <div class="metric-bar"><div class="metric-bar-fill ok" id="m-mem" style="width:0%"></div></div>
+        <span id="m-mem-val">-</span>
+      </div>
+      <div class="metric" title="Disk">
+        <span>DISK</span>
+        <div class="metric-bar"><div class="metric-bar-fill ok" id="m-disk" style="width:0%"></div></div>
+        <span id="m-disk-val">-</span>
+      </div>
     </div>
     <div id="layout-controls">
       <button id="btn-tabs" class="active" onclick="setLayout('tabs')">Tabs</button>
@@ -764,8 +790,30 @@ openTerminal = function(slug, projectName, roleName, terminalPath) {
   if (state.openPanels[key]) setupTabDrag(state.openPanels[key].tab);
 };
 
+// --- System metrics ---
+
+async function fetchMetrics() {
+  try {
+    const res = await fetch(`${API}/metrics`);
+    const d = await res.json();
+    updateMetric('cpu', d.cpu.percent, `${d.cpu.percent}%`);
+    updateMetric('mem', d.memory.percent, `${d.memory.used}/${d.memory.total}`);
+    updateMetric('disk', d.disk.percent, `${d.disk.used}/${d.disk.total}`);
+  } catch {}
+}
+
+function updateMetric(id, percent, label) {
+  const bar = document.getElementById(`m-${id}`);
+  const val = document.getElementById(`m-${id}-val`);
+  bar.style.width = percent + '%';
+  bar.className = 'metric-bar-fill ' + (percent > 90 ? 'crit' : percent > 70 ? 'warn' : 'ok');
+  val.textContent = label;
+}
+
 // --- Init ---
 fetchAll();
+fetchMetrics();
+setInterval(fetchMetrics, 5000);
 setInterval(fetchAll, 8000);
 startSSEFeed();
 
