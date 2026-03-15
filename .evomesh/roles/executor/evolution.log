@@ -1,3 +1,15 @@
 # executor — 演进日志
 
-（暂无记录）
+## Evo-1 | 2026-03-15 | Loop #20
+
+**类型**: 提示词微调 + 记忆沉淀
+
+**变更**:
+- ROLE.md 2.4: archive.md 格式从 `[{date}] {summary} → {commit}` 改为 `[{date}] {summary}`
+
+**原因**:
+- archive 条目在 commit 前写入，commit hash 在写入时不可用
+- 实际 20 个 loop 从未使用过 hash 格式，说明原格式不切实际
+
+**记忆沉淀**:
+- 初始化长期记忆: git pull 处理、文件拆分模式、代码规范、审查节奏

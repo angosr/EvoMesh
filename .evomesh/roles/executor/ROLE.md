@@ -77,7 +77,7 @@
 
 ### 2.4 任务管理
 - todo.md: 待办任务（lead 可通过 inbox 追加）
-- archive.md: 已完成（一行: `[{date}] {summary} → {commit}`）
+- archive.md: 已完成（一行: `[{date}] {summary}`）
 - archive.md 超 50 条时压缩最早 25 条为统计摘要
 
 ---
