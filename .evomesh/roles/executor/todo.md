@@ -7,4 +7,3 @@
 ## 待排期
 
 - `readYaml` 运行时校验（zod）— 当前风险低，配置由 scaffold 生成
-- 添加 devlog/README.md 规范

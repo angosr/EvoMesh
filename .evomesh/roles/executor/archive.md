@@ -20,3 +20,4 @@
 [2026-03-15] perf: bin/evomesh.js 优先加载 dist/ 产物，跳过 tsx 开销
 [2026-03-15] ci: GitHub Actions — push/PR 触发 tsc + test
 [2026-03-15] refactor: 拆分 server/index.ts 800行→ index.ts(242) + routes.ts(359) + terminal.ts(131)
+[2026-03-15] docs: devlog/README.md 规范 — 命名格式、内容模板、使用场景

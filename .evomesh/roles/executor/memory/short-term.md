@@ -10,4 +10,7 @@
   - 更新 decisions.md（bearer token 状态）
   - 向 lead 报告: blueprint/status 有过时条目需更新
   - 测试缺口: server 路由无测试（仅 utils/config/registry/manager 有测试）
+- Loop #17: 空闲轮
+- Loop #18 (2026-03-15): 添加 devlog/README.md 规范
 - 测试: 30/30 全通过, TypeScript 无错误
+- 待排期仅剩: readYaml zod 校验（低优先级）
