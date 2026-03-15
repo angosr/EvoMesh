@@ -7,3 +7,4 @@
 [2026-03-15] 编写核心单元测试 30 cases: paths, registry, loader, manager
 [2026-03-15] Web UI: 添加右侧 Mission Control 面板 (SSE 状态流 + Lead 对话)
 [2026-03-15] P0 安全修复: server.listen 0.0.0.0→127.0.0.1 回归修复 (index.ts:628)
+[2026-03-15] P1 安全: bearer token 认证 — 启动生成 token, REST/WS/SSE/terminal 全端点验证

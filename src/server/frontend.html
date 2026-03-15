@@ -304,7 +304,13 @@
 </div>
 
 <script>
+const AUTH_TOKEN = document.querySelector('meta[name="evomesh-token"]')?.content || '';
 const API = `${location.origin}/api`;
+
+function authFetch(url, opts = {}) {
+  opts.headers = { ...opts.headers, 'Authorization': `Bearer ${AUTH_TOKEN}` };
+  return fetch(url, opts);
+}
 const state = {
   projects: [], accounts: [], openPanels: {}, activePanel: 'dashboard',
   layout: 'tabs', collapsed: {}, chatProject: null, tabOrder: ['dashboard'],
@@ -313,14 +319,14 @@ const state = {
 // ==================== Data ====================
 async function fetchAll() {
   try {
-    const [projRes, acctRes] = await Promise.all([fetch(`${API}/projects`), fetch(`${API}/accounts`)]);
+    const [projRes, acctRes] = await Promise.all([authFetch(`${API}/projects`), authFetch(`${API}/accounts`)]);
     const projData = await projRes.json();
     const acctData = await acctRes.json();
     state.accounts = acctData.accounts || [];
     const projects = [];
     for (const p of projData.projects) {
       try {
-        const s = await (await fetch(`${API}/projects/${p.slug}/status`)).json();
+        const s = await (await authFetch(`${API}/projects/${p.slug}/status`)).json();
         projects.push({ ...p, roles: s.roles || [], accounts: s.accounts || {} });
       } catch { projects.push({ ...p, roles: [], accounts: {} }); }
     }
@@ -422,11 +428,12 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const key = `${slug}/${roleName}`;
   if (state.openPanels[key]) { switchTo(key); return; }
   if (!terminalPath) { alert(`No terminal for ${projectName}/${roleName}`); return; }
+  const authPath = terminalPath + (terminalPath.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(AUTH_TOKEN);
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
-  const iframe = document.createElement('iframe'); iframe.src = terminalPath; iframe.allow = 'clipboard-read; clipboard-write';
+  const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
   panel.appendChild(iframe); document.getElementById('panels').appendChild(panel);
-  let rTimer = setInterval(() => { try { const d = iframe.contentDocument; if (d && d.title === '') iframe.src = terminalPath; } catch {} }, 3000);
-  iframe.addEventListener('error', () => setTimeout(() => { iframe.src = terminalPath; }, 3000));
+  let rTimer = setInterval(() => { try { const d = iframe.contentDocument; if (d && d.title === '') iframe.src = authPath; } catch {} }, 3000);
+  iframe.addEventListener('error', () => setTimeout(() => { iframe.src = authPath; }, 3000));
   state.openPanels[key] = { panel, iframe, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
   renderOpenTabs(); switchTo(key); saveLayout();
@@ -513,25 +520,25 @@ initResize('rh-right', 'chat-sidebar', 'right');
 async function switchAccount(slug, roleName, sel) {
   const an = sel.value, opt = sel.selectedOptions[0];
   if (!confirm(`Switch ${roleName} to "${an}"?`)) { fetchAll(); return; }
-  try { const r = await fetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${roleName}</strong> -> ${an}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
+  try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${roleName}</strong> -> ${an}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
 async function restartRole(slug, roleName) {
   if (!confirm(`Restart "${roleName}"? Session will reconnect automatically.`)) return;
-  try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await fetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
+  try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
 async function deleteRole(slug, roleName) {
   if (!confirm(`Delete "${roleName}"?`)) return;
-  try { const r = await fetch(`${API}/projects/${slug}/roles/${roleName}`, {method:'DELETE'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> deleted`, 'system'); closePanel(`${slug}/${roleName}`); fetchAll(); } } catch { alert('Failed'); }
+  try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}`, {method:'DELETE'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> deleted`, 'system'); closePanel(`${slug}/${roleName}`); fetchAll(); } } catch { alert('Failed'); }
 }
 function showRoleModal(slug) { document.getElementById('rm-slug').value = slug; document.getElementById('rm-name').value = ''; const s = document.getElementById('rm-account'); s.innerHTML = state.accounts.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join(''); document.getElementById('role-modal-overlay').classList.add('show'); document.getElementById('rm-name').focus(); }
 function closeRoleModal() { document.getElementById('role-modal-overlay').classList.remove('show'); }
-async function doCreateRole() { const slug = document.getElementById('rm-slug').value, name = document.getElementById('rm-name').value.trim(), template = document.getElementById('rm-template').value, account = document.getElementById('rm-account').value; if (!name) return; try { const r = await fetch(`${API}/projects/${slug}/roles`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,template,account})}); const d = await r.json(); if (d.ok) { addFeedMessage(`Role <strong>${esc(name)}</strong> created`, 'system'); closeRoleModal(); fetchAll(); } else alert(d.error); } catch { alert('Failed'); } }
+async function doCreateRole() { const slug = document.getElementById('rm-slug').value, name = document.getElementById('rm-name').value.trim(), template = document.getElementById('rm-template').value, account = document.getElementById('rm-account').value; if (!name) return; try { const r = await authFetch(`${API}/projects/${slug}/roles`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,template,account})}); const d = await r.json(); if (d.ok) { addFeedMessage(`Role <strong>${esc(name)}</strong> created`, 'system'); closeRoleModal(); fetchAll(); } else alert(d.error); } catch { alert('Failed'); } }
 document.getElementById('rm-name').addEventListener('keydown', e => { if (e.key==='Enter') doCreateRole(); if (e.key==='Escape') closeRoleModal(); });
 
 // ==================== Add project ====================
 function showAddForm() { document.getElementById('add-project-btn').style.display = 'none'; document.getElementById('add-form').style.display = 'block'; document.getElementById('add-input').focus(); }
 function hideAddForm() { document.getElementById('add-project-btn').style.display = 'block'; document.getElementById('add-form').style.display = 'none'; document.getElementById('add-input').value = ''; }
-async function doAddProject() { const input = document.getElementById('add-input').value.trim(); if (!input) return; const body = input.startsWith('http')||input.startsWith('git@') ? {url:input} : {path:input}; try { addFeedMessage(`Adding: ${esc(input)}...`, 'system'); const r = await fetch(`${API}/projects/add`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(d.project.name)}</strong> added`, 'system'); hideAddForm(); setTimeout(fetchAll, 3000); } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } }
+async function doAddProject() { const input = document.getElementById('add-input').value.trim(); if (!input) return; const body = input.startsWith('http')||input.startsWith('git@') ? {url:input} : {path:input}; try { addFeedMessage(`Adding: ${esc(input)}...`, 'system'); const r = await authFetch(`${API}/projects/add`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(d.project.name)}</strong> added`, 'system'); hideAddForm(); setTimeout(fetchAll, 3000); } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } }
 
 // Path autocomplete
 let acTimer = null, acIndex = -1;
@@ -546,7 +553,7 @@ addInput.addEventListener('keydown', e => {
   else if (e.key==='Escape') { if (acBox.classList.contains('show')) acBox.classList.remove('show'); else hideAddForm(); }
 });
 addInput.addEventListener('blur', () => setTimeout(() => acBox.classList.remove('show'), 200));
-async function fetchCompletions(q) { try { const r = await fetch(`${API}/complete-path?q=${encodeURIComponent(q)}`); const d = await r.json(); if (!d.suggestions.length) { acBox.classList.remove('show'); return; } acBox.innerHTML = d.suggestions.map(s => { const sp = esc(s.path).replace(/'/g, "\\'"); return `<div class="ac-item" data-path="${esc(s.path)}" onmousedown="event.preventDefault();selectCompletion('${sp}')"><span>${esc(s.path)}</span>${s.hasEvomesh?'<span class="ac-badge">evomesh</span>':''}</div>`; }).join(''); acBox.classList.add('show'); acIndex=-1; } catch { acBox.classList.remove('show'); } }
+async function fetchCompletions(q) { try { const r = await authFetch(`${API}/complete-path?q=${encodeURIComponent(q)}`); const d = await r.json(); if (!d.suggestions.length) { acBox.classList.remove('show'); return; } acBox.innerHTML = d.suggestions.map(s => { const sp = esc(s.path).replace(/'/g, "\\'"); return `<div class="ac-item" data-path="${esc(s.path)}" onmousedown="event.preventDefault();selectCompletion('${sp}')"><span>${esc(s.path)}</span>${s.hasEvomesh?'<span class="ac-badge">evomesh</span>':''}</div>`; }).join(''); acBox.classList.add('show'); acIndex=-1; } catch { acBox.classList.remove('show'); } }
 function selectCompletion(p) { addInput.value = p; acBox.classList.remove('show'); acIndex=-1; addInput.focus(); clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(p), 150); }
 
 // ==================== Chat / Feed ====================
@@ -555,13 +562,13 @@ function addFeedMessage(html, cls='status') { const feed = document.getElementBy
 function renderChatProjectSelect() { const sel = document.getElementById('chat-project-select'); sel.innerHTML = state.projects.map(p => `<option value="${p.slug}" ${p.slug===state.chatProject?'selected':''}>${esc(p.name)}</option>`).join(''); }
 function chatProjectChanged() { state.chatProject = document.getElementById('chat-project-select').value; }
 function renderStatusBlock(entries) { const bp = {}; entries.forEach(e => { if (!bp[e.slug]) bp[e.slug]={name:e.project,entries:[]}; bp[e.slug].entries.push(e); }); return Object.entries(bp).map(([,g]) => { const l = g.entries.map(r => `<span class="feed-dot ${r.running?'running':'stopped'}"></span><span class="${r.type==='lead'?'role-name lead':'role-name'}">${r.role}</span><span class="role-status">${r.status}</span>`).join('<br>'); return `<span class="proj-label">${esc(g.name)}</span><br>${l}`; }).join('<br>'); }
-function startSSEFeed() { const es = new EventSource(`${API}/feed`); es.onmessage = e => { try { const d = JSON.parse(e.data); if (d.type==='status') { const ts = new Date(d.ts).toLocaleTimeString(), c = renderStatusBlock(d.entries); if (c===lastStatusContent) return; lastStatusContent=c; addFeedMessage(`<span class="ts">${ts}</span>${c}`, 'status'); } } catch {} }; es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); }; }
-async function sendChat() { const input = document.getElementById('chat-input'), text = input.value.trim(); if (!text||!state.chatProject) return; document.getElementById('chat-send').disabled = true; try { const r = await fetch(`${API}/projects/${state.chatProject}/chat`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d = await r.json(); if (d.ok) { addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user'); addFeedMessage(`Delivered to <strong>${d.delivered_to}</strong>`, 'system'); input.value = ''; } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } document.getElementById('chat-send').disabled = false; input.focus(); }
+function startSSEFeed() { const es = new EventSource(`${API}/feed?token=${encodeURIComponent(AUTH_TOKEN)}`); es.onmessage = e => { try { const d = JSON.parse(e.data); if (d.type==='status') { const ts = new Date(d.ts).toLocaleTimeString(), c = renderStatusBlock(d.entries); if (c===lastStatusContent) return; lastStatusContent=c; addFeedMessage(`<span class="ts">${ts}</span>${c}`, 'status'); } } catch {} }; es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); }; }
+async function sendChat() { const input = document.getElementById('chat-input'), text = input.value.trim(); if (!text||!state.chatProject) return; document.getElementById('chat-send').disabled = true; try { const r = await authFetch(`${API}/projects/${state.chatProject}/chat`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d = await r.json(); if (d.ok) { addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user'); addFeedMessage(`Delivered to <strong>${d.delivered_to}</strong>`, 'system'); input.value = ''; } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } document.getElementById('chat-send').disabled = false; input.focus(); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); } });
 
 // ==================== Metrics ====================
-async function fetchMetrics() { try { const r = await fetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
+async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
 function setConnStatus(connected) { if (connected && !serverConnected) { for (const [,p] of Object.entries(state.openPanels)) { if (p.iframe) p.iframe.src = p.iframe.src; } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
 

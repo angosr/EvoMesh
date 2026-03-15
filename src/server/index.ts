@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
@@ -34,10 +35,36 @@ interface ProjectEntry {
   root: string;
 }
 
-export function startServer(port: number, initialRoot?: string) {
+export function startServer(port: number, initialRoot?: string, userToken?: string) {
+  const token = userToken || crypto.randomBytes(24).toString("base64url");
   const app = express();
   const server = http.createServer(app);
   app.use(express.json());
+
+  // --- Bearer token authentication ---
+  function extractToken(req: { headers: { authorization?: string }; query?: { token?: string }; url?: string }): string | undefined {
+    const auth = req.headers.authorization;
+    if (auth?.startsWith("Bearer ")) return auth.slice(7);
+    if (typeof (req as any).query?.token === "string") return (req as any).query.token;
+    const url = new URL(req.url || "/", "http://localhost");
+    return url.searchParams.get("token") || undefined;
+  }
+
+  app.use((req, res, next) => {
+    // Allow root with valid token (for initial page load)
+    if (req.path === "/" && extractToken(req) === token) return next();
+    // Redirect root without token to show auth required
+    if (req.path === "/" && !extractToken(req)) {
+      res.status(401).send("Authentication required. Access with ?token=<token>");
+      return;
+    }
+    // All API/other routes require valid token
+    if (extractToken(req) !== token) {
+      res.status(401).json({ error: "Invalid or missing token" });
+      return;
+    }
+    next();
+  });
 
   const ttydProcesses: Map<string, TtydProcess> = new Map(); // key: "slug/role"
 
@@ -133,8 +160,11 @@ export function startServer(port: number, initialRoot?: string) {
     proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port);
   });
 
-  // WebSocket proxy
+  // WebSocket proxy (with token auth)
   server.on("upgrade", (req, socket, head) => {
+    const wsToken = extractToken(req as any);
+    if (wsToken !== token) { socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n"); socket.destroy(); return; }
+
     const url = req.url || "";
     const match = url.match(/^\/terminal\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)\//);
     if (!match) return;
@@ -604,13 +634,15 @@ export function startServer(port: number, initialRoot?: string) {
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });
 
-  // Serve static frontend
+  // Serve static frontend (inject auth token)
   app.get("/", (_req, res) => {
     const htmlPath = path.join(__dirname, "..", "..", "src", "server", "frontend.html");
     const distPath = path.join(__dirname, "frontend.html");
     const filePath = fs.existsSync(htmlPath) ? htmlPath : distPath;
-    if (fs.existsSync(filePath)) res.sendFile(filePath);
-    else res.send("Frontend not found.");
+    if (!fs.existsSync(filePath)) { res.send("Frontend not found."); return; }
+    let html = fs.readFileSync(filePath, "utf-8");
+    html = html.replace("</head>", `<meta name="evomesh-token" content="${token}">\n</head>`);
+    res.type("html").send(html);
   });
 
   // Start ttyd instances
@@ -628,7 +660,8 @@ export function startServer(port: number, initialRoot?: string) {
   // IMPORTANT: 必须 0.0.0.0 — 远程服务器需外网访问，勿改为 127.0.0.1（见 shared/decisions.md）
   server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
-    console.log(`    http://localhost:${port}`);
-    console.log(`\n  Terminals proxied at /terminal/{project}/{role}/\n`);
+    console.log(`    http://localhost:${port}/?token=${token}`);
+    console.log(`\n  Auth token: ${token}`);
+    console.log(`  Terminals proxied at /terminal/{project}/{role}/\n`);
   });
 }
