@@ -28,6 +28,25 @@
   .role-btn .dot.stopped { background: #555; }
   .role-btn .login-warn { color: #ef4444; font-size: 9px; margin-left: 2px; font-weight: 600; }
   .role-btn .info { font-size: 10px; color: #666; margin-left: auto; }
+  .role-btn .del-role { opacity: 0; color: #ef4444; cursor: pointer; font-size: 12px; margin-left: 4px; }
+  .role-btn:hover .del-role { opacity: 0.5; }
+  .role-btn .del-role:hover { opacity: 1; }
+  .add-role-btn { display: flex; align-items: center; gap: 4px; padding: 5px 12px; cursor: pointer; border: none; background: none; color: #555; font-size: 11px; width: 100%; text-align: left; }
+  .add-role-btn:hover { color: #e94560; }
+  /* Role add modal */
+  #role-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+  #role-modal-overlay.show { display: flex; }
+  #role-modal { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 20px; width: 340px; }
+  #role-modal h3 { color: #e94560; margin-bottom: 12px; font-size: 15px; }
+  #role-modal label { display: block; color: #888; font-size: 11px; margin-bottom: 4px; margin-top: 10px; }
+  #role-modal input, #role-modal select { width: 100%; padding: 8px; background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; border-radius: 4px; font-size: 13px; }
+  #role-modal input:focus, #role-modal select:focus { outline: none; border-color: #e94560; }
+  #role-modal .modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+  #role-modal .modal-btns button { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  #role-modal .btn-create { background: #e94560; color: #fff; }
+  #role-modal .btn-create:hover { background: #d63851; }
+  #role-modal .btn-close { background: #333; color: #888; }
+  #role-modal .btn-close:hover { background: #444; }
   #add-project-area { padding: 8px 12px; border-top: 1px solid #0f3460; }
   #add-project-btn { width: 100%; padding: 8px; background: #1a1a2e; border: 1px dashed #0f3460; color: #888; cursor: pointer; border-radius: 6px; font-size: 12px; }
   #add-project-btn:hover { border-color: #e94560; color: #e94560; }
@@ -158,6 +177,27 @@
   </div>
 </div>
 
+<div id="role-modal-overlay" onclick="if(event.target===this)closeRoleModal()">
+  <div id="role-modal">
+    <h3>Add Role</h3>
+    <input type="hidden" id="rm-slug" />
+    <label>Role Name</label>
+    <input id="rm-name" placeholder="e.g. designer, tester" />
+    <label>Template</label>
+    <select id="rm-template">
+      <option value="executor">executor</option>
+      <option value="lead">lead</option>
+      <option value="reviewer">reviewer</option>
+    </select>
+    <label>Account</label>
+    <select id="rm-account"></select>
+    <div class="modal-btns">
+      <button class="btn-create" onclick="doCreateRole()">Create</button>
+      <button class="btn-close" onclick="closeRoleModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = `${location.origin}/api`;
 
@@ -250,10 +290,19 @@ function renderSidebar() {
       const loginW = r.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
       btn.innerHTML = `<span class="dot ${r.running ? 'running' : 'stopped'}"></span>
         <span>${r.name}</span>${loginW}
-        <span class="info">${r.account}</span>`;
+        <span class="info">${r.account}</span>
+        <span class="del-role" onclick="event.stopPropagation(); deleteRole('${p.slug}','${r.name}')" title="Delete role">&times;</span>`;
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
       rolesDiv.appendChild(btn);
     }
+
+    // Add role button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-role-btn';
+    addBtn.textContent = '+ Add Role';
+    addBtn.onclick = () => showRoleModal(p.slug);
+    rolesDiv.appendChild(addBtn);
+
     group.appendChild(rolesDiv);
     tree.appendChild(group);
   }
@@ -431,6 +480,66 @@ async function doAddProject() {
 document.getElementById('add-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doAddProject();
   if (e.key === 'Escape') hideAddForm();
+});
+
+// --- Role management ---
+
+function showRoleModal(slug) {
+  document.getElementById('rm-slug').value = slug;
+  document.getElementById('rm-name').value = '';
+  // Populate account select
+  const acctSel = document.getElementById('rm-account');
+  acctSel.innerHTML = state.accounts.map(a =>
+    `<option value="${esc(a.name)}">${esc(a.name)} (${esc(a.path)})</option>`
+  ).join('');
+  document.getElementById('role-modal-overlay').classList.add('show');
+  document.getElementById('rm-name').focus();
+}
+
+function closeRoleModal() {
+  document.getElementById('role-modal-overlay').classList.remove('show');
+}
+
+async function doCreateRole() {
+  const slug = document.getElementById('rm-slug').value;
+  const name = document.getElementById('rm-name').value.trim();
+  const template = document.getElementById('rm-template').value;
+  const account = document.getElementById('rm-account').value;
+  if (!name) return;
+
+  try {
+    const res = await fetch(`${API}/projects/${slug}/roles`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, template, account }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addFeedMessage(`Role <strong>${esc(name)}</strong> created (${template})`, 'system');
+      closeRoleModal();
+      fetchAll();
+    } else {
+      alert(data.error);
+    }
+  } catch { alert('Failed to create role'); }
+}
+
+async function deleteRole(slug, roleName) {
+  if (!confirm(`Delete role "${roleName}"? This will stop it and remove all its files.`)) return;
+  try {
+    const res = await fetch(`${API}/projects/${slug}/roles/${roleName}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      addFeedMessage(`Role <strong>${esc(roleName)}</strong> deleted`, 'system');
+      const key = `${slug}/${roleName}`;
+      if (state.openPanels[key]) closePanel(key);
+      fetchAll();
+    } else { alert(data.error); }
+  } catch { alert('Failed to delete role'); }
+}
+
+document.getElementById('rm-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doCreateRole();
+  if (e.key === 'Escape') closeRoleModal();
 });
 
 // --- Chat ---

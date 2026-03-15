@@ -12,6 +12,8 @@ import { spawnRole, stopRole } from "../process/spawner.js";
 import { runtimeDir, roleDir, evomeshDir, expandHome } from "../utils/paths.js";
 import { loadWorkspace, saveWorkspace, addProject, slugify, ensureInWorkspace } from "../workspace/config.js";
 import { smartInit } from "../workspace/smartInit.js";
+import { createRole, deleteRole } from "../roles/manager.js";
+import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
 import { exists } from "../utils/fs.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -430,6 +432,59 @@ export function startServer(port: number, initialRoot?: string) {
       }
 
       res.json({ ok: true, oldAccount, newAccount: accountName, restarted: wasRunning });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // --- Role management ---
+
+  // List available templates
+  app.get("/api/templates", (_req, res) => {
+    res.json({ templates: TEMPLATE_NAMES });
+  });
+
+  // Create role
+  app.post("/api/projects/:slug/roles", (req, res) => {
+    const project = getProject(req.params.slug);
+    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+
+    const { name, template, account } = req.body;
+    if (!name || !ROLE_NAME_RE.test(name)) { res.status(400).json({ error: "Invalid role name" }); return; }
+    if (!template || !TEMPLATES[template]) {
+      res.status(400).json({ error: `Invalid template. Available: ${TEMPLATE_NAMES.join(", ")}` });
+      return;
+    }
+
+    try {
+      const config = loadConfig(project.root);
+      if (config.roles[name]) { res.status(409).json({ error: `Role "${name}" already exists` }); return; }
+
+      createRole(project.root, name, template, config, account || "main");
+      res.json({ ok: true, role: name, template });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Delete role
+  app.delete("/api/projects/:slug/roles/:name", (req, res) => {
+    const project = getProject(req.params.slug);
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    const roleName = req.params.name;
+
+    try {
+      const config = loadConfig(project.root);
+      if (!config.roles[roleName]) { res.status(404).json({ error: "Role not found" }); return; }
+
+      // Stop if running
+      const info = readPid(project.root, roleName);
+      if (info?.alive) stopRole(project.root, roleName);
+
+      // Kill ttyd
+      const key = `${project.slug}/${roleName}`;
+      const ttyd = ttydProcesses.get(key);
+      if (ttyd) { try { ttyd.process.kill(); } catch {} ttydProcesses.delete(key); }
+
+      // Delete role
+      deleteRole(project.root, roleName, config);
+      res.json({ ok: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
