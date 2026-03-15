@@ -42,6 +42,13 @@ const pty = ptySpawn("claude", ["--dangerously-skip-permissions"], {
 // Write daemon's own PID (not the pty child pid) — we need the PTY pid for killing
 fs.writeFileSync(pidFile, String(process.pid), "utf-8");
 
+function stripAnsi(s: string): string {
+  return s
+    .replace(/\x1b\[\d*C/g, " ")
+    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
+    .replace(/ +/g, " ");
+}
+
 // Readiness detection + /loop injection
 let loopSent = false;
 let buffer = "";
@@ -61,7 +68,7 @@ pty.onData((data) => {
 
   if (!loopSent) {
     buffer += data;
-    if (!readyDetected && buffer.includes("bypass permissions")) {
+    if (!readyDetected && stripAnsi(buffer).includes("bypass permissions")) {
       readyDetected = true;
     }
     if (readyDetected) {

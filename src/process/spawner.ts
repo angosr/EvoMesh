@@ -17,6 +17,16 @@ function tmuxSessionName(roleName: string): string {
   return `evomesh-${roleName}`;
 }
 
+// Strip ANSI escape sequences for readiness detection.
+// Cursor-move codes like \x1b[1C act as visual spaces but leave no literal space,
+// so we replace them with a space before stripping the rest.
+function stripAnsi(s: string): string {
+  return s
+    .replace(/\x1b\[\d*C/g, " ")           // cursor forward → space
+    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "") // strip remaining ANSI
+    .replace(/ +/g, " ");                   // collapse multiple spaces
+}
+
 export function spawnRole(
   root: string,
   roleName: string,
@@ -82,7 +92,7 @@ function spawnForeground(
     process.stdout.write(data);
     if (!loopSent) {
       buffer += data;
-      if (!readyDetected && buffer.includes("bypass permissions")) {
+      if (!readyDetected && stripAnsi(buffer).includes("bypass permissions")) {
         readyDetected = true;
       }
       if (readyDetected) {
@@ -161,9 +171,11 @@ function spawnTmux(
   const loopCmd = `/loop ${interval} ${loopPrompt}`;
   const sendScript = path.join(runtimeDir(root), `${roleName}-send.sh`);
   fs.writeFileSync(sendScript, `#!/bin/bash
-# Poll log until "bypass permissions" appears (max 60s)
+# Poll log until "bypass" + "permissions" appears (max 60s)
+# Log contains ANSI escape codes (cursor-move separates words), so match each word
+ESC=$(printf '\\x1b')
 for i in $(seq 1 120); do
-  if grep -q "bypass permissions" "$EVOMESH_LOG" 2>/dev/null; then
+  if grep -q "bypass" "$EVOMESH_LOG" 2>/dev/null && grep -q "permissions" "$EVOMESH_LOG" 2>/dev/null; then
     # Wait for output to settle (no log growth for 1.5s)
     prev_size=0
     while true; do
