@@ -85,15 +85,17 @@ export function startServer(port: number, initialRoot?: string) {
     return url.searchParams.get("token") || undefined;
   }
 
+  // Validate a session token (public endpoint for client-side auth check)
+  app.get("/auth/validate", (req, res) => {
+    const token = extractSession(req);
+    res.json({ valid: !!token && sessions.has(token) });
+  });
+
   app.use((req, res, next) => {
     // Auth routes are public
     if (req.path.startsWith("/auth/")) return next();
-    // Login page served without auth
-    if (req.path === "/login") return next();
-    // Main page without session → redirect to login
-    if (req.path === "/" && !sessions.has(extractSession(req) || "")) {
-      return res.redirect("/login");
-    }
+    // Login page and main page served without auth — client-side JS handles auth
+    if (req.path === "/login" || req.path === "/") return next();
     // API/other routes require valid session
     const token = extractSession(req);
     if (!token || !sessions.has(token)) {
@@ -687,16 +689,12 @@ export function startServer(port: number, initialRoot?: string) {
   });
 
   // Serve static frontend
-  app.get("/", (req, res) => {
+  app.get("/", (_req, res) => {
     const htmlPath = path.join(__dirname, "..", "..", "src", "server", "frontend.html");
     const distPath = path.join(__dirname, "frontend.html");
     const filePath = fs.existsSync(htmlPath) ? htmlPath : distPath;
     if (!fs.existsSync(filePath)) { res.send("Frontend not found."); return; }
-    // Inject session token for API calls
-    const token = extractSession(req) || "";
-    let html = fs.readFileSync(filePath, "utf-8");
-    html = html.replace("</head>", `<meta name="evomesh-token" content="${token}">\n</head>`);
-    res.type("html").send(html);
+    res.type("html").sendFile(path.resolve(filePath));
   });
 
   // Start ttyd instances
@@ -777,14 +775,14 @@ async function doSetup() {
   if (pw !== confirm) { showError('Passwords do not match'); return; }
   const r = await fetch('/auth/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
   const d = await r.json();
-  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/?token=' + encodeURIComponent(d.token); }
+  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/'; }
   else showError(d.error);
 }
 async function doLogin() {
   const pw = document.getElementById('pw').value;
   const r = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
   const d = await r.json();
-  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/?token=' + encodeURIComponent(d.token); }
+  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/'; }
   else showError(d.error || 'Wrong password');
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('login-form').style.display !== 'none' ? doLogin() : doSetup(); } });
@@ -793,10 +791,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.ge
   const saved = localStorage.getItem('evomesh-token');
   if (saved) {
     try {
-      const r = await fetch('/api/projects', { headers: { 'Authorization': 'Bearer ' + saved } });
-      if (r.ok) { location.href = '/?token=' + encodeURIComponent(saved); return; }
+      const r = await fetch('/auth/validate', { headers: { 'Authorization': 'Bearer ' + saved } });
+      const d = await r.json();
+      if (d.valid) { location.href = '/'; return; }
     } catch {}
-    // Token invalid — clear and show login
     localStorage.removeItem('evomesh-token');
   }
   init();
