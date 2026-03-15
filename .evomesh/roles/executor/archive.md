@@ -16,3 +16,4 @@
 [2026-03-15] P1 多用户管理: auth.ts RBAC + admin API + 登录页用户名 + 前端用户管理
 [2026-03-15] fix: spawnForeground 未使用 claudeArgs — 前台模式现在支持 --name/--resume
 [2026-03-15] refactor: loginPageHtml 提取为 login.html — index.ts 889→800 行
+[2026-03-15] chore: 删除死代码 daemon.ts（102行，已被 tmux 方案替代）
