@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvoMesh</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; height: 100vh; display: flex; }
+
+  /* Sidebar */
+  #sidebar { width: 220px; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; flex-shrink: 0; }
+  #sidebar h1 { padding: 16px; font-size: 18px; color: #e94560; border-bottom: 1px solid #0f3460; }
+  #sidebar h2 { padding: 12px 16px 4px; font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; }
+  .role-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; cursor: pointer; border: none; background: none; color: #e0e0e0; font-size: 14px; width: 100%; text-align: left; transition: background 0.15s; }
+  .role-btn:hover { background: #1a1a3e; }
+  .role-btn.active { background: #0f3460; color: #fff; }
+  .role-btn .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .role-btn .dot.running { background: #4ade80; }
+  .role-btn .dot.stopped { background: #666; }
+  .role-btn .info { font-size: 11px; color: #888; margin-left: auto; }
+  #status-bar { margin-top: auto; padding: 12px 16px; border-top: 1px solid #0f3460; font-size: 11px; color: #666; }
+
+  /* Main area */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Tab bar */
+  #tabs { display: flex; background: #16213e; border-bottom: 1px solid #0f3460; min-height: 36px; overflow-x: auto; }
+  .tab { padding: 8px 16px; cursor: pointer; border: none; background: none; color: #888; font-size: 13px; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .tab:hover { color: #e0e0e0; }
+  .tab.active { color: #e94560; border-bottom-color: #e94560; }
+  .tab .close { margin-left: 8px; opacity: 0.4; }
+  .tab .close:hover { opacity: 1; }
+
+  /* Terminal panels */
+  #panels { flex: 1; position: relative; overflow: hidden; }
+  .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; padding: 4px; }
+  .panel.active { display: flex; }
+  .panel .xterm { width: 100%; height: 100%; }
+
+  /* Dashboard panel */
+  #dashboard { padding: 24px; overflow-y: auto; font-size: 14px; line-height: 1.8; }
+  #dashboard h2 { color: #e94560; margin-bottom: 12px; }
+  #dashboard .card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  #dashboard .card h3 { color: #4ade80; margin-bottom: 8px; font-size: 14px; }
+  #dashboard pre { background: #0a0a1a; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 12px; color: #ccc; white-space: pre-wrap; }
+  #dashboard table { width: 100%; border-collapse: collapse; }
+  #dashboard th, #dashboard td { text-align: left; padding: 6px 12px; border-bottom: 1px solid #0f3460; }
+  #dashboard th { color: #888; font-size: 11px; text-transform: uppercase; }
+
+  /* Layout modes */
+  #layout-controls { display: flex; gap: 4px; padding: 4px 8px; }
+  #layout-controls button { background: #1a1a2e; border: 1px solid #0f3460; color: #888; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 3px; }
+  #layout-controls button:hover, #layout-controls button.active { color: #e94560; border-color: #e94560; }
+
+  /* Grid layout */
+  #panels.grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
+  #panels.grid .panel { position: relative; display: flex !important; }
+  #panels.grid .panel.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>EvoMesh</h1>
+  <h2>Roles</h2>
+  <div id="role-list"></div>
+  <div id="status-bar">Loading...</div>
+</div>
+
+<div id="main">
+  <div style="display:flex; align-items:center; border-bottom: 1px solid #0f3460;">
+    <div id="tabs">
+      <button class="tab active" data-panel="dashboard">Dashboard</button>
+    </div>
+    <div id="layout-controls">
+      <button id="btn-tabs" class="active" title="Tab view">Tabs</button>
+      <button id="btn-grid" title="Grid view">Grid</button>
+    </div>
+  </div>
+  <div id="panels">
+    <div class="panel active" id="panel-dashboard">
+      <div id="dashboard">
+        <h2>Project Overview</h2>
+        <div id="dash-content">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script>
+const WS_URL = `ws://${location.host}`;
+const API_URL = `${location.origin}/api`;
+
+const state = {
+  roles: [],
+  terminals: {},   // roleName -> { term, ws, tab, panel }
+  activePanel: 'dashboard',
+  layout: 'tabs',  // 'tabs' or 'grid'
+};
+
+// --- Fetch status ---
+async function fetchStatus() {
+  try {
+    const res = await fetch(`${API_URL}/status`);
+    const data = await res.json();
+    state.roles = data.roles;
+    renderSidebar(data);
+    renderDashboard(data);
+  } catch (e) {
+    document.getElementById('status-bar').textContent = 'Connection error';
+  }
+}
+
+function renderSidebar(data) {
+  const list = document.getElementById('role-list');
+  list.innerHTML = '';
+  for (const role of data.roles) {
+    const btn = document.createElement('button');
+    btn.className = `role-btn ${state.activePanel === role.name ? 'active' : ''}`;
+    btn.innerHTML = `
+      <span class="dot ${role.running ? 'running' : 'stopped'}"></span>
+      <span>${role.name}</span>
+      <span class="info">${role.loop_interval}</span>
+    `;
+    btn.onclick = () => openTerminal(role.name);
+    list.appendChild(btn);
+  }
+  document.getElementById('status-bar').textContent =
+    `${data.project} · ${data.roles.filter(r => r.running).length}/${data.roles.length} running`;
+}
+
+function renderDashboard(data) {
+  const el = document.getElementById('dash-content');
+  const rows = data.roles.map(r => `
+    <tr>
+      <td><span class="dot ${r.running ? 'running' : 'stopped'}" style="display:inline-block;width:8px;height:8px;border-radius:50;margin-right:6px"></span> ${r.name}</td>
+      <td>${r.type}</td>
+      <td>${r.loop_interval}</td>
+      <td>${r.running ? `<span style="color:#4ade80">running</span> (PID ${r.pid})` : '<span style="color:#666">stopped</span>'}</td>
+      <td>${r.description}</td>
+    </tr>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <h3>Roles</h3>
+      <table>
+        <tr><th>Name</th><th>Type</th><th>Interval</th><th>Status</th><th>Description</th></tr>
+        ${rows}
+      </table>
+    </div>
+    <div class="card">
+      <h3>Quick Actions</h3>
+      <p style="color:#888; font-size:13px">Click a role in the sidebar to open its terminal. Use Grid view for multi-panel layout.</p>
+    </div>
+  `;
+}
+
+// --- Terminal management ---
+function openTerminal(roleName) {
+  if (state.terminals[roleName]) {
+    switchToPanel(roleName);
+    return;
+  }
+
+  // Create tab
+  const tab = document.createElement('button');
+  tab.className = 'tab';
+  tab.dataset.panel = roleName;
+  tab.innerHTML = `${roleName} <span class="close" onclick="event.stopPropagation(); closeTerminal('${roleName}')">&times;</span>`;
+  tab.onclick = () => switchToPanel(roleName);
+  document.getElementById('tabs').appendChild(tab);
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.id = `panel-${roleName}`;
+  const termEl = document.createElement('div');
+  termEl.className = 'xterm';
+  panel.appendChild(termEl);
+  document.getElementById('panels').appendChild(panel);
+
+  // Create xterm
+  const term = new Terminal({
+    theme: {
+      background: '#1a1a2e',
+      foreground: '#e0e0e0',
+      cursor: '#e94560',
+      selectionBackground: '#0f3460',
+    },
+    fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace",
+    fontSize: 13,
+    cursorBlink: true,
+    scrollback: 5000,
+  });
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(termEl);
+  fitAddon.fit();
+
+  // WebSocket connection
+  const ws = new WebSocket(`${WS_URL}?role=${roleName}`);
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'output') {
+      term.write(msg.data);
+    } else if (msg.type === 'error') {
+      term.write(`\r\n\x1b[31m[Error] ${msg.message}\x1b[0m\r\n`);
+    }
+  };
+  ws.onclose = () => {
+    term.write('\r\n\x1b[33m[Disconnected]\x1b[0m\r\n');
+  };
+
+  // Forward keystrokes
+  term.onData((data) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'input', data }));
+    }
+  });
+
+  // Handle resize
+  const resizeObs = new ResizeObserver(() => {
+    fitAddon.fit();
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+    }
+  });
+  resizeObs.observe(termEl);
+
+  state.terminals[roleName] = { term, ws, tab, panel, fitAddon, resizeObs };
+  switchToPanel(roleName);
+}
+
+function closeTerminal(roleName) {
+  const t = state.terminals[roleName];
+  if (!t) return;
+  t.ws.close();
+  t.term.dispose();
+  t.resizeObs.disconnect();
+  t.tab.remove();
+  t.panel.remove();
+  delete state.terminals[roleName];
+  if (state.activePanel === roleName) {
+    switchToPanel('dashboard');
+  }
+}
+
+function switchToPanel(name) {
+  state.activePanel = name;
+
+  // Update tabs
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.panel === name);
+  });
+
+  // Update panels (in tab mode)
+  if (state.layout === 'tabs') {
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.toggle('active', p.id === `panel-${name}`);
+    });
+  }
+
+  // Update sidebar
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+
+  // Fit terminal
+  if (state.terminals[name]) {
+    setTimeout(() => state.terminals[name].fitAddon.fit(), 50);
+  }
+}
+
+// --- Layout ---
+document.getElementById('btn-tabs').onclick = () => setLayout('tabs');
+document.getElementById('btn-grid').onclick = () => setLayout('grid');
+
+function setLayout(mode) {
+  state.layout = mode;
+  const panels = document.getElementById('panels');
+  document.getElementById('btn-tabs').classList.toggle('active', mode === 'tabs');
+  document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
+
+  if (mode === 'grid') {
+    panels.classList.add('grid');
+    // Show all terminal panels
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.remove('active');
+      p.style.display = '';
+    });
+    // Hide dashboard in grid
+    const dash = document.getElementById('panel-dashboard');
+    if (dash) dash.classList.add('hidden');
+    // Fit all terminals
+    Object.values(state.terminals).forEach(t => setTimeout(() => t.fitAddon.fit(), 100));
+  } else {
+    panels.classList.remove('grid');
+    // Reset to tab mode — show only active
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.remove('hidden');
+      p.classList.toggle('active', p.id === `panel-${state.activePanel}`);
+    });
+    if (state.terminals[state.activePanel]) {
+      setTimeout(() => state.terminals[state.activePanel].fitAddon.fit(), 50);
+    }
+  }
+}
+
+// --- Init ---
+fetchStatus();
+setInterval(fetchStatus, 5000);
+
+// Keyboard shortcuts: Ctrl+1~9 to switch tabs
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+    e.preventDefault();
+    const idx = parseInt(e.key) - 1;
+    const tabs = document.querySelectorAll('.tab');
+    if (tabs[idx]) tabs[idx].click();
+  }
+});
+</script>
+</body>
+</html>
