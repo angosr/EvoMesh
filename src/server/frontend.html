@@ -136,8 +136,8 @@
 
   /* Panels */
   #panels { flex: 1; position: relative; overflow: hidden; height: 100%; }
-  .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
-  .panel.active { display: block; }
+  .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; visibility: hidden; z-index: 0; }
+  .panel.active { visibility: visible; z-index: 1; }
   .panel iframe { width: 100%; height: 100%; border: none; background: #000; touch-action: none; }
   .panel .reconnect-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .panel .reconnect-overlay.show { display: flex; }
