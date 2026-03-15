@@ -508,16 +508,17 @@ addInput.addEventListener('keydown', e => {
     e.preventDefault();
     acIndex = Math.max(acIndex - 1, 0);
     updateAcSelection(items);
-  } else if (e.key === 'Tab' && acBox.classList.contains('show') && items.length > 0) {
+  } else if ((e.key === 'Tab' || e.key === 'Enter') && acBox.classList.contains('show') && items.length > 0) {
     e.preventDefault();
     const sel = acIndex >= 0 ? items[acIndex] : items[0];
     addInput.value = sel.dataset.path;
     acBox.classList.remove('show');
     acIndex = -1;
-    // Trigger new completion for the selected directory
+    // Continue completing subdirectories
     clearTimeout(acTimer);
     acTimer = setTimeout(() => fetchCompletions(addInput.value), 150);
   } else if (e.key === 'Enter') {
+    // Only submit when autocomplete is NOT showing
     acBox.classList.remove('show');
     doAddProject();
   } else if (e.key === 'Escape') {
@@ -540,12 +541,13 @@ async function fetchCompletions(q) {
     const data = await res.json();
     if (!data.suggestions.length) { acBox.classList.remove('show'); return; }
 
-    acBox.innerHTML = data.suggestions.map(s =>
-      `<div class="ac-item" data-path="${esc(s.path)}" onmousedown="selectCompletion('${esc(s.path).replace(/'/g, "\\'")}')">
+    acBox.innerHTML = data.suggestions.map(s => {
+      const safePath = esc(s.path).replace(/'/g, "\\'");
+      return `<div class="ac-item" data-path="${esc(s.path)}" onmousedown="event.preventDefault(); selectCompletion('${safePath}')">
         <span>${esc(s.path)}</span>
         ${s.hasEvomesh ? '<span class="ac-badge">evomesh</span>' : ''}
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
     acBox.classList.add('show');
     acIndex = -1;
   } catch { acBox.classList.remove('show'); }
