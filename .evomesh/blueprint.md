@@ -9,34 +9,43 @@
 ## 技术路线
 
 ### Phase 1 — CLI + 模板 (MVP) ✅
-- [x] CLI: init / role create|list|delete / start|stop|status|attach
-- [x] 3 个内置模板: lead, executor, reviewer
-- [x] 进程管理: node-pty spawn + PID registry
+- [x] CLI: init / role create|list|delete / start|stop|status|attach / serve
+- [x] 3 个内置模板: lead, executor, reviewer（中英双语）
+- [x] 进程管理: tmux + node-pty spawn + PID registry
 - [x] 多账号支持 (CLAUDE_CONFIG_DIR)
 - [x] 自举
 
-### Phase 2 — 协作 + 演进 ← 当前
-- [x] inbox 消息机制（基础实现）
+### Phase 2 — 协作 + 演进 ✅
+- [x] inbox 消息机制
 - [x] 自我审查协议实现（角色 ROLE.md 中定义）
 - [x] Lead 全角色审查
 - [x] devlog 规范
-- [x] **安全加固: P0 命令注入修复** ✅
-- [ ] 运行时配置校验 (zod)
+- [x] 安全加固: P0 命令注入修复
+- [ ] 运行时配置校验 (zod) — 低优先，配置由 scaffold 生成
 - [ ] 单元测试补全
 
-### Phase 3 — Web UI
-- [x] 终端桥接 (node-pty + xterm.js + WebSocket) — 基础版完成
-- [x] 密码认证 + 登录页 ✅
-- [ ] **多用户管理系统（admin/viewer）** ← 进行中
-- [ ] 面板布局 + Dashboard
+### Phase 3 — Web UI ← 当前
+- [x] 终端桥接 (ttyd + WebSocket) — 含 scrollback、touch 支持
+- [x] 密码认证 + 登录页 + session 管理
+- [x] 多用户管理系统（admin/viewer 角色，用户增删改查）
+- [x] Dashboard 面板布局（可调节三栏、标签页终端、角色状态）
+- [x] 移动端适配（touch 事件、响应式布局）
+- [x] 多项目管理（workspace.yaml）
+- [x] Claude Code 会话自动恢复（--name + session ID）
+- [ ] WebSocket 认证刷新
+- [ ] API 安全头 / 限流
 
-### Phase 4 — 打磨
+### Phase 4 — 打磨 (planned)
 - [ ] 模板导入/导出
 - [ ] 演进可视化
+- [ ] 审计日志
+- [ ] Session 持久化（当前服务器重启丢失）
 
 ## 架构决策
 
-1. 单包结构（Phase 3 时拆 monorepo）
+1. 单包结构，TypeScript + Express + tmux
 2. 兼容 Claude Code 原生 .claude/ 结构
 3. 所有角色同分支同目录
-4. node-pty 进程管理，foreground + background 模式
+4. tmux 进程管理，foreground + background 模式
+5. 认证: PBKDF2-SHA512 + 内存 session，用户数据存 ~/.evomesh/users.yaml
+6. Web UI: 单 HTML 文件 SPA，无前端构建依赖
