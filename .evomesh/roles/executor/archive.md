@@ -13,3 +13,4 @@
 [2026-03-15] 库函数 process.exit→throw Error: loader, paths, spawner, scaffold
 [2026-03-15] attach.ts: 移除无用 fs.watch（实际由 stat 轮询实现）
 [2026-03-15] 自我审查: formatBytes MB 单位 bug 修复，switchAccount XSS 遗漏修补
+[2026-03-15] P1 多用户管理: auth.ts RBAC + admin API + 登录页用户名 + 前端用户管理

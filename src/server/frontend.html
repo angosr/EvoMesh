@@ -648,10 +648,25 @@ function toggleChat() {
   }
 }
 
+function getCurrentUser() {
+  try { return JSON.parse(localStorage.getItem('evomesh-user') || '{}'); } catch { return {}; }
+}
+
 function showSettings() {
-  const action = prompt('Settings:\n1 = Change password\n2 = Logout\n\nEnter number:');
+  const user = getCurrentUser();
+  const isAdmin = user.role === 'admin';
+  let options = `Logged in as: ${user.username || '?'} (${user.role || '?'})\n\n1 = Change password\n2 = Logout`;
+  if (isAdmin) options += '\n3 = Manage users';
+  const action = prompt(options + '\n\nEnter number:');
   if (action === '1') changePw();
-  else if (action === '2') { localStorage.removeItem('evomesh-token'); location.href = '/login'; }
+  else if (action === '2') doLogout();
+  else if (action === '3' && isAdmin) showUserManagement();
+}
+
+function doLogout() {
+  localStorage.removeItem('evomesh-token');
+  localStorage.removeItem('evomesh-user');
+  location.href = '/login';
 }
 
 async function changePw() {
@@ -665,6 +680,63 @@ async function changePw() {
     const r = await authFetch(`/auth/change-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({oldPassword:oldPw, newPassword:newPw}) });
     const d = await r.json();
     if (d.ok) alert('Password changed');
+    else alert(d.error || 'Failed');
+  } catch { alert('Failed'); }
+}
+
+async function showUserManagement() {
+  try {
+    const r = await authFetch(`${API}/users`);
+    const d = await r.json();
+    if (!d.users) { alert('Failed to load users'); return; }
+    let msg = 'Users:\n\n';
+    d.users.forEach((u, i) => { msg += `${i+1}. ${u.username} [${u.role}] (${new Date(u.createdAt).toLocaleDateString()})\n`; });
+    msg += '\nActions:\n  A = Add user\n  D = Delete user\n  R = Reset password\n  (or press Cancel)';
+    const action = prompt(msg);
+    if (!action) return;
+    const cmd = action.toUpperCase();
+    if (cmd === 'A') await addUserPrompt();
+    else if (cmd === 'D') await deleteUserPrompt();
+    else if (cmd === 'R') await resetPwPrompt();
+  } catch { alert('Failed'); }
+}
+
+async function addUserPrompt() {
+  const username = prompt('New username:');
+  if (!username || username.trim().length < 2) { alert('Username too short (min 2)'); return; }
+  const role = prompt('Role (admin/viewer):', 'viewer');
+  if (role !== 'admin' && role !== 'viewer') { alert('Invalid role'); return; }
+  const password = prompt('Password (min 4 chars):');
+  if (!password || password.length < 4) { alert('Password too short'); return; }
+  try {
+    const r = await authFetch(`${API}/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:username.trim(),password,role}) });
+    const d = await r.json();
+    if (d.ok) { alert(`User "${d.username}" created as ${d.role}`); addFeedMessage(`User <strong>${esc(d.username)}</strong> added [${esc(d.role)}]`, 'system'); }
+    else alert(d.error || 'Failed');
+  } catch { alert('Failed'); }
+}
+
+async function deleteUserPrompt() {
+  const username = prompt('Username to delete:');
+  if (!username) return;
+  if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+  try {
+    const r = await authFetch(`${API}/users/${encodeURIComponent(username)}`, { method:'DELETE' });
+    const d = await r.json();
+    if (d.ok) { alert(`User "${username}" deleted`); addFeedMessage(`User <strong>${esc(username)}</strong> deleted`, 'system'); }
+    else alert(d.error || 'Failed');
+  } catch { alert('Failed'); }
+}
+
+async function resetPwPrompt() {
+  const username = prompt('Username to reset password:');
+  if (!username) return;
+  const password = prompt('New password (min 4 chars):');
+  if (!password || password.length < 4) { alert('Password too short'); return; }
+  try {
+    const r = await authFetch(`${API}/users/${encodeURIComponent(username)}/reset-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password}) });
+    const d = await r.json();
+    if (d.ok) alert(`Password reset for "${username}"`);
     else alert(d.error || 'Failed');
   } catch { alert('Failed'); }
 }
@@ -848,7 +920,8 @@ const origInitResize = initResize;
   try {
     const r = await fetch('/auth/validate', { headers: { 'Authorization': 'Bearer ' + AUTH_TOKEN } });
     const d = await r.json();
-    if (!d.valid) { localStorage.removeItem('evomesh-token'); location.href = '/login'; return; }
+    if (!d.valid) { localStorage.removeItem('evomesh-token'); localStorage.removeItem('evomesh-user'); location.href = '/login'; return; }
+    if (d.username) localStorage.setItem('evomesh-user', JSON.stringify({username:d.username, role:d.role}));
   } catch { location.href = '/login'; return; }
   restoreLayout();
   fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();

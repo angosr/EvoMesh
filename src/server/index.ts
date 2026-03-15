@@ -15,7 +15,8 @@ import { smartInit } from "../workspace/smartInit.js";
 import { createRole, deleteRole } from "../roles/manager.js";
 import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
 import { exists } from "../utils/fs.js";
-import { isPasswordSet, setPassword, verifyPassword, generateSessionToken } from "./auth.js";
+import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, listUsers, addUser, deleteUser, resetPassword, generateSessionToken } from "./auth.js";
+import type { SessionInfo, UserRole } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,44 +41,54 @@ export function startServer(port: number, initialRoot?: string) {
   const server = http.createServer(app);
   app.use(express.json());
 
-  // Active session tokens
-  const sessions = new Set<string>();
+  // Migrate legacy single-user auth if needed
+  migrateIfNeeded();
+
+  // Active sessions: token → {username, role}
+  const sessions = new Map<string, SessionInfo>();
 
   // --- Auth routes (no auth required) ---
   app.get("/auth/status", (_req, res) => {
-    res.json({ passwordSet: isPasswordSet() });
+    res.json({ hasUsers: hasAnyUser() });
   });
 
   app.post("/auth/setup", (req, res) => {
-    if (isPasswordSet()) { res.status(400).json({ error: "Password already set" }); return; }
-    const { password } = req.body;
+    if (hasAnyUser()) { res.status(400).json({ error: "Admin already exists" }); return; }
+    const { username, password } = req.body;
+    const name = (username || "admin").trim();
+    if (!name || name.length < 2) { res.status(400).json({ error: "Username too short (min 2)" }); return; }
     if (!password || password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
-    setPassword(password);
-    const token = generateSessionToken();
-    sessions.add(token);
-    res.json({ ok: true, token });
+    try {
+      setupAdmin(name, password);
+      const token = generateSessionToken();
+      sessions.set(token, { username: name, role: "admin" });
+      res.json({ ok: true, token, username: name, role: "admin" });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.post("/auth/login", (req, res) => {
-    const { password } = req.body;
-    if (!verifyPassword(password)) { res.status(401).json({ error: "Wrong password" }); return; }
+    const { username, password } = req.body;
+    if (!username || !password) { res.status(400).json({ error: "Username and password required" }); return; }
+    const user = verifyUser(username, password);
+    if (!user) { res.status(401).json({ error: "Invalid username or password" }); return; }
     const token = generateSessionToken();
-    sessions.add(token);
-    res.json({ ok: true, token });
+    sessions.set(token, { username: user.username, role: user.role });
+    res.json({ ok: true, token, username: user.username, role: user.role });
   });
 
   app.post("/auth/change-password", (req, res) => {
-    const token = extractSession(req);
-    if (!token || !sessions.has(token)) { res.status(401).json({ error: "Not authenticated" }); return; }
+    const session = getSession(req);
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     const { oldPassword, newPassword } = req.body;
-    if (!verifyPassword(oldPassword)) { res.status(401).json({ error: "Wrong current password" }); return; }
     if (!newPassword || newPassword.length < 4) { res.status(400).json({ error: "New password too short" }); return; }
-    setPassword(newPassword);
+    if (!changePassword(session.username, oldPassword, newPassword)) {
+      res.status(401).json({ error: "Wrong current password" }); return;
+    }
     res.json({ ok: true });
   });
 
-  // --- Session auth middleware ---
-  function extractSession(req: { headers: { authorization?: string }; query?: any; url?: string }): string | undefined {
+  // --- Session helpers ---
+  function extractToken(req: { headers: { authorization?: string }; query?: any; url?: string }): string | undefined {
     const auth = req.headers.authorization;
     if (auth?.startsWith("Bearer ")) return auth.slice(7);
     if (typeof req.query?.token === "string") return req.query.token;
@@ -85,22 +96,29 @@ export function startServer(port: number, initialRoot?: string) {
     return url.searchParams.get("token") || undefined;
   }
 
-  // Validate a session token (public endpoint for client-side auth check)
+  function getSession(req: { headers: { authorization?: string }; query?: any; url?: string }): SessionInfo | undefined {
+    const token = extractToken(req);
+    if (!token) return undefined;
+    return sessions.get(token);
+  }
+
   app.get("/auth/validate", (req, res) => {
-    const token = extractSession(req);
-    res.json({ valid: !!token && sessions.has(token) });
+    const session = getSession(req);
+    res.json({ valid: !!session, username: session?.username, role: session?.role });
   });
 
+  // --- Auth + role middleware ---
   app.use((req, res, next) => {
-    // Auth routes are public
     if (req.path.startsWith("/auth/")) return next();
-    // Login page and main page served without auth — client-side JS handles auth
     if (req.path === "/login" || req.path === "/") return next();
-    // API/other routes require valid session
-    const token = extractSession(req);
-    if (!token || !sessions.has(token)) {
-      return res.status(401).json({ error: "Not authenticated" });
+    const session = getSession(req);
+    if (!session) { return res.status(401).json({ error: "Not authenticated" }); }
+    // Viewer: block mutating operations (except change-password handled above)
+    if (session.role === "viewer" && req.method !== "GET") {
+      return res.status(403).json({ error: "Viewers have read-only access" });
     }
+    // Attach session to request for downstream handlers
+    (req as any)._session = session;
     next();
   });
 
@@ -202,7 +220,7 @@ export function startServer(port: number, initialRoot?: string) {
 
   // WebSocket proxy (with session auth)
   server.on("upgrade", (req, socket, head) => {
-    const wsToken = extractSession(req as any);
+    const wsToken = extractToken(req as any);
     if (!wsToken || !sessions.has(wsToken)) { socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n"); socket.destroy(); return; }
 
     const url = req.url || "";
@@ -676,6 +694,63 @@ export function startServer(port: number, initialRoot?: string) {
     return (bytes / (1024 ** 3)).toFixed(1) + " GB";
   }
 
+  // --- User management (admin only) ---
+  function requireAdmin(req: any, res: any): SessionInfo | null {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") {
+      res.status(403).json({ error: "Admin access required" });
+      return null;
+    }
+    return session;
+  }
+
+  app.get("/api/users", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json({ users: listUsers() });
+  });
+
+  app.post("/api/users", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const { username, password, role } = req.body;
+    if (!username || !password) { res.status(400).json({ error: "Username and password required" }); return; }
+    if (username.length < 2) { res.status(400).json({ error: "Username too short (min 2)" }); return; }
+    if (password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
+    const userRole: UserRole = role === "viewer" ? "viewer" : "admin";
+    try {
+      addUser(username.trim(), password, userRole);
+      res.json({ ok: true, username: username.trim(), role: userRole });
+    } catch (e: any) { res.status(409).json({ error: e.message }); }
+  });
+
+  app.delete("/api/users/:username", (req, res) => {
+    const session = requireAdmin(req, res);
+    if (!session) return;
+    const target = req.params.username;
+    if (target === session.username) { res.status(400).json({ error: "Cannot delete yourself" }); return; }
+    try {
+      // Remove all sessions for deleted user
+      for (const [token, info] of sessions) {
+        if (info.username === target) sessions.delete(token);
+      }
+      deleteUser(target);
+      res.json({ ok: true });
+    } catch (e: any) { res.status(404).json({ error: e.message }); }
+  });
+
+  app.post("/api/users/:username/reset-password", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const { password } = req.body;
+    if (!password || password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
+    try {
+      resetPassword(req.params.username, password);
+      // Invalidate target user's sessions
+      for (const [token, info] of sessions) {
+        if (info.username === req.params.username) sessions.delete(token);
+      }
+      res.json({ ok: true });
+    } catch (e: any) { res.status(404).json({ error: e.message }); }
+  });
+
   // --- Backward compat: /api/status redirects to first project ---
   app.get("/api/status", (_req, res) => {
     const projects = getProjects();
@@ -713,7 +788,7 @@ export function startServer(port: number, initialRoot?: string) {
   server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
     console.log(`    http://localhost:${port}`);
-    console.log(`\n  ${isPasswordSet() ? "Password is set. Login at /login" : "No password set. First visitor will set up password."}\n`);
+    console.log(`\n  ${hasAnyUser() ? "Users configured. Login at /login" : "No users. First visitor will create admin account."}\n`);
   });
 }
 
@@ -741,15 +816,19 @@ function loginPageHtml(): string {
   <div class="sub" id="subtitle">Loading...</div>
   <div class="error" id="error"></div>
   <div id="setup-form" style="display:none">
-    <label>Set Password</label>
+    <label>Admin Username</label>
+    <input type="text" id="setup-user" value="admin" placeholder="Username" />
+    <label>Password</label>
     <input type="password" id="new-pw" placeholder="Choose a password (min 4 chars)" />
     <label>Confirm Password</label>
     <input type="password" id="confirm-pw" placeholder="Confirm password" />
-    <button onclick="doSetup()">Set Password & Enter</button>
+    <button onclick="doSetup()">Create Admin & Enter</button>
   </div>
   <div id="login-form" style="display:none">
+    <label>Username</label>
+    <input type="text" id="login-user" placeholder="Username" />
     <label>Password</label>
-    <input type="password" id="pw" placeholder="Enter password" />
+    <input type="password" id="pw" placeholder="Password" />
     <button onclick="doLogin()">Login</button>
   </div>
 </div>
@@ -757,33 +836,37 @@ function loginPageHtml(): string {
 async function init() {
   const r = await fetch('/auth/status');
   const d = await r.json();
-  if (d.passwordSet) {
-    document.getElementById('subtitle').textContent = 'Enter your password';
+  if (d.hasUsers) {
+    document.getElementById('subtitle').textContent = 'Sign in to continue';
     document.getElementById('login-form').style.display = 'block';
-    document.getElementById('pw').focus();
+    document.getElementById('login-user').focus();
   } else {
-    document.getElementById('subtitle').textContent = 'First time setup — create a password';
+    document.getElementById('subtitle').textContent = 'First time setup — create admin account';
     document.getElementById('setup-form').style.display = 'block';
-    document.getElementById('new-pw').focus();
+    document.getElementById('setup-user').focus();
   }
 }
 function showError(msg) { const e = document.getElementById('error'); e.textContent = msg; e.classList.add('show'); }
 async function doSetup() {
+  const username = document.getElementById('setup-user').value.trim();
   const pw = document.getElementById('new-pw').value;
   const confirm = document.getElementById('confirm-pw').value;
+  if (username.length < 2) { showError('Username must be at least 2 characters'); return; }
   if (pw.length < 4) { showError('Password must be at least 4 characters'); return; }
   if (pw !== confirm) { showError('Passwords do not match'); return; }
-  const r = await fetch('/auth/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
+  const r = await fetch('/auth/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password:pw}) });
   const d = await r.json();
-  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/'; }
+  if (d.ok) { localStorage.setItem('evomesh-token', d.token); localStorage.setItem('evomesh-user', JSON.stringify({username:d.username,role:d.role})); location.href = '/'; }
   else showError(d.error);
 }
 async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
   const pw = document.getElementById('pw').value;
-  const r = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
+  if (!username) { showError('Enter your username'); return; }
+  const r = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password:pw}) });
   const d = await r.json();
-  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/'; }
-  else showError(d.error || 'Wrong password');
+  if (d.ok) { localStorage.setItem('evomesh-token', d.token); localStorage.setItem('evomesh-user', JSON.stringify({username:d.username,role:d.role})); location.href = '/'; }
+  else showError(d.error || 'Invalid credentials');
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('login-form').style.display !== 'none' ? doLogin() : doSetup(); } });
 // Auto-login: verify saved token before redirecting
@@ -796,6 +879,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.ge
       if (d.valid) { location.href = '/'; return; }
     } catch {}
     localStorage.removeItem('evomesh-token');
+    localStorage.removeItem('evomesh-user');
   }
   init();
 })();

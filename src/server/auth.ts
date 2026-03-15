@@ -5,43 +5,147 @@ import crypto from "node:crypto";
 import YAML from "yaml";
 
 const AUTH_DIR = path.join(os.homedir(), ".evomesh");
-const AUTH_FILE = path.join(AUTH_DIR, "auth.yaml");
+const USERS_FILE = path.join(AUTH_DIR, "users.yaml");
+const LEGACY_AUTH_FILE = path.join(AUTH_DIR, "auth.yaml");
 
-interface AuthConfig {
+export type UserRole = "admin" | "viewer";
+
+export interface User {
+  username: string;
   passwordHash: string;
   salt: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+interface UsersConfig {
+  users: User[];
+}
+
+export interface SessionInfo {
+  username: string;
+  role: UserRole;
 }
 
 function hashPassword(password: string, salt: string): string {
   return crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
 }
 
-export function loadAuth(): AuthConfig | null {
-  try {
-    if (!fs.existsSync(AUTH_FILE)) return null;
-    const raw = YAML.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
-    if (!raw?.passwordHash || !raw?.salt) return null;
-    return raw as AuthConfig;
-  } catch {
-    return null;
-  }
-}
-
-export function isPasswordSet(): boolean {
-  return loadAuth() !== null;
-}
-
-export function setPassword(password: string): void {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
+function createUser(username: string, password: string, role: UserRole): User {
   const salt = crypto.randomBytes(32).toString("hex");
-  const passwordHash = hashPassword(password, salt);
-  fs.writeFileSync(AUTH_FILE, YAML.stringify({ passwordHash, salt }), "utf-8");
+  return {
+    username,
+    passwordHash: hashPassword(password, salt),
+    salt,
+    role,
+    createdAt: new Date().toISOString(),
+  };
 }
 
-export function verifyPassword(password: string): boolean {
-  const auth = loadAuth();
-  if (!auth) return false;
-  return hashPassword(password, auth.salt) === auth.passwordHash;
+// --- Storage ---
+
+function loadUsers(): UsersConfig {
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      const raw = YAML.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+      if (raw?.users && Array.isArray(raw.users)) return raw as UsersConfig;
+    }
+  } catch {}
+  return { users: [] };
+}
+
+function saveUsers(config: UsersConfig): void {
+  fs.mkdirSync(AUTH_DIR, { recursive: true });
+  fs.writeFileSync(USERS_FILE, YAML.stringify(config), "utf-8");
+}
+
+// --- Migration from legacy auth.yaml ---
+
+export function migrateIfNeeded(): void {
+  if (fs.existsSync(USERS_FILE)) return;
+  if (!fs.existsSync(LEGACY_AUTH_FILE)) return;
+
+  try {
+    const raw = YAML.parse(fs.readFileSync(LEGACY_AUTH_FILE, "utf-8"));
+    if (!raw?.passwordHash || !raw?.salt) return;
+
+    const config: UsersConfig = {
+      users: [{
+        username: "admin",
+        passwordHash: raw.passwordHash,
+        salt: raw.salt,
+        role: "admin",
+        createdAt: new Date().toISOString(),
+      }],
+    };
+    saveUsers(config);
+    // Rename legacy file as backup
+    fs.renameSync(LEGACY_AUTH_FILE, LEGACY_AUTH_FILE + ".bak");
+  } catch {}
+}
+
+// --- Public API ---
+
+export function hasAnyUser(): boolean {
+  return loadUsers().users.length > 0;
+}
+
+export function setupAdmin(username: string, password: string): void {
+  const config = loadUsers();
+  if (config.users.length > 0) throw new Error("Users already exist");
+  config.users.push(createUser(username, password, "admin"));
+  saveUsers(config);
+}
+
+export function verifyUser(username: string, password: string): User | null {
+  const config = loadUsers();
+  const user = config.users.find(u => u.username === username);
+  if (!user) return null;
+  if (hashPassword(password, user.salt) !== user.passwordHash) return null;
+  return user;
+}
+
+export function changePassword(username: string, oldPassword: string, newPassword: string): boolean {
+  const config = loadUsers();
+  const user = config.users.find(u => u.username === username);
+  if (!user) return false;
+  if (hashPassword(oldPassword, user.salt) !== user.passwordHash) return false;
+  const salt = crypto.randomBytes(32).toString("hex");
+  user.salt = salt;
+  user.passwordHash = hashPassword(newPassword, salt);
+  saveUsers(config);
+  return true;
+}
+
+export function listUsers(): Array<{ username: string; role: UserRole; createdAt: string }> {
+  return loadUsers().users.map(u => ({ username: u.username, role: u.role, createdAt: u.createdAt }));
+}
+
+export function addUser(username: string, password: string, role: UserRole): void {
+  const config = loadUsers();
+  if (config.users.find(u => u.username === username)) {
+    throw new Error(`User "${username}" already exists`);
+  }
+  config.users.push(createUser(username, password, role));
+  saveUsers(config);
+}
+
+export function deleteUser(username: string): void {
+  const config = loadUsers();
+  const idx = config.users.findIndex(u => u.username === username);
+  if (idx < 0) throw new Error(`User "${username}" not found`);
+  config.users.splice(idx, 1);
+  saveUsers(config);
+}
+
+export function resetPassword(username: string, newPassword: string): void {
+  const config = loadUsers();
+  const user = config.users.find(u => u.username === username);
+  if (!user) throw new Error(`User "${username}" not found`);
+  const salt = crypto.randomBytes(32).toString("hex");
+  user.salt = salt;
+  user.passwordHash = hashPassword(newPassword, salt);
+  saveUsers(config);
 }
 
 export function generateSessionToken(): string {
