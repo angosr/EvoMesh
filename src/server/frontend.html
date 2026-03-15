@@ -90,6 +90,10 @@
   .metric-bar-fill.ok { background: #4ade80; }
   .metric-bar-fill.warn { background: #fbbf24; }
   .metric-bar-fill.crit { background: #ef4444; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .conn-dot.connected { background: #4ade80; box-shadow: 0 0 4px #4ade80; }
+  .conn-dot.disconnected { background: #ef4444; animation: pulse 1s infinite; }
+  .conn-dot.reconnecting { background: #fbbf24; animation: pulse 1s infinite; }
 
   /* Panels */
   #panels { flex: 1; position: relative; overflow: hidden; }
@@ -184,6 +188,10 @@
         <span>DISK</span>
         <div class="metric-bar"><div class="metric-bar-fill ok" id="m-disk" style="width:0%"></div></div>
         <span id="m-disk-val">-</span>
+      </div>
+      <div class="metric" id="m-conn" title="Server connection">
+        <span class="conn-dot connected" id="conn-dot"></span>
+        <span id="conn-label">Connected</span>
       </div>
     </div>
     <div id="layout-controls">
@@ -412,16 +420,43 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const panel = document.createElement('div');
   panel.className = 'panel';
   panel.id = `panel-${key}`;
-  panel.innerHTML = `<iframe src="${terminalPath}" allow="clipboard-read; clipboard-write"></iframe>`;
+  const iframe = document.createElement('iframe');
+  iframe.src = terminalPath;
+  iframe.allow = 'clipboard-read; clipboard-write';
+  panel.appendChild(iframe);
   document.getElementById('panels').appendChild(panel);
 
-  state.openPanels[key] = { tab, panel };
+  // Auto-reconnect: reload iframe when ttyd connection drops
+  let reconnectTimer = null;
+  const checkConnection = () => {
+    try {
+      // If iframe navigated to error or ttyd closed, contentWindow is inaccessible or blank
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc && doc.title === '') {
+        // Likely disconnected, try reload
+        iframe.src = terminalPath;
+      }
+    } catch {
+      // Cross-origin — ttyd is alive, do nothing
+    }
+  };
+  iframe.addEventListener('load', () => {
+    clearInterval(reconnectTimer);
+    reconnectTimer = setInterval(checkConnection, 3000);
+  });
+  iframe.addEventListener('error', () => {
+    // Retry after delay
+    setTimeout(() => { iframe.src = terminalPath; }, 3000);
+  });
+
+  state.openPanels[key] = { tab, panel, iframe, reconnectTimer };
   switchTo(key);
 }
 
 function closePanel(key) {
   const p = state.openPanels[key];
   if (!p) return;
+  if (p.reconnectTimer) clearInterval(p.reconnectTimer);
   p.tab.remove();
   p.panel.remove();
   delete state.openPanels[key];
@@ -792,6 +827,8 @@ openTerminal = function(slug, projectName, roleName, terminalPath) {
 
 // --- System metrics ---
 
+let serverConnected = true;
+
 async function fetchMetrics() {
   try {
     const res = await fetch(`${API}/metrics`);
@@ -799,7 +836,25 @@ async function fetchMetrics() {
     updateMetric('cpu', d.cpu.percent, `${d.cpu.percent}%`);
     updateMetric('mem', d.memory.percent, `${d.memory.used}/${d.memory.total}`);
     updateMetric('disk', d.disk.percent, `${d.disk.used}/${d.disk.total}`);
-  } catch {}
+    setConnStatus(true);
+  } catch {
+    setConnStatus(false);
+  }
+}
+
+function setConnStatus(connected) {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  if (connected && !serverConnected) {
+    // Reconnected — reload all terminal iframes
+    for (const [key, p] of Object.entries(state.openPanels)) {
+      if (p.iframe) p.iframe.src = p.iframe.src;
+    }
+  }
+  serverConnected = connected;
+  dot.className = 'conn-dot ' + (connected ? 'connected' : 'disconnected');
+  label.textContent = connected ? 'Connected' : 'Disconnected';
+  label.style.color = connected ? '#4ade80' : '#ef4444';
 }
 
 function updateMetric(id, percent, label) {
