@@ -73,6 +73,9 @@
   .tab { padding: 8px 14px; cursor: pointer; border: none; background: none; color: #888; font-size: 12px; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
   .tab:hover { color: #e0e0e0; }
   .tab.active { color: #e94560; border-bottom-color: #e94560; }
+  .tab { cursor: grab; }
+  .tab.dragging { opacity: 0.4; }
+  .tab.drag-over { border-left: 2px solid #e94560; }
   .tab .close { margin-left: 6px; opacity: 0.4; cursor: pointer; }
   .tab .close:hover { opacity: 1; }
   #layout-controls { display: flex; gap: 4px; padding: 4px 8px; flex-shrink: 0; }
@@ -401,10 +404,12 @@ function closePanel(key) {
 
 function switchTo(name) {
   state.activePanel = name;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
-  if (state.layout === 'tabs') {
-    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+  // Clicking Dashboard or a specific panel in grid mode → switch back to tabs
+  if (state.layout === 'grid') {
+    setLayout('tabs');
   }
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
 }
 
@@ -710,6 +715,54 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s; re
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
+
+// --- Tab drag-and-drop reorder ---
+
+function setupTabDrag(tab) {
+  tab.draggable = true;
+  tab.addEventListener('dragstart', e => {
+    tab.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tab.dataset.panel);
+  });
+  tab.addEventListener('dragend', () => {
+    tab.classList.remove('dragging');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('drag-over'));
+  });
+  tab.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const dragging = document.querySelector('.tab.dragging');
+    if (dragging && dragging !== tab) tab.classList.add('drag-over');
+  });
+  tab.addEventListener('dragleave', () => tab.classList.remove('drag-over'));
+  tab.addEventListener('drop', e => {
+    e.preventDefault();
+    tab.classList.remove('drag-over');
+    const dragging = document.querySelector('.tab.dragging');
+    if (!dragging || dragging === tab) return;
+    const tabsContainer = document.getElementById('tabs');
+    const tabs = [...tabsContainer.children];
+    const fromIdx = tabs.indexOf(dragging);
+    const toIdx = tabs.indexOf(tab);
+    if (fromIdx < toIdx) {
+      tabsContainer.insertBefore(dragging, tab.nextSibling);
+    } else {
+      tabsContainer.insertBefore(dragging, tab);
+    }
+  });
+}
+
+// Apply drag to Dashboard tab
+setupTabDrag(document.querySelector('.tab[data-panel="dashboard"]'));
+
+// Patch openTerminal to setup drag on new tabs
+const _origOpenTerminal = openTerminal;
+openTerminal = function(slug, projectName, roleName, terminalPath) {
+  _origOpenTerminal(slug, projectName, roleName, terminalPath);
+  const key = `${slug}/${roleName}`;
+  if (state.openPanels[key]) setupTabDrag(state.openPanels[key].tab);
+};
 
 // --- Init ---
 fetchAll();
