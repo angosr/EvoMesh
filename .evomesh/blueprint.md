@@ -35,7 +35,7 @@
 - [x] CI: GitHub Actions (tsc + test)
 
 ### Phase 4 — 打磨 ← 当前
-- [ ] server/index.ts 拆分重构（800 行 → 3 个模块）
+- [x] server/index.ts 拆分重构（800 行 → index 242 + routes 359 + terminal 131）
 - [ ] WebSocket 认证刷新
 - [ ] API 安全头 / 限流
 - [ ] Session 持久化（当前服务器重启丢失）
