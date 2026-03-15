@@ -8,5 +8,4 @@
 
 - `readYaml` 运行时校验（zod）— 当前风险低，配置由 scaffold 生成
 - 添加 devlog/README.md 规范
-- 优化 bin/evomesh.js: 先尝试 dist/ 产物
 - CI 配置

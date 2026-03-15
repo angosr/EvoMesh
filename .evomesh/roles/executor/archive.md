@@ -17,3 +17,4 @@
 [2026-03-15] fix: spawnForeground 未使用 claudeArgs — 前台模式现在支持 --name/--resume
 [2026-03-15] refactor: loginPageHtml 提取为 login.html — index.ts 889→800 行
 [2026-03-15] chore: 删除死代码 daemon.ts（102行，已被 tmux 方案替代）
+[2026-03-15] perf: bin/evomesh.js 优先加载 dist/ 产物，跳过 tsx 开销
