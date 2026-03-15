@@ -1,9 +1,8 @@
 # executor — 待办任务
 
-## 当前优先（P0 — 安全修复）
+## 当前优先（P0）
 
-1. **修复命令注入**: `src/process/spawner.ts` 的 `spawnTmux()` 中 `execSync` 直接拼接参数，改为 `execFileSync` 或 shell escape（详见 inbox feedback）
-2. **编写核心单元测试**: `config/loader`、`utils/paths`、`roles/manager`、`process/registry`
+1. **编写核心单元测试**: `config/loader`、`utils/paths`、`roles/manager`、`process/registry`
 
 ## P1
 
