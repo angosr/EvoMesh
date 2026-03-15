@@ -2,12 +2,11 @@
 
 ## 当前优先
 
-## P1
-
-1. `readYaml` 无运行时校验 — 考虑引入 zod
+（无紧急任务）
 
 ## 待排期
 
+- `readYaml` 运行时校验（zod）— 当前风险低，配置由 scaffold 生成
 - 添加 devlog/README.md 规范
 - 优化 bin/evomesh.js: 先尝试 dist/ 产物
 - CI 配置
