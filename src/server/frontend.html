@@ -202,21 +202,33 @@ function openTerminal(roleName) {
   term.open(termEl);
   fitAddon.fit();
 
-  // WebSocket connection
-  const ws = new WebSocket(`${WS_URL}?role=${roleName}`);
+  // WebSocket connection — pass initial terminal size
+  const wsUrl = `${WS_URL}?role=${roleName}&cols=${term.cols}&rows=${term.rows}`;
+  const ws = new WebSocket(wsUrl);
+  ws.binaryType = 'arraybuffer';
+
   ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === 'output') {
-      term.write(msg.data);
-    } else if (msg.type === 'error') {
-      term.write(`\r\n\x1b[31m[Error] ${msg.message}\x1b[0m\r\n`);
+    // Server sends raw PTY bytes (from tmux attach) or JSON error messages
+    if (typeof event.data === 'string') {
+      // Could be a JSON error or plain text
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'error') {
+          term.write(`\r\n\x1b[31m[Error] ${msg.message}\x1b[0m\r\n`);
+          return;
+        }
+      } catch {}
+      term.write(event.data);
+    } else {
+      // Binary data — raw PTY stream
+      term.write(new Uint8Array(event.data));
     }
   };
   ws.onclose = () => {
     term.write('\r\n\x1b[33m[Disconnected]\x1b[0m\r\n');
   };
 
-  // Forward keystrokes
+  // Forward keystrokes as JSON (server uses tmux send-keys)
   term.onData((data) => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'input', data }));

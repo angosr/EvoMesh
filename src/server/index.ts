@@ -4,28 +4,29 @@ import fs from "node:fs";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { execFileSync } from "node:child_process";
+import { spawn as ptySpawn, type IPty } from "node-pty";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config/loader.js";
-import { readPid, listRunning } from "../process/registry.js";
+import { readPid } from "../process/registry.js";
 import { runtimeDir } from "../utils/paths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
 
-interface TmuxBridge {
+/**
+ * Each WebSocket client gets its own `tmux attach-session` PTY process.
+ * This gives xterm.js the raw ANSI byte stream — no capture-pane snapshot issues.
+ */
+interface ClientSession {
+  pty: IPty;
   roleName: string;
-  session: string;
-  clients: Set<WebSocket>;
-  pollInterval: ReturnType<typeof setInterval> | null;
 }
 
 export function startServer(root: string, port: number) {
   const app = express();
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server });
-
-  const bridges: Map<string, TmuxBridge> = new Map();
 
   // --- REST API ---
 
@@ -59,7 +60,6 @@ export function startServer(root: string, port: number) {
       res.status(404).json({ error: "Log not found" });
       return;
     }
-    // Return last 50KB of log
     const stat = fs.statSync(logPath);
     const start = Math.max(0, stat.size - 50000);
     const stream = fs.createReadStream(logPath, { start });
@@ -69,7 +69,6 @@ export function startServer(root: string, port: number) {
   // Serve static frontend
   app.get("/", (_req, res) => {
     const htmlPath = path.join(__dirname, "..", "..", "src", "server", "frontend.html");
-    // Also check dist path
     const distPath = path.join(__dirname, "frontend.html");
     const filePath = fs.existsSync(htmlPath) ? htmlPath : distPath;
     if (fs.existsSync(filePath)) {
@@ -79,11 +78,13 @@ export function startServer(root: string, port: number) {
     }
   });
 
-  // --- WebSocket: terminal bridge ---
+  // --- WebSocket: raw PTY bridge via tmux attach ---
 
   wss.on("connection", (ws, req) => {
     const url = new URL(req.url || "/", `http://localhost:${port}`);
     const roleName = url.searchParams.get("role");
+    const cols = Math.max(10, Math.min(500, parseInt(url.searchParams.get("cols") || "120", 10)));
+    const rows = Math.max(10, Math.min(500, parseInt(url.searchParams.get("rows") || "40", 10)));
 
     if (!roleName || !ROLE_NAME_RE.test(roleName)) {
       ws.send(JSON.stringify({ type: "error", message: "Missing or invalid ?role= parameter" }));
@@ -97,83 +98,78 @@ export function startServer(root: string, port: number) {
     try {
       execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
     } catch {
-      ws.send(JSON.stringify({ type: "error", message: `tmux session '${session}' not found. Is the role running?` }));
+      ws.send(JSON.stringify({ type: "error", message: `Session '${session}' not found. Is the role running?` }));
       ws.close();
       return;
     }
 
-    // Get or create bridge for this role
-    let bridge = bridges.get(roleName);
-    if (!bridge) {
-      bridge = { roleName, session, clients: new Set(), pollInterval: null };
-      bridges.set(roleName, bridge);
-    }
-    bridge.clients.add(ws);
-
-    // Send initial screen capture
+    // Spawn a `tmux attach-session` process via node-pty.
+    // This gives us the raw byte stream that xterm.js needs.
+    // Using -r (read-only) so multiple web clients don't fight for input;
+    // input is sent separately via tmux send-keys.
+    let pty: IPty;
     try {
-      const capture = execFileSync(
-        "tmux", ["capture-pane", "-t", session, "-p", "-S", "-200"],
-        { encoding: "utf-8", maxBuffer: 1024 * 1024 }
-      );
-      ws.send(JSON.stringify({ type: "output", data: capture }));
-    } catch {}
-
-    // Start polling tmux for updates if not already
-    if (!bridge.pollInterval) {
-      let lastCapture = "";
-      bridge.pollInterval = setInterval(() => {
-        if (bridge!.clients.size === 0) {
-          clearInterval(bridge!.pollInterval!);
-          bridge!.pollInterval = null;
-          return;
-        }
-        try {
-          const capture = execFileSync(
-            "tmux", ["capture-pane", "-t", session, "-p", "-S", "-50"],
-            { encoding: "utf-8", maxBuffer: 1024 * 1024 }
-          );
-          if (capture !== lastCapture) {
-            lastCapture = capture;
-            const msg = JSON.stringify({ type: "output", data: capture });
-            for (const client of bridge!.clients) {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(msg);
-              }
-            }
-          }
-        } catch {}
-      }, 500);
+      pty = ptySpawn("tmux", ["attach-session", "-t", session, "-r"], {
+        name: "xterm-256color",
+        cols,
+        rows,
+        cwd: root,
+      });
+    } catch (e: any) {
+      ws.send(JSON.stringify({ type: "error", message: `Failed to attach: ${e.message}` }));
+      ws.close();
+      return;
     }
 
-    // Receive input from browser and send to tmux
+    // PTY output → WebSocket (binary for efficiency)
+    pty.onData((data) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
+      }
+    });
+
+    pty.onExit(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("\r\n\x1b[33m[tmux session ended]\x1b[0m\r\n");
+        ws.close();
+      }
+    });
+
+    // WebSocket messages → tmux
     ws.on("message", (raw) => {
       try {
-        const msg = JSON.parse(raw.toString());
-        if (msg.type === "input" && typeof msg.data === "string") {
-          execFileSync("tmux", ["send-keys", "-t", session, "-l", msg.data], {
-            stdio: "ignore",
-          });
-        } else if (msg.type === "resize" && msg.cols && msg.rows) {
-          const cols = Math.max(10, Math.min(500, parseInt(msg.cols, 10)));
-          const rows = Math.max(10, Math.min(500, parseInt(msg.rows, 10)));
-          if (!isNaN(cols) && !isNaN(rows)) {
-            execFileSync("tmux", ["resize-window", "-t", session, "-x", String(cols), "-y", String(rows)], {
+        const str = raw.toString();
+        // Try JSON first (structured messages)
+        if (str.startsWith("{")) {
+          const msg = JSON.parse(str);
+          if (msg.type === "input" && typeof msg.data === "string") {
+            execFileSync("tmux", ["send-keys", "-t", session, "-l", msg.data], {
               stdio: "ignore",
             });
+          } else if (msg.type === "resize") {
+            const c = Math.max(10, Math.min(500, parseInt(msg.cols, 10)));
+            const r = Math.max(10, Math.min(500, parseInt(msg.rows, 10)));
+            if (!isNaN(c) && !isNaN(r)) {
+              pty.resize(c, r);
+            }
           }
+        } else {
+          // Raw text — send directly as keystrokes
+          execFileSync("tmux", ["send-keys", "-t", session, "-l", str], {
+            stdio: "ignore",
+          });
         }
       } catch {}
     });
 
     ws.on("close", () => {
-      bridge?.clients.delete(ws);
+      pty.kill();
     });
   });
 
-  server.listen(port, "127.0.0.1", () => {
+  server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
-    console.log(`    http://localhost:${port}`);
+    console.log(`    http://0.0.0.0:${port}`);
     console.log(`\n  Press Ctrl+C to stop.\n`);
   });
 }
