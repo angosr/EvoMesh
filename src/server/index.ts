@@ -216,7 +216,7 @@ export function startServer(port: number, initialRoot?: string) {
           execFileSync("git", ["clone", url, projectRoot], { timeout: 60000 });
         }
       } else if (localPath && typeof localPath === "string") {
-        projectRoot = path.resolve(localPath);
+        projectRoot = path.resolve(expandHome(localPath));
         projectName = path.basename(projectRoot);
         if (!fs.existsSync(projectRoot)) {
           res.status(400).json({ error: "Path does not exist" });
