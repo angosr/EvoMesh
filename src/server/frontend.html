@@ -470,6 +470,7 @@ async function switchAccount(slug, roleName, sel) {
   try { const r = await fetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${roleName}</strong> -> ${an}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
 async function restartRole(slug, roleName) {
+  if (!confirm(`Restart "${roleName}"? Session will reconnect automatically.`)) return;
   try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await fetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
 async function deleteRole(slug, roleName) {
