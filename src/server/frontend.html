@@ -5,8 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EvoMesh</title>
 <style>
+  :root {
+    --bg-base: #000000;
+    --bg-panel: #111111;
+    --bg-hover: #1a1a1a;
+    --bg-active: #1a1a2e;
+    --bg-input: #0a0a0a;
+    --border: #222222;
+    --text: #e0e0e0;
+    --text-dim: #888888;
+    --text-faint: #555555;
+    --accent: #e94560;
+    --accent-hover: #d63851;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #ef4444;
+    --blue: #818cf8;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000000; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; height: 100vh; display: flex; overflow: hidden; }
+  body { background: var(--bg-base); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; height: 100vh; display: flex; overflow: hidden; }
 
   /* === Resizable columns === */
   .resize-handle { width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0; z-index: 5; }
