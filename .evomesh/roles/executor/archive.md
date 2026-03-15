@@ -4,3 +4,4 @@
 [2026-03-15] 修复命令注入: execSync→execFileSync, shell 脚本变量改用 env 传递
 [2026-03-15] 修复 Web UI 安全漏洞: 5处命令注入、路径遍历、输入校验、绑定 localhost
 [2026-03-15] 修复 spawner pipe-pane logPath shell 转义
+[2026-03-15] 编写核心单元测试 30 cases: paths, registry, loader, manager

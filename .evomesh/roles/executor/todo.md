@@ -1,8 +1,6 @@
 # executor — 待办任务
 
-## 当前优先（P0）
-
-1. **编写核心单元测试**: `config/loader`、`utils/paths`、`roles/manager`、`process/registry`
+## 当前优先
 
 ## P1
 
