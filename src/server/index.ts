@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
@@ -16,6 +15,7 @@ import { smartInit } from "../workspace/smartInit.js";
 import { createRole, deleteRole } from "../roles/manager.js";
 import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
 import { exists } from "../utils/fs.js";
+import { isPasswordSet, setPassword, verifyPassword, generateSessionToken } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -35,33 +35,69 @@ interface ProjectEntry {
   root: string;
 }
 
-export function startServer(port: number, initialRoot?: string, userToken?: string) {
-  const token = userToken || crypto.randomBytes(24).toString("base64url");
+export function startServer(port: number, initialRoot?: string) {
   const app = express();
   const server = http.createServer(app);
   app.use(express.json());
 
-  // --- Bearer token authentication ---
-  function extractToken(req: { headers: { authorization?: string }; query?: { token?: string }; url?: string }): string | undefined {
+  // Active session tokens
+  const sessions = new Set<string>();
+
+  // --- Auth routes (no auth required) ---
+  app.get("/auth/status", (_req, res) => {
+    res.json({ passwordSet: isPasswordSet() });
+  });
+
+  app.post("/auth/setup", (req, res) => {
+    if (isPasswordSet()) { res.status(400).json({ error: "Password already set" }); return; }
+    const { password } = req.body;
+    if (!password || password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
+    setPassword(password);
+    const token = generateSessionToken();
+    sessions.add(token);
+    res.json({ ok: true, token });
+  });
+
+  app.post("/auth/login", (req, res) => {
+    const { password } = req.body;
+    if (!verifyPassword(password)) { res.status(401).json({ error: "Wrong password" }); return; }
+    const token = generateSessionToken();
+    sessions.add(token);
+    res.json({ ok: true, token });
+  });
+
+  app.post("/auth/change-password", (req, res) => {
+    const token = extractSession(req);
+    if (!token || !sessions.has(token)) { res.status(401).json({ error: "Not authenticated" }); return; }
+    const { oldPassword, newPassword } = req.body;
+    if (!verifyPassword(oldPassword)) { res.status(401).json({ error: "Wrong current password" }); return; }
+    if (!newPassword || newPassword.length < 4) { res.status(400).json({ error: "New password too short" }); return; }
+    setPassword(newPassword);
+    res.json({ ok: true });
+  });
+
+  // --- Session auth middleware ---
+  function extractSession(req: { headers: { authorization?: string }; query?: any; url?: string }): string | undefined {
     const auth = req.headers.authorization;
     if (auth?.startsWith("Bearer ")) return auth.slice(7);
-    if (typeof (req as any).query?.token === "string") return (req as any).query.token;
+    if (typeof req.query?.token === "string") return req.query.token;
     const url = new URL(req.url || "/", "http://localhost");
     return url.searchParams.get("token") || undefined;
   }
 
   app.use((req, res, next) => {
-    // Allow root with valid token (for initial page load)
-    if (req.path === "/" && extractToken(req) === token) return next();
-    // Redirect root without token to show auth required
-    if (req.path === "/" && !extractToken(req)) {
-      res.status(401).send("Authentication required. Access with ?token=<token>");
-      return;
+    // Auth routes are public
+    if (req.path.startsWith("/auth/")) return next();
+    // Login page served without auth
+    if (req.path === "/login") return next();
+    // Main page without session → redirect to login
+    if (req.path === "/" && !sessions.has(extractSession(req) || "")) {
+      return res.redirect("/login");
     }
-    // All API/other routes require valid token
-    if (extractToken(req) !== token) {
-      res.status(401).json({ error: "Invalid or missing token" });
-      return;
+    // API/other routes require valid session
+    const token = extractSession(req);
+    if (!token || !sessions.has(token)) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
     next();
   });
@@ -160,10 +196,10 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
     proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port);
   });
 
-  // WebSocket proxy (with token auth)
+  // WebSocket proxy (with session auth)
   server.on("upgrade", (req, socket, head) => {
-    const wsToken = extractToken(req as any);
-    if (wsToken !== token) { socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n"); socket.destroy(); return; }
+    const wsToken = extractSession(req as any);
+    if (!wsToken || !sessions.has(wsToken)) { socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n"); socket.destroy(); return; }
 
     const url = req.url || "";
     const match = url.match(/^\/terminal\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)\//);
@@ -632,7 +668,7 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
 
   function formatBytes(bytes: number): string {
     if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
-    if (bytes < 1024 ** 3) return (bytes / (1024 ** 2)).toFixed(1) + " GB";
+    if (bytes < 1024 ** 3) return (bytes / (1024 ** 2)).toFixed(1) + " MB";
     return (bytes / (1024 ** 3)).toFixed(1) + " GB";
   }
 
@@ -643,12 +679,19 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });
 
-  // Serve static frontend (inject auth token)
-  app.get("/", (_req, res) => {
+  // Login page
+  app.get("/login", (_req, res) => {
+    res.type("html").send(loginPageHtml());
+  });
+
+  // Serve static frontend
+  app.get("/", (req, res) => {
     const htmlPath = path.join(__dirname, "..", "..", "src", "server", "frontend.html");
     const distPath = path.join(__dirname, "frontend.html");
     const filePath = fs.existsSync(htmlPath) ? htmlPath : distPath;
     if (!fs.existsSync(filePath)) { res.send("Frontend not found."); return; }
+    // Inject session token for API calls
+    const token = extractSession(req) || "";
     let html = fs.readFileSync(filePath, "utf-8");
     html = html.replace("</head>", `<meta name="evomesh-token" content="${token}">\n</head>`);
     res.type("html").send(html);
@@ -669,8 +712,83 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
   // IMPORTANT: 必须 0.0.0.0 — 远程服务器需外网访问，勿改为 127.0.0.1（见 shared/decisions.md）
   server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
-    console.log(`    http://localhost:${port}/?token=${token}`);
-    console.log(`\n  Auth token: ${token}`);
-    console.log(`  Terminals proxied at /terminal/{project}/{role}/\n`);
+    console.log(`    http://localhost:${port}`);
+    console.log(`\n  ${isPasswordSet() ? "Password is set. Login at /login" : "No password set. First visitor will set up password."}\n`);
   });
 }
+
+function loginPageHtml(): string {
+  return `<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvoMesh — Login</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .login-box { background: #111; border: 1px solid #222; border-radius: 12px; padding: 32px; width: 90vw; max-width: 360px; }
+  h1 { color: #e94560; font-size: 24px; margin-bottom: 8px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 24px; }
+  label { display: block; color: #888; font-size: 11px; margin-bottom: 6px; }
+  input { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; border-radius: 6px; font-size: 14px; margin-bottom: 16px; }
+  input:focus { outline: none; border-color: #e94560; }
+  button { width: 100%; padding: 12px; background: #e94560; border: none; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:hover { background: #d63851; }
+  button:disabled { background: #444; cursor: not-allowed; }
+  .error { color: #ef4444; font-size: 12px; margin-bottom: 12px; display: none; }
+  .error.show { display: block; }
+</style></head><body>
+<div class="login-box">
+  <h1>EvoMesh</h1>
+  <div class="sub" id="subtitle">Loading...</div>
+  <div class="error" id="error"></div>
+  <div id="setup-form" style="display:none">
+    <label>Set Password</label>
+    <input type="password" id="new-pw" placeholder="Choose a password (min 4 chars)" />
+    <label>Confirm Password</label>
+    <input type="password" id="confirm-pw" placeholder="Confirm password" />
+    <button onclick="doSetup()">Set Password & Enter</button>
+  </div>
+  <div id="login-form" style="display:none">
+    <label>Password</label>
+    <input type="password" id="pw" placeholder="Enter password" />
+    <button onclick="doLogin()">Login</button>
+  </div>
+</div>
+<script>
+async function init() {
+  const r = await fetch('/auth/status');
+  const d = await r.json();
+  if (d.passwordSet) {
+    document.getElementById('subtitle').textContent = 'Enter your password';
+    document.getElementById('login-form').style.display = 'block';
+    document.getElementById('pw').focus();
+  } else {
+    document.getElementById('subtitle').textContent = 'First time setup — create a password';
+    document.getElementById('setup-form').style.display = 'block';
+    document.getElementById('new-pw').focus();
+  }
+}
+function showError(msg) { const e = document.getElementById('error'); e.textContent = msg; e.classList.add('show'); }
+async function doSetup() {
+  const pw = document.getElementById('new-pw').value;
+  const confirm = document.getElementById('confirm-pw').value;
+  if (pw.length < 4) { showError('Password must be at least 4 characters'); return; }
+  if (pw !== confirm) { showError('Passwords do not match'); return; }
+  const r = await fetch('/auth/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
+  const d = await r.json();
+  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/?token=' + encodeURIComponent(d.token); }
+  else showError(d.error);
+}
+async function doLogin() {
+  const pw = document.getElementById('pw').value;
+  const r = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
+  const d = await r.json();
+  if (d.ok) { localStorage.setItem('evomesh-token', d.token); location.href = '/?token=' + encodeURIComponent(d.token); }
+  else showError(d.error || 'Wrong password');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('login-form').style.display !== 'none' ? doLogin() : doSetup(); } });
+// Auto-login if token saved
+const saved = localStorage.getItem('evomesh-token');
+if (saved) { location.href = '/?token=' + encodeURIComponent(saved); } else { init(); }
+</script></body></html>`;
+}
+

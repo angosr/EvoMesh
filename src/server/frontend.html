@@ -207,9 +207,76 @@
   #role-modal .modal-btns button { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
   #role-modal .btn-create { background: #e94560; color: #fff; }
   #role-modal .btn-close { background: #333; color: #888; }
+
+  /* === Mobile responsive === */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+
+    /* Sidebar: full width drawer, hidden by default on mobile */
+    #sidebar { position: fixed; top: 0; left: 0; width: 80vw !important; max-width: 320px; height: 100vh; z-index: 50; transform: translateX(-100%); transition: transform 0.25s ease; }
+    #sidebar.mobile-open { transform: translateX(0); }
+    #sidebar.hidden { transform: translateX(-100%); }
+    .resize-handle { display: none !important; }
+
+    /* Main takes full width */
+    #main { width: 100%; min-width: 0; }
+
+    /* Chat sidebar: slide from right */
+    #chat-sidebar { position: fixed; top: 0; right: 0; width: 85vw !important; max-width: 340px; height: 100vh; z-index: 50; transform: translateX(100%); transition: transform 0.25s ease; }
+    #chat-sidebar.mobile-open { transform: translateX(0); }
+    #chat-sidebar.hidden { transform: translateX(100%); }
+
+    /* Overlay when sidebars are open */
+    .mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+    .mobile-overlay.show { display: block; }
+
+    /* Top bar: bigger touch targets */
+    #top-bar { padding: 6px 8px; min-height: 40px; }
+    .toggle-sidebar-btn { padding: 8px 12px; font-size: 16px; }
+    #layout-controls button { padding: 6px 10px; font-size: 11px; }
+
+    /* Metrics: compact on mobile */
+    #metrics { gap: 6px; }
+    .metric { font-size: 9px; }
+    .metric-bar { width: 24px; }
+
+    /* Dashboard: less padding */
+    #dashboard { padding: 12px; }
+    .card { padding: 10px; }
+    table { display: block; overflow-x: auto; }
+
+    /* Terminal iframe: allow touch scrolling */
+    .panel iframe { -webkit-overflow-scrolling: touch; }
+
+    /* Grid on mobile: single column */
+    #panels.grid, #panels.grid.grid-2, #panels.grid.grid-3, #panels.grid.grid-4 {
+      grid-template-columns: 1fr !important;
+      grid-template-rows: repeat(auto-fill, minmax(200px, 1fr)) !important;
+    }
+    #panels.grid .panel:last-child { grid-column: auto; }
+
+    /* Modal: full width on mobile */
+    #role-modal { width: 90vw; max-width: 340px; }
+  }
+
+  /* Touch-friendly: larger hit targets for all interactive elements */
+  @media (pointer: coarse) {
+    .role-btn { padding: 10px 12px; font-size: 14px; }
+    .role-btn .role-actions { opacity: 0.5; }
+    .role-btn .role-actions span { padding: 4px 6px; font-size: 14px; }
+    .sidebar-tab { padding: 10px 14px; font-size: 13px; }
+    .sidebar-tab .close { font-size: 16px; opacity: 0.5; }
+    .project-header { padding: 12px; font-size: 14px; }
+    .add-role-btn { padding: 10px 12px; font-size: 12px; }
+    #add-project-btn { padding: 12px; font-size: 13px; }
+    #chat-input { font-size: 14px; padding: 10px; }
+    #chat-send { padding: 10px 16px; font-size: 14px; }
+  }
 </style>
 </head>
 <body>
+
+<div class="mobile-overlay" id="mobile-overlay" onclick="closeMobileOverlay()"></div>
 
 <!-- Left Sidebar -->
 <div id="sidebar">
@@ -264,6 +331,8 @@
       <div class="metric" title="Disk"><span>DISK</span><div class="metric-bar"><div class="metric-bar-fill ok" id="m-disk2" style="width:0%"></div></div><span id="m-disk-val2"></span></div>
     </div>
     <button class="toggle-sidebar-btn" onclick="toggleChat()" title="Toggle chat">&#128172;</button>
+    <button class="toggle-sidebar-btn" onclick="showChangePw()" title="Change password">&#128274;</button>
+    <button class="toggle-sidebar-btn" onclick="doLogout()" title="Logout">&#9211;</button>
   </div>
   <div id="panels">
     <div class="panel active" id="panel-dashboard">
@@ -515,8 +584,59 @@ function setLayout(mode) {
 }
 
 // ==================== Toggle sidebars ====================
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
-function toggleChat() { document.getElementById('chat-sidebar').classList.toggle('hidden'); }
+function isMobile() { return window.innerWidth <= 768; }
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const overlay = document.getElementById('mobile-overlay');
+  if (isMobile()) {
+    const isOpen = sb.classList.contains('mobile-open');
+    sb.classList.toggle('mobile-open');
+    document.getElementById('chat-sidebar').classList.remove('mobile-open');
+    overlay.classList.toggle('show', !isOpen);
+  } else {
+    sb.classList.toggle('hidden');
+  }
+}
+
+function toggleChat() {
+  const chat = document.getElementById('chat-sidebar');
+  const overlay = document.getElementById('mobile-overlay');
+  if (isMobile()) {
+    const isOpen = chat.classList.contains('mobile-open');
+    chat.classList.toggle('mobile-open');
+    document.getElementById('sidebar').classList.remove('mobile-open');
+    overlay.classList.toggle('show', !isOpen);
+  } else {
+    chat.classList.toggle('hidden');
+  }
+}
+
+async function showChangePw() {
+  const oldPw = prompt('Current password:');
+  if (!oldPw) return;
+  const newPw = prompt('New password (min 4 chars):');
+  if (!newPw || newPw.length < 4) { alert('Password too short'); return; }
+  const confirm = prompt('Confirm new password:');
+  if (newPw !== confirm) { alert('Passwords do not match'); return; }
+  try {
+    const r = await authFetch(`/auth/change-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({oldPassword:oldPw, newPassword:newPw}) });
+    const d = await r.json();
+    if (d.ok) alert('Password changed');
+    else alert(d.error || 'Failed');
+  } catch { alert('Failed'); }
+}
+
+function doLogout() {
+  localStorage.removeItem('evomesh-token');
+  location.href = '/login';
+}
+
+function closeMobileOverlay() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('chat-sidebar').classList.remove('mobile-open');
+  document.getElementById('mobile-overlay').classList.remove('show');
+}
 
 // ==================== Resize handles ====================
 function initResize(handleId, target, side) {
@@ -551,7 +671,7 @@ initResize('rh-right', 'chat-sidebar', 'right');
 async function switchAccount(slug, roleName, sel) {
   const an = sel.value, opt = sel.selectedOptions[0];
   if (!confirm(`Switch ${roleName} to "${an}"?`)) { fetchAll(); return; }
-  try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${roleName}</strong> -> ${an}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
+  try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${esc(roleName)}</strong> -> ${esc(an)}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
 async function restartRole(slug, roleName) {
   if (!confirm(`Restart "${roleName}"? Session will reconnect automatically.`)) return;
