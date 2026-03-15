@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EvoMesh</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; height: 100vh; display: flex; }
@@ -26,38 +25,41 @@
   #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
   /* Tab bar */
-  #tabs { display: flex; background: #16213e; border-bottom: 1px solid #0f3460; min-height: 36px; overflow-x: auto; }
+  #tab-bar { display: flex; align-items: center; background: #16213e; border-bottom: 1px solid #0f3460; min-height: 36px; }
+  #tabs { display: flex; flex: 1; overflow-x: auto; }
   .tab { padding: 8px 16px; cursor: pointer; border: none; background: none; color: #888; font-size: 13px; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
   .tab:hover { color: #e0e0e0; }
   .tab.active { color: #e94560; border-bottom-color: #e94560; }
-  .tab .close { margin-left: 8px; opacity: 0.4; }
+  .tab .close { margin-left: 8px; opacity: 0.4; cursor: pointer; }
   .tab .close:hover { opacity: 1; }
-
-  /* Terminal panels */
-  #panels { flex: 1; position: relative; overflow: hidden; }
-  .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; padding: 4px; }
-  .panel.active { display: flex; }
-  .panel .xterm { width: 100%; height: 100%; }
-
-  /* Dashboard panel */
-  #dashboard { padding: 24px; overflow-y: auto; font-size: 14px; line-height: 1.8; }
-  #dashboard h2 { color: #e94560; margin-bottom: 12px; }
-  #dashboard .card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-  #dashboard .card h3 { color: #4ade80; margin-bottom: 8px; font-size: 14px; }
-  #dashboard pre { background: #0a0a1a; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 12px; color: #ccc; white-space: pre-wrap; }
-  #dashboard table { width: 100%; border-collapse: collapse; }
-  #dashboard th, #dashboard td { text-align: left; padding: 6px 12px; border-bottom: 1px solid #0f3460; }
-  #dashboard th { color: #888; font-size: 11px; text-transform: uppercase; }
-
-  /* Layout modes */
-  #layout-controls { display: flex; gap: 4px; padding: 4px 8px; }
+  #layout-controls { display: flex; gap: 4px; padding: 4px 8px; flex-shrink: 0; }
   #layout-controls button { background: #1a1a2e; border: 1px solid #0f3460; color: #888; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 3px; }
   #layout-controls button:hover, #layout-controls button.active { color: #e94560; border-color: #e94560; }
 
+  /* Panels */
+  #panels { flex: 1; position: relative; overflow: hidden; }
+  .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
+  .panel.active { display: block; }
+  .panel iframe { width: 100%; height: 100%; border: none; background: #000; }
+
+  /* Dashboard */
+  #dashboard { padding: 24px; overflow-y: auto; }
+  #dashboard h2 { color: #e94560; margin-bottom: 16px; }
+  .card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .card h3 { color: #4ade80; margin-bottom: 8px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #0f3460; font-size: 13px; }
+  th { color: #888; font-size: 11px; text-transform: uppercase; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+  .badge.running { background: #064e3b; color: #4ade80; }
+  .badge.stopped { background: #333; color: #888; }
+  .badge.lead { background: #422006; color: #fbbf24; }
+  .badge.worker { background: #1e1b4b; color: #818cf8; }
+
   /* Grid layout */
   #panels.grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
-  #panels.grid .panel { position: relative; display: flex !important; }
-  #panels.grid .panel.hidden { display: none !important; }
+  #panels.grid .panel { position: relative; display: block !important; }
+  #panels.grid .panel.hidden-grid { display: none !important; }
 </style>
 </head>
 <body>
@@ -70,13 +72,13 @@
 </div>
 
 <div id="main">
-  <div style="display:flex; align-items:center; border-bottom: 1px solid #0f3460;">
+  <div id="tab-bar">
     <div id="tabs">
-      <button class="tab active" data-panel="dashboard">Dashboard</button>
+      <button class="tab active" data-panel="dashboard" onclick="switchTo('dashboard')">Dashboard</button>
     </div>
     <div id="layout-controls">
-      <button id="btn-tabs" class="active" title="Tab view">Tabs</button>
-      <button id="btn-grid" title="Grid view">Grid</button>
+      <button id="btn-tabs" class="active" onclick="setLayout('tabs')">Tabs</button>
+      <button id="btn-grid" onclick="setLayout('grid')">Grid</button>
     </div>
   </div>
   <div id="panels">
@@ -89,28 +91,24 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
 <script>
-const WS_URL = `ws://${location.host}`;
-const API_URL = `${location.origin}/api`;
+const API = `${location.origin}/api`;
 
 const state = {
   roles: [],
-  terminals: {},   // roleName -> { term, ws, tab, panel }
+  openPanels: {},  // roleName -> { tab, panel }
   activePanel: 'dashboard',
-  layout: 'tabs',  // 'tabs' or 'grid'
+  layout: 'tabs',
 };
 
-// --- Fetch status ---
 async function fetchStatus() {
   try {
-    const res = await fetch(`${API_URL}/status`);
+    const res = await fetch(`${API}/status`);
     const data = await res.json();
     state.roles = data.roles;
     renderSidebar(data);
     renderDashboard(data);
-  } catch (e) {
+  } catch {
     document.getElementById('status-bar').textContent = 'Connection error';
   }
 }
@@ -124,46 +122,51 @@ function renderSidebar(data) {
     btn.innerHTML = `
       <span class="dot ${role.running ? 'running' : 'stopped'}"></span>
       <span>${role.name}</span>
-      <span class="info">${role.loop_interval}</span>
-    `;
-    btn.onclick = () => openTerminal(role.name);
+      <span class="info">${role.loop_interval}</span>`;
+    btn.onclick = () => openTerminal(role.name, role.ttyd_port);
     list.appendChild(btn);
   }
-  document.getElementById('status-bar').textContent =
-    `${data.project} · ${data.roles.filter(r => r.running).length}/${data.roles.length} running`;
+  const running = data.roles.filter(r => r.running).length;
+  document.getElementById('status-bar').textContent = `${data.project} · ${running}/${data.roles.length} running`;
 }
 
 function renderDashboard(data) {
   const el = document.getElementById('dash-content');
   const rows = data.roles.map(r => `
     <tr>
-      <td><span class="dot ${r.running ? 'running' : 'stopped'}" style="display:inline-block;width:8px;height:8px;border-radius:50;margin-right:6px"></span> ${r.name}</td>
-      <td>${r.type}</td>
+      <td><strong>${r.name}</strong></td>
+      <td><span class="badge ${r.type}">${r.type}</span></td>
       <td>${r.loop_interval}</td>
-      <td>${r.running ? `<span style="color:#4ade80">running</span> (PID ${r.pid})` : '<span style="color:#666">stopped</span>'}</td>
-      <td>${r.description}</td>
-    </tr>
-  `).join('');
+      <td><span class="badge ${r.running ? 'running' : 'stopped'}">${r.running ? 'running' : 'stopped'}</span></td>
+      <td style="color:#888">${r.description}</td>
+      <td>${r.ttyd_port ? `<a href="${location.protocol}//${location.hostname}:${r.ttyd_port}/${r.name}/" target="_blank" style="color:#818cf8">Open</a>` : '-'}</td>
+    </tr>`).join('');
 
   el.innerHTML = `
     <div class="card">
       <h3>Roles</h3>
       <table>
-        <tr><th>Name</th><th>Type</th><th>Interval</th><th>Status</th><th>Description</th></tr>
+        <tr><th>Name</th><th>Type</th><th>Interval</th><th>Status</th><th>Description</th><th>Terminal</th></tr>
         ${rows}
       </table>
     </div>
     <div class="card">
-      <h3>Quick Actions</h3>
-      <p style="color:#888; font-size:13px">Click a role in the sidebar to open its terminal. Use Grid view for multi-panel layout.</p>
-    </div>
-  `;
+      <h3>Usage</h3>
+      <p style="color:#888;font-size:13px;line-height:1.8">
+        Click a role in the sidebar to embed its terminal.<br>
+        Click "Open" to open ttyd in a new tab (full standalone terminal).<br>
+        Use <strong>Grid</strong> to view all terminals side by side.
+      </p>
+    </div>`;
 }
 
-// --- Terminal management ---
-function openTerminal(roleName) {
-  if (state.terminals[roleName]) {
-    switchToPanel(roleName);
+function openTerminal(roleName, ttydPort) {
+  if (state.openPanels[roleName]) {
+    switchTo(roleName);
+    return;
+  }
+  if (!ttydPort) {
+    alert(`No terminal available for ${roleName}. Is it running?`);
     return;
   }
 
@@ -171,124 +174,42 @@ function openTerminal(roleName) {
   const tab = document.createElement('button');
   tab.className = 'tab';
   tab.dataset.panel = roleName;
-  tab.innerHTML = `${roleName} <span class="close" onclick="event.stopPropagation(); closeTerminal('${roleName}')">&times;</span>`;
-  tab.onclick = () => switchToPanel(roleName);
+  tab.onclick = () => switchTo(roleName);
+  tab.innerHTML = `${roleName} <span class="close" onclick="event.stopPropagation(); closePanel('${roleName}')">&times;</span>`;
   document.getElementById('tabs').appendChild(tab);
 
-  // Create panel
+  // Create panel with iframe to ttyd
   const panel = document.createElement('div');
   panel.className = 'panel';
   panel.id = `panel-${roleName}`;
-  const termEl = document.createElement('div');
-  termEl.className = 'xterm';
-  panel.appendChild(termEl);
+
+  const ttydUrl = `${location.protocol}//${location.hostname}:${ttydPort}/${roleName}/`;
+  panel.innerHTML = `<iframe src="${ttydUrl}" allow="clipboard-read; clipboard-write"></iframe>`;
   document.getElementById('panels').appendChild(panel);
 
-  // Create xterm
-  const term = new Terminal({
-    theme: {
-      background: '#1a1a2e',
-      foreground: '#e0e0e0',
-      cursor: '#e94560',
-      selectionBackground: '#0f3460',
-    },
-    fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace",
-    fontSize: 13,
-    cursorBlink: true,
-    scrollback: 5000,
-  });
-  const fitAddon = new FitAddon.FitAddon();
-  term.loadAddon(fitAddon);
-  term.open(termEl);
-  fitAddon.fit();
-
-  // WebSocket connection — pass initial terminal size
-  const wsUrl = `${WS_URL}?role=${roleName}&cols=${term.cols}&rows=${term.rows}`;
-  const ws = new WebSocket(wsUrl);
-  ws.binaryType = 'arraybuffer';
-
-  ws.onmessage = (event) => {
-    // Server sends raw PTY bytes (from tmux attach) or JSON error messages
-    if (typeof event.data === 'string') {
-      // Could be a JSON error or plain text
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'error') {
-          term.write(`\r\n\x1b[31m[Error] ${msg.message}\x1b[0m\r\n`);
-          return;
-        }
-      } catch {}
-      term.write(event.data);
-    } else {
-      // Binary data — raw PTY stream
-      term.write(new Uint8Array(event.data));
-    }
-  };
-  ws.onclose = () => {
-    term.write('\r\n\x1b[33m[Disconnected]\x1b[0m\r\n');
-  };
-
-  // Forward keystrokes as JSON (server uses tmux send-keys)
-  term.onData((data) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'input', data }));
-    }
-  });
-
-  // Handle resize
-  const resizeObs = new ResizeObserver(() => {
-    fitAddon.fit();
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
-    }
-  });
-  resizeObs.observe(termEl);
-
-  state.terminals[roleName] = { term, ws, tab, panel, fitAddon, resizeObs };
-  switchToPanel(roleName);
+  state.openPanels[roleName] = { tab, panel };
+  switchTo(roleName);
 }
 
-function closeTerminal(roleName) {
-  const t = state.terminals[roleName];
-  if (!t) return;
-  t.ws.close();
-  t.term.dispose();
-  t.resizeObs.disconnect();
-  t.tab.remove();
-  t.panel.remove();
-  delete state.terminals[roleName];
-  if (state.activePanel === roleName) {
-    switchToPanel('dashboard');
-  }
+function closePanel(roleName) {
+  const p = state.openPanels[roleName];
+  if (!p) return;
+  p.tab.remove();
+  p.panel.remove();
+  delete state.openPanels[roleName];
+  if (state.activePanel === roleName) switchTo('dashboard');
 }
 
-function switchToPanel(name) {
+function switchTo(name) {
   state.activePanel = name;
-
-  // Update tabs
-  document.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.panel === name);
-  });
-
-  // Update panels (in tab mode)
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.panel === name));
   if (state.layout === 'tabs') {
-    document.querySelectorAll('.panel').forEach(p => {
-      p.classList.toggle('active', p.id === `panel-${name}`);
-    });
+    document.querySelectorAll('.panel').forEach(p =>
+      p.classList.toggle('active', p.id === `panel-${name}`));
   }
-
-  // Update sidebar
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-
-  // Fit terminal
-  if (state.terminals[name]) {
-    setTimeout(() => state.terminals[name].fitAddon.fit(), 50);
-  }
 }
-
-// --- Layout ---
-document.getElementById('btn-tabs').onclick = () => setLayout('tabs');
-document.getElementById('btn-grid').onclick = () => setLayout('grid');
 
 function setLayout(mode) {
   state.layout = mode;
@@ -298,26 +219,14 @@ function setLayout(mode) {
 
   if (mode === 'grid') {
     panels.classList.add('grid');
-    // Show all terminal panels
-    document.querySelectorAll('.panel').forEach(p => {
-      p.classList.remove('active');
-      p.style.display = '';
-    });
-    // Hide dashboard in grid
-    const dash = document.getElementById('panel-dashboard');
-    if (dash) dash.classList.add('hidden');
-    // Fit all terminals
-    Object.values(state.terminals).forEach(t => setTimeout(() => t.fitAddon.fit(), 100));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-dashboard')?.classList.add('hidden-grid');
   } else {
     panels.classList.remove('grid');
-    // Reset to tab mode — show only active
     document.querySelectorAll('.panel').forEach(p => {
-      p.classList.remove('hidden');
+      p.classList.remove('hidden-grid');
       p.classList.toggle('active', p.id === `panel-${state.activePanel}`);
     });
-    if (state.terminals[state.activePanel]) {
-      setTimeout(() => state.terminals[state.activePanel].fitAddon.fit(), 50);
-    }
   }
 }
 
@@ -325,13 +234,12 @@ function setLayout(mode) {
 fetchStatus();
 setInterval(fetchStatus, 5000);
 
-// Keyboard shortcuts: Ctrl+1~9 to switch tabs
+// Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
     e.preventDefault();
-    const idx = parseInt(e.key) - 1;
-    const tabs = document.querySelectorAll('.tab');
-    if (tabs[idx]) tabs[idx].click();
+    const tabs = [...document.querySelectorAll('.tab')];
+    if (tabs[parseInt(e.key) - 1]) tabs[parseInt(e.key) - 1].click();
   }
 });
 </script>

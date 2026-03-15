@@ -2,9 +2,7 @@ import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
 import express from "express";
-import { WebSocketServer, WebSocket } from "ws";
-import { execFileSync } from "node:child_process";
-import { spawn as ptySpawn, type IPty } from "node-pty";
+import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config/loader.js";
 import { readPid } from "../process/registry.js";
@@ -14,19 +12,71 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
 
-/**
- * Each WebSocket client gets its own `tmux attach-session` PTY process.
- * This gives xterm.js the raw ANSI byte stream — no capture-pane snapshot issues.
- */
-interface ClientSession {
-  pty: IPty;
+interface TtydProcess {
+  port: number;
+  process: ReturnType<typeof spawn>;
   roleName: string;
 }
 
 export function startServer(root: string, port: number) {
   const app = express();
   const server = http.createServer(app);
-  const wss = new WebSocketServer({ server });
+
+  const ttydProcesses: Map<string, TtydProcess> = new Map();
+
+  // --- ttyd management ---
+
+  function startTtyd(roleName: string, basePort: number): TtydProcess | null {
+    const session = `evomesh-${roleName}`;
+
+    // Check tmux session exists
+    try {
+      execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
+    } catch {
+      return null;
+    }
+
+    const ttydPort = basePort;
+
+    // Kill existing ttyd on this port
+    try {
+      execFileSync("fuser", ["-k", `${ttydPort}/tcp`], { stdio: "ignore" });
+    } catch {}
+
+    // Start ttyd attached to the tmux session (writable)
+    const proc = spawn("ttyd", [
+      "--port", String(ttydPort),
+      "--writable",              // allow input
+      "--base-path", `/${roleName}`,  // serve at /roleName/
+      "tmux", "attach-session", "-t", session,
+    ], {
+      detached: true,
+      stdio: "ignore",
+      cwd: root,
+    });
+    proc.unref();
+
+    return { port: ttydPort, process: proc, roleName };
+  }
+
+  function ensureTtydRunning() {
+    try {
+      const config = loadConfig(root);
+      let portOffset = 0;
+      for (const name of Object.keys(config.roles)) {
+        if (ttydProcesses.has(name)) continue;
+        const info = readPid(root, name);
+        if (!info?.alive) continue;
+
+        const ttydPort = port + 1 + portOffset;
+        const proc = startTtyd(name, ttydPort);
+        if (proc) {
+          ttydProcesses.set(name, proc);
+        }
+        portOffset++;
+      }
+    } catch {}
+  }
 
   // --- REST API ---
 
@@ -35,6 +85,7 @@ export function startServer(root: string, port: number) {
       const config = loadConfig(root);
       const roles = Object.entries(config.roles).map(([name, rc]) => {
         const info = readPid(root, name);
+        const ttyd = ttydProcesses.get(name);
         return {
           name,
           type: rc.type,
@@ -42,6 +93,7 @@ export function startServer(root: string, port: number) {
           description: rc.description,
           running: info?.alive ?? false,
           pid: info?.pid ?? null,
+          ttyd_port: ttyd?.port ?? null,
         };
       });
       res.json({ project: config.name, roles });
@@ -74,102 +126,32 @@ export function startServer(root: string, port: number) {
     if (fs.existsSync(filePath)) {
       res.sendFile(filePath);
     } else {
-      res.send("Frontend not found. Expected at: " + htmlPath);
+      res.send("Frontend not found.");
     }
   });
 
-  // --- WebSocket: raw PTY bridge via tmux attach ---
+  // Start ttyd instances for running roles
+  ensureTtydRunning();
+  // Re-check periodically
+  setInterval(ensureTtydRunning, 10000);
 
-  wss.on("connection", (ws, req) => {
-    const url = new URL(req.url || "/", `http://localhost:${port}`);
-    const roleName = url.searchParams.get("role");
-    const cols = Math.max(10, Math.min(500, parseInt(url.searchParams.get("cols") || "120", 10)));
-    const rows = Math.max(10, Math.min(500, parseInt(url.searchParams.get("rows") || "40", 10)));
-
-    if (!roleName || !ROLE_NAME_RE.test(roleName)) {
-      ws.send(JSON.stringify({ type: "error", message: "Missing or invalid ?role= parameter" }));
-      ws.close();
-      return;
+  // Cleanup on exit
+  const cleanup = () => {
+    for (const [, t] of ttydProcesses) {
+      try { t.process.kill(); } catch {}
     }
-
-    const session = `evomesh-${roleName}`;
-
-    // Check if tmux session exists
-    try {
-      execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
-    } catch {
-      ws.send(JSON.stringify({ type: "error", message: `Session '${session}' not found. Is the role running?` }));
-      ws.close();
-      return;
-    }
-
-    // Spawn a `tmux attach-session` process via node-pty.
-    // This gives us the raw byte stream that xterm.js needs.
-    // Using -r (read-only) so multiple web clients don't fight for input;
-    // input is sent separately via tmux send-keys.
-    let pty: IPty;
-    try {
-      pty = ptySpawn("tmux", ["attach-session", "-t", session, "-r"], {
-        name: "xterm-256color",
-        cols,
-        rows,
-        cwd: root,
-      });
-    } catch (e: any) {
-      ws.send(JSON.stringify({ type: "error", message: `Failed to attach: ${e.message}` }));
-      ws.close();
-      return;
-    }
-
-    // PTY output → WebSocket (binary for efficiency)
-    pty.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
-
-    pty.onExit(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("\r\n\x1b[33m[tmux session ended]\x1b[0m\r\n");
-        ws.close();
-      }
-    });
-
-    // WebSocket messages → tmux
-    ws.on("message", (raw) => {
-      try {
-        const str = raw.toString();
-        // Try JSON first (structured messages)
-        if (str.startsWith("{")) {
-          const msg = JSON.parse(str);
-          if (msg.type === "input" && typeof msg.data === "string") {
-            execFileSync("tmux", ["send-keys", "-t", session, "-l", msg.data], {
-              stdio: "ignore",
-            });
-          } else if (msg.type === "resize") {
-            const c = Math.max(10, Math.min(500, parseInt(msg.cols, 10)));
-            const r = Math.max(10, Math.min(500, parseInt(msg.rows, 10)));
-            if (!isNaN(c) && !isNaN(r)) {
-              pty.resize(c, r);
-            }
-          }
-        } else {
-          // Raw text — send directly as keystrokes
-          execFileSync("tmux", ["send-keys", "-t", session, "-l", str], {
-            stdio: "ignore",
-          });
-        }
-      } catch {}
-    });
-
-    ws.on("close", () => {
-      pty.kill();
-    });
-  });
+    process.exit(0);
+  };
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
 
   server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
     console.log(`    http://0.0.0.0:${port}`);
+    console.log(`\n  ttyd terminals:`);
+    for (const [name, t] of ttydProcesses) {
+      console.log(`    ${name}: http://0.0.0.0:${t.port}/${name}/`);
+    }
     console.log(`\n  Press Ctrl+C to stop.\n`);
   });
 }
