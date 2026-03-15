@@ -4,14 +4,14 @@
 
 ## Current Progress
 
-Phase 3 complete, now in Phase 4 (polish). server/index.ts refactor done. CI (GitHub Actions) live, 30 unit tests passing.
+Phase 4 (polish) in progress. All code refactoring complete (server + frontend split). Settings panel, mobile touch scroll implemented. CI live, 30 unit tests passing. Auth integration tests in progress.
 
 ## Role Status
 
 | Role | Status | Current Work |
 |------|--------|-------------|
-| lead | Running | Loop #9 — Verifying index.ts refactor, updating docs |
-| executor | Running | Loop #16 — Big-picture review, reported stale docs |
+| lead | Running | Loop #12 — Syncing English docs, self-review |
+| executor | Running | Loop #21 — Idle, auth integration tests in progress |
 | reviewer | **Removed** | User decision, review duties assumed by lead |
 
 ## Implemented Features
@@ -33,12 +33,14 @@ Phase 3 complete, now in Phase 4 (polish). server/index.ts refactor done. CI (Gi
 - Express server (port 8080)
 - Password authentication (PBKDF2-SHA512) + login page
 - Multi-user management (admin/viewer roles, full CRUD)
+- Settings panel (profile, password change, user management, system info)
 - Resizable 3-panel Dashboard
 - Tabbed terminals (ttyd WebSocket proxy)
-- Mobile support (touch events, responsive layout)
+- Mobile support (touch events, tmux touch-to-scroll, responsive layout)
 - Multi-project management (workspace.yaml)
 - WebSocket reconnection overlay
 - Server modularized (index + routes + terminal)
+- Frontend split (HTML + CSS + JS)
 
 ### Security
 - Command injection fix (spawner.ts, execSync)
@@ -55,15 +57,14 @@ Phase 3 complete, now in Phase 4 (polish). server/index.ts refactor done. CI (Gi
 | Priority | Issue | Status |
 |----------|-------|--------|
 | P2 | readYaml lacks runtime validation | Not started (low risk) |
-| ~~P2~~ | ~~expandHome fallback error~~ | ✅ Fixed (executor Loop #10) |
-| ~~P2~~ | ~~Library functions call process.exit()~~ | ✅ Fixed (executor Loop #10) |
-| P2 | Unit test coverage gaps | Partial (30 unit tests, server routes untested) |
+| ~~P2~~ | ~~expandHome fallback error~~ | ✅ Fixed |
+| ~~P2~~ | ~~Library functions call process.exit()~~ | ✅ Fixed |
+| P2 | Server route test coverage | In progress (auth.test.ts) |
 | P3 | WebSocket lacks auth refresh | Not started |
 | P3 | No API security headers/rate limiting | Not started |
 | P3 | Sessions lost on server restart | Not started |
 
 ## Pending
 
-- Server route integration tests
 - Background start mode needs real-world testing
 - serve command should be marked experimental

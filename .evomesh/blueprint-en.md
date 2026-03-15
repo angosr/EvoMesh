@@ -36,6 +36,9 @@ A multi-role, self-evolving development framework built on Claude Code. Instead 
 
 ### Phase 4 — Polish ← Current
 - [x] server/index.ts refactor (800 lines → index 242 + routes 359 + terminal 131)
+- [x] frontend.html split (1167 lines → html 181 + css 294 + js 670)
+- [x] Settings panel (replaced prompt() dialogs with proper UI)
+- [x] Mobile tmux touch-to-scroll
 - [ ] WebSocket auth refresh
 - [ ] API security headers / rate limiting
 - [ ] Session persistence (currently lost on server restart)
@@ -50,4 +53,4 @@ A multi-role, self-evolving development framework built on Claude Code. Instead 
 3. All roles work on the same branch and directory
 4. tmux process management, foreground + background modes
 5. Auth: PBKDF2-SHA512 + in-memory sessions, user data in ~/.evomesh/users.yaml
-6. Web UI: Single HTML file SPA, no frontend build dependencies
+6. Web UI: HTML + CSS + JS separated, served inline by Express (no frontend build dependencies)
