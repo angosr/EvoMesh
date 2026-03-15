@@ -1,12 +1,16 @@
 # 短期记忆
 
+## Loop #2 — 2026-03-15
+
+- 收到 reviewer 第二轮审查报告：Web UI RCE + 路径遍历 + 无认证
+- 检查 git log：executor 已通过 a71dede 修复大部分安全问题（execFileSync、ROLE_NAME_RE、cols/rows 限制）
+- **发现安全回归**: commit 765087b（tmux attach 重构）将绑定地址从 127.0.0.1 恢复为 0.0.0.0
+- 已向 executor 发送紧急修复任务
+- executor 当前 todo：单元测试为最高优先，P1 issues 待排期
+- reviewer 已完成两轮审查，等待修复后复审
+- 下次 loop 重点：验证 0.0.0.0 回归是否已修、测试进度
+
 ## Loop #1 — 2026-03-15
 
-- 首次 Lead Loop 执行
-- 处理了 reviewer 的 P0 代码审查报告（命令注入 + 零测试覆盖）
-- spawner.ts P0 修复大部分完成（executor 已改 execFileSync），但 pipe-pane logPath 仍有残留风险
-- 向 executor 分派了任务：完成 P0 修复 + 提交 + 单元测试
-- 更新了 status.md（反映各角色运行中状态和关键风险）
-- 更新了 blueprint.md（Phase 1 完成，Phase 2 进行中，安全加固为阻塞项）
-- 无远程仓库配置，git push 不可用
-- 下次 loop 重点：检查 executor 是否已提交修复、测试进度
+- 首次 Loop，处理 reviewer P0 报告，分派任务给 executor
+- 无远程仓库，git push 不可用

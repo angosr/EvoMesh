@@ -2,18 +2,19 @@
 
 ## 当前优先
 
-1. **跟踪 executor P0 修复进度**: spawner.ts logPath 残留风险、未提交变更、单元测试
-2. **跟踪 P1 修复**: expandHome、readYaml 校验、process.exit 改异常
-3. **审查 executor 和 reviewer 的工作产出**: 检查 git log 中的 commit 质量
+1. **跟踪 P0 绑定回归修复**: executor 需修复 server.listen 0.0.0.0 → 127.0.0.1
+2. **跟踪单元测试进度**: 零覆盖仍是最大质量风险
+3. **评估 Web UI 认证方案**: reviewer 建议添加 token 认证，需排期
 
 ## 待排期
 
+- 跟踪 P1 修复（expandHome、readYaml、process.exit）
 - 评估角色协作效率，是否需要调整 loop 周期
 - README 文档
-- Phase 2 完成度评估：inbox 机制是否需要增强（消息确认、超时处理）
+- Phase 2 完成度评估
 
 ## 已完成
 
-- [2026-03-15] 处理 reviewer P0 审查报告，分派修复任务给 executor
-- [2026-03-15] 更新 status.md 反映当前项目状态
-- [2026-03-15] 更新 blueprint.md 路线图（Phase 1 完成，Phase 2 进行中）
+- [2026-03-15] Loop #2: 审查 executor 修复质量，发现 0.0.0.0 安全回归并分派
+- [2026-03-15] Loop #1: 处理 reviewer P0 审查报告，分派修复任务给 executor
+- [2026-03-15] 更新 status.md、blueprint.md
