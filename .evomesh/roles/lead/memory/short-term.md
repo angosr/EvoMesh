@@ -1,14 +1,13 @@
 # 短期记忆
 
-## Loop #3 — 2026-03-15
+## Loop #4 — 2026-03-15
 
-- 收到 reviewer 安全进度报告：注入全部修复，0.0.0.0+无认证仍未修，安全评分 7/10
-- **P0 0.0.0.0 绑定仍未修复**（server/index.ts:464），已二次升级分派 executor
-- executor 自 Loop #2 以来新增 5 个 feature commit（workspace、account、mission control 等），但未处理 P0
-- 测试覆盖有进展：4 个测试文件（paths/registry/loader/manager），从零起步
-- project.yaml 有未提交修改：新增 account "2"，lead/executor 切换到 account "2"
-- 远程仓库存在但本地领先 5 commits，未 push
-- 下次 loop 重点：验证 P0 是否终于修复、评估是否需要 lead 直接修复
+- **Lead 直接修复 P0**: server/index.ts:593 `0.0.0.0` → `127.0.0.1`（executor 未响应 3 loops）
+- reviewer 角色被用户从 project.yaml 移除，所有文件已删除
+- executor 自 Loop #3 以来又新增 10 个 commit（UI features），inbox 3 条消息全部未处理
+- executor 的 loop 机制或 inbox 检查可能失效，协作通道不通
+- 本地领先 origin 10 commits
+- 下次 loop 重点：push 修复、评估 executor inbox 机制、认证方案排期
 
 ## Loop #2 — 2026-03-15
 

@@ -435,6 +435,41 @@ export function startServer(port: number, initialRoot?: string) {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // --- Role restart ---
+  app.post("/api/projects/:slug/roles/:name/restart", (req, res) => {
+    const project = getProject(req.params.slug);
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    const roleName = req.params.name;
+
+    try {
+      const config = loadConfig(project.root);
+      const rc = config.roles[roleName];
+      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
+
+      // Stop if running
+      stopRole(project.root, roleName);
+      const key = `${project.slug}/${roleName}`;
+      const ttyd = ttydProcesses.get(key);
+      if (ttyd) { try { ttyd.process.kill(); } catch {} ttydProcesses.delete(key); }
+
+      // Restart after cleanup
+      setTimeout(() => {
+        try {
+          const fresh = loadConfig(project.root);
+          const freshRc = fresh.roles[roleName];
+          if (freshRc) {
+            spawnRole(project.root, roleName, freshRc, fresh);
+            setTimeout(ensureTtydRunning, 3000);
+          }
+        } catch (e: any) {
+          console.error(`Failed to restart ${roleName}:`, e.message);
+        }
+      }, 2000);
+
+      res.json({ ok: true, role: roleName });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // --- Role management ---
 
   // List available templates
@@ -590,7 +625,7 @@ export function startServer(port: number, initialRoot?: string) {
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
 
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(port, "127.0.0.1", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
     console.log(`    http://localhost:${port}`);
     console.log(`\n  Terminals proxied at /terminal/{project}/{role}/\n`);
