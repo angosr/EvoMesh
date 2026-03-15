@@ -139,6 +139,11 @@
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
   .panel.active { display: block; }
   .panel iframe { width: 100%; height: 100%; border: none; background: #000; }
+  .panel .reconnect-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+  .panel .reconnect-overlay.show { display: flex; }
+  .panel .reconnect-overlay .reconnect-btn { padding: 14px 28px; background: #e94560; border: none; color: #fff; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .panel .reconnect-overlay .reconnect-btn:hover { background: #d63851; }
+  .panel .reconnect-overlay .reconnect-msg { color: #888; font-size: 13px; }
   #dashboard { padding: 20px; overflow-y: auto; height: 100%; }
   #dashboard h2 { color: #e94560; margin-bottom: 14px; font-size: 16px; }
   .card { background: #111111; border: 1px solid #222; border-radius: 8px; padding: 14px; margin-bottom: 14px; }
@@ -506,10 +511,25 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const authPath = terminalPath + (terminalPath.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(AUTH_TOKEN);
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
-  panel.appendChild(iframe); document.getElementById('panels').appendChild(panel);
-  let rTimer = setInterval(() => { try { const d = iframe.contentDocument; if (d && d.title === '') iframe.src = authPath; } catch {} }, 3000);
-  iframe.addEventListener('error', () => setTimeout(() => { iframe.src = authPath; }, 3000));
-  state.openPanels[key] = { panel, iframe, reconnectTimer: rTimer };
+  // Reconnect overlay (for mobile — no keyboard Enter)
+  const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
+  overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${key}')">Reconnect</button>`;
+  panel.appendChild(iframe); panel.appendChild(overlay);
+  document.getElementById('panels').appendChild(panel);
+  // Auto-detect disconnection
+  let rTimer = setInterval(() => {
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        const text = doc.body?.innerText || '';
+        if (text.includes('press Enter to reconnect') || text.includes('Connection Closed')) {
+          overlay.classList.add('show');
+        }
+      }
+    } catch { /* cross-origin = ttyd alive */ }
+  }, 2000);
+  iframe.addEventListener('error', () => overlay.classList.add('show'));
+  state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
 
   if (state.layout === 'grid') {
@@ -520,6 +540,13 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     switchTo(key);
   }
   renderOpenTabs(); saveLayout();
+}
+
+function reconnectPanel(key) {
+  const p = state.openPanels[key];
+  if (!p) return;
+  p.overlay.classList.remove('show');
+  p.iframe.src = p.iframe.src; // reload iframe
 }
 
 function closePanel(key) {
@@ -723,7 +750,7 @@ document.getElementById('chat-input').addEventListener('keydown', e => { if (e.k
 // ==================== Metrics ====================
 async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
-function setConnStatus(connected) { if (connected && !serverConnected) { for (const [,p] of Object.entries(state.openPanels)) { if (p.iframe) p.iframe.src = p.iframe.src; } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
+function setConnStatus(connected) { if (connected && !serverConnected) { for (const [,p] of Object.entries(state.openPanels)) { if (p.iframe) p.iframe.src = p.iframe.src; if (p.overlay) p.overlay.classList.remove('show'); } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
 
 // ==================== Layout persistence ====================
 const STORAGE_KEY = 'evomesh-layout';
