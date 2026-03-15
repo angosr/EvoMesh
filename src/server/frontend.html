@@ -9,35 +9,46 @@
   body { background: #1a1a2e; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; height: 100vh; display: flex; }
 
   /* Sidebar */
-  #sidebar { width: 220px; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; flex-shrink: 0; }
+  #sidebar { width: 240px; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; flex-shrink: 0; }
   #sidebar h1 { padding: 16px; font-size: 18px; color: #e94560; border-bottom: 1px solid #0f3460; }
-  #sidebar h2 { padding: 12px 16px 4px; font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; }
-  .role-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; cursor: pointer; border: none; background: none; color: #e0e0e0; font-size: 14px; width: 100%; text-align: left; transition: background 0.15s; }
+  #project-tree { flex: 1; overflow-y: auto; }
+  .project-group { border-bottom: 1px solid #0f3460; }
+  .project-header { display: flex; align-items: center; gap: 6px; padding: 10px 12px; cursor: pointer; border: none; background: none; color: #e0e0e0; font-size: 13px; width: 100%; text-align: left; font-weight: 600; }
+  .project-header:hover { background: #1a1a3e; }
+  .project-header .arrow { font-size: 10px; transition: transform 0.2s; color: #888; width: 12px; }
+  .project-header .arrow.open { transform: rotate(90deg); }
+  .project-header .pstats { margin-left: auto; font-size: 11px; color: #666; font-weight: 400; }
+  .project-roles { padding-left: 12px; }
+  .project-roles.collapsed { display: none; }
+  .role-btn { display: flex; align-items: center; gap: 6px; padding: 7px 12px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 13px; width: 100%; text-align: left; transition: background 0.15s; }
   .role-btn:hover { background: #1a1a3e; }
   .role-btn.active { background: #0f3460; color: #fff; }
-  .role-btn .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .role-btn .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .role-btn .dot.running { background: #4ade80; }
-  .role-btn .dot.stopped { background: #666; }
-  .role-btn .info { font-size: 11px; color: #888; margin-left: auto; }
-  .role-btn .login-warn { color: #ef4444; font-size: 10px; margin-left: 4px; font-weight: 600; }
-  #status-bar { margin-top: auto; padding: 12px 16px; border-top: 1px solid #0f3460; font-size: 11px; color: #666; }
-  .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 8px 12px; margin: 8px 16px; border-radius: 6px; font-size: 11px; }
-
-  /* Account select */
-  .acct-select { background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 3px 6px; border-radius: 4px; font-size: 12px; cursor: pointer; max-width: 120px; }
-  .acct-select:focus { border-color: #e94560; outline: none; }
-  .badge.login-needed { background: #3b1010; color: #ef4444; animation: pulse 2s infinite; }
+  .role-btn .dot.stopped { background: #555; }
+  .role-btn .login-warn { color: #ef4444; font-size: 9px; margin-left: 2px; font-weight: 600; }
+  .role-btn .info { font-size: 10px; color: #666; margin-left: auto; }
+  #add-project-area { padding: 8px 12px; border-top: 1px solid #0f3460; }
+  #add-project-btn { width: 100%; padding: 8px; background: #1a1a2e; border: 1px dashed #0f3460; color: #888; cursor: pointer; border-radius: 6px; font-size: 12px; }
+  #add-project-btn:hover { border-color: #e94560; color: #e94560; }
+  #add-form { display: none; }
+  #add-form input { width: 100%; padding: 6px 8px; background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; border-radius: 4px; font-size: 12px; margin-bottom: 6px; }
+  #add-form input:focus { outline: none; border-color: #e94560; }
+  #add-form .btns { display: flex; gap: 4px; }
+  #add-form .btns button { flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  #add-form .btn-ok { background: #e94560; color: #fff; }
+  #add-form .btn-cancel { background: #333; color: #888; }
+  #status-bar { padding: 10px 12px; border-top: 1px solid #0f3460; font-size: 11px; color: #666; }
+  .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 6px 10px; margin: 6px 12px; border-radius: 4px; font-size: 10px; }
 
   /* Main area */
   #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-
-  /* Tab bar */
   #tab-bar { display: flex; align-items: center; background: #16213e; border-bottom: 1px solid #0f3460; min-height: 36px; }
   #tabs { display: flex; flex: 1; overflow-x: auto; }
-  .tab { padding: 8px 16px; cursor: pointer; border: none; background: none; color: #888; font-size: 13px; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .tab { padding: 8px 14px; cursor: pointer; border: none; background: none; color: #888; font-size: 12px; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
   .tab:hover { color: #e0e0e0; }
   .tab.active { color: #e94560; border-bottom-color: #e94560; }
-  .tab .close { margin-left: 8px; opacity: 0.4; cursor: pointer; }
+  .tab .close { margin-left: 6px; opacity: 0.4; cursor: pointer; }
   .tab .close:hover { opacity: 1; }
   #layout-controls { display: flex; gap: 4px; padding: 4px 8px; flex-shrink: 0; }
   #layout-controls button { background: #1a1a2e; border: 1px solid #0f3460; color: #888; padding: 4px 8px; cursor: pointer; font-size: 11px; border-radius: 3px; }
@@ -48,49 +59,51 @@
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
   .panel.active { display: block; }
   .panel iframe { width: 100%; height: 100%; border: none; background: #000; }
-
-  /* Dashboard */
   #dashboard { padding: 24px; overflow-y: auto; }
   #dashboard h2 { color: #e94560; margin-bottom: 16px; }
   .card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   .card h3 { color: #4ade80; margin-bottom: 8px; font-size: 14px; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #0f3460; font-size: 13px; }
-  th { color: #888; font-size: 11px; text-transform: uppercase; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #0f3460; font-size: 12px; }
+  th { color: #888; font-size: 10px; text-transform: uppercase; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
   .badge.running { background: #064e3b; color: #4ade80; }
   .badge.stopped { background: #333; color: #888; }
   .badge.lead { background: #422006; color: #fbbf24; }
   .badge.worker { background: #1e1b4b; color: #818cf8; }
+  .badge.login-needed { background: #3b1010; color: #ef4444; }
+  .acct-select { background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 2px 4px; border-radius: 4px; font-size: 11px; cursor: pointer; max-width: 110px; }
 
-  /* Grid layout */
+  /* Grid */
   #panels.grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
   #panels.grid .panel { position: relative; display: block !important; }
   #panels.grid .panel.hidden-grid { display: none !important; }
 
-  /* Right sidebar: chat panel */
-  #chat-sidebar { width: 340px; background: #16213e; border-left: 1px solid #0f3460; display: flex; flex-direction: column; flex-shrink: 0; }
-  #chat-sidebar h2 { padding: 12px 16px; font-size: 14px; color: #e94560; border-bottom: 1px solid #0f3460; display: flex; align-items: center; gap: 8px; }
+  /* Chat sidebar */
+  #chat-sidebar { width: 320px; background: #16213e; border-left: 1px solid #0f3460; display: flex; flex-direction: column; flex-shrink: 0; }
+  #chat-sidebar h2 { padding: 10px 14px; font-size: 13px; color: #e94560; border-bottom: 1px solid #0f3460; display: flex; align-items: center; gap: 6px; }
   #chat-sidebar h2 .pulse { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-  #chat-feed { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-  .feed-msg { padding: 8px 10px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
+  #chat-project-select { background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: auto; }
+  #chat-feed { flex: 1; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .feed-msg { padding: 6px 8px; border-radius: 6px; font-size: 11px; line-height: 1.5; }
   .feed-msg.status { background: #1a1a2e; border: 1px solid #0f3460; }
   .feed-msg.status .role-name { color: #818cf8; font-weight: 600; }
   .feed-msg.status .role-name.lead { color: #fbbf24; }
   .feed-msg.status .role-status { color: #aaa; margin-left: 4px; }
-  .feed-msg.status .ts { color: #555; font-size: 10px; float: right; }
-  .feed-msg.user { background: #0f3460; border: 1px solid #1a3a6e; margin-left: 24px; }
-  .feed-msg.user .label { color: #e94560; font-weight: 600; font-size: 11px; }
-  .feed-msg.system { background: #1a2e1a; border: 1px solid #0f4620; color: #4ade80; font-size: 11px; text-align: center; }
-  .feed-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .feed-msg.status .ts { color: #555; font-size: 9px; float: right; }
+  .feed-msg.status .proj-label { color: #e94560; font-size: 10px; font-weight: 600; }
+  .feed-msg.user { background: #0f3460; border: 1px solid #1a3a6e; margin-left: 20px; }
+  .feed-msg.user .label { color: #e94560; font-weight: 600; font-size: 10px; }
+  .feed-msg.system { background: #1a2e1a; border: 1px solid #0f4620; color: #4ade80; font-size: 10px; text-align: center; }
+  .feed-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
   .feed-dot.running { background: #4ade80; }
   .feed-dot.stopped { background: #666; }
-  #chat-input-area { border-top: 1px solid #0f3460; padding: 8px; display: flex; gap: 6px; }
-  #chat-input { flex: 1; background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-family: inherit; resize: none; outline: none; }
+  #chat-input-area { border-top: 1px solid #0f3460; padding: 6px; display: flex; gap: 4px; }
+  #chat-input { flex: 1; background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 6px 8px; border-radius: 6px; font-size: 12px; font-family: inherit; resize: none; outline: none; }
   #chat-input:focus { border-color: #e94560; }
   #chat-input::placeholder { color: #555; }
-  #chat-send { background: #e94560; border: none; color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  #chat-send { background: #e94560; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
   #chat-send:hover { background: #d63851; }
   #chat-send:disabled { background: #444; cursor: not-allowed; }
 </style>
@@ -99,8 +112,17 @@
 
 <div id="sidebar">
   <h1>EvoMesh</h1>
-  <h2>Roles</h2>
-  <div id="role-list"></div>
+  <div id="project-tree"></div>
+  <div id="add-project-area">
+    <button id="add-project-btn" onclick="showAddForm()">+ Add Project</button>
+    <div id="add-form">
+      <input id="add-input" placeholder="GitHub URL or local path..." />
+      <div class="btns">
+        <button class="btn-ok" onclick="doAddProject()">Add</button>
+        <button class="btn-cancel" onclick="hideAddForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="status-bar">Loading...</div>
 </div>
 
@@ -125,7 +147,10 @@
 </div>
 
 <div id="chat-sidebar">
-  <h2><span class="pulse"></span> Mission Control</h2>
+  <h2>
+    <span class="pulse"></span> Mission Control
+    <select id="chat-project-select" onchange="chatProjectChanged()"></select>
+  </h2>
   <div id="chat-feed"></div>
   <div id="chat-input-area">
     <textarea id="chat-input" rows="2" placeholder="Message to Lead..."></textarea>
@@ -137,153 +162,192 @@
 const API = `${location.origin}/api`;
 
 const state = {
-  roles: [],
-  accounts: [],  // { name, path, needsLogin }
-  openPanels: {},  // roleName -> { tab, panel }
+  projects: [],    // [{slug, name, roles: [...]}]
+  accounts: [],
+  openPanels: {},  // "slug/role" -> {tab, panel}
   activePanel: 'dashboard',
   layout: 'tabs',
+  collapsed: {},   // slug -> bool
+  chatProject: null,
 };
 
-async function fetchStatus() {
+// --- Data fetching ---
+
+async function fetchAll() {
   try {
-    const [statusRes, accountsRes] = await Promise.all([
-      fetch(`${API}/status`),
+    const [projRes, acctRes] = await Promise.all([
+      fetch(`${API}/projects`),
       fetch(`${API}/accounts`),
     ]);
-    const data = await statusRes.json();
-    const acctData = await accountsRes.json();
-    state.roles = data.roles;
+    const projData = await projRes.json();
+    const acctData = await acctRes.json();
     state.accounts = acctData.accounts || [];
-    renderSidebar(data);
-    renderDashboard(data);
+
+    // Fetch status for each project
+    const projects = [];
+    for (const p of projData.projects) {
+      try {
+        const sRes = await fetch(`${API}/projects/${p.slug}/status`);
+        const sData = await sRes.json();
+        projects.push({ ...p, roles: sData.roles || [], accounts: sData.accounts || {} });
+      } catch {
+        projects.push({ ...p, roles: [], accounts: {} });
+      }
+    }
+    state.projects = projects;
+    if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
+
+    renderSidebar();
+    renderDashboard();
+    renderChatProjectSelect();
   } catch {
     document.getElementById('status-bar').textContent = 'Connection error';
   }
 }
 
-function renderSidebar(data) {
-  const list = document.getElementById('role-list');
-  list.innerHTML = '';
+// --- Sidebar: project tree ---
 
-  // Show login alerts at top
-  const needLogin = data.roles.filter(r => r.needsLogin);
-  if (needLogin.length > 0) {
+function renderSidebar() {
+  const tree = document.getElementById('project-tree');
+  tree.innerHTML = '';
+
+  // Login alerts
+  const needLogin = [];
+  state.projects.forEach(p => p.roles.forEach(r => { if (r.needsLogin) needLogin.push(`${p.name}/${r.name}`); }));
+  if (needLogin.length) {
     const alert = document.createElement('div');
     alert.className = 'login-alert';
-    alert.innerHTML = `Need login: ${needLogin.map(r => r.name).join(', ')}`;
-    list.appendChild(alert);
+    alert.textContent = `Login needed: ${needLogin.join(', ')}`;
+    tree.appendChild(alert);
   }
 
-  for (const role of data.roles) {
-    const btn = document.createElement('button');
-    btn.className = `role-btn ${state.activePanel === role.name ? 'active' : ''}`;
-    const loginWarn = role.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
-    btn.innerHTML = `
-      <span class="dot ${role.running ? 'running' : 'stopped'}"></span>
-      <span>${role.name}</span>${loginWarn}
-      <span class="info">${role.account}</span>`;
-    btn.onclick = () => openTerminal(role.name, role.terminal);
-    list.appendChild(btn);
+  let totalRunning = 0, totalRoles = 0;
+
+  for (const p of state.projects) {
+    const group = document.createElement('div');
+    group.className = 'project-group';
+
+    const running = p.roles.filter(r => r.running).length;
+    totalRunning += running;
+    totalRoles += p.roles.length;
+    const isOpen = !state.collapsed[p.slug];
+
+    const header = document.createElement('button');
+    header.className = 'project-header';
+    header.innerHTML = `<span class="arrow ${isOpen ? 'open' : ''}">&#9654;</span>
+      <span>${p.name}</span>
+      <span class="pstats">${running}/${p.roles.length}</span>`;
+    header.onclick = () => { state.collapsed[p.slug] = !state.collapsed[p.slug]; renderSidebar(); };
+    group.appendChild(header);
+
+    const rolesDiv = document.createElement('div');
+    rolesDiv.className = `project-roles ${isOpen ? '' : 'collapsed'}`;
+
+    for (const r of p.roles) {
+      const btn = document.createElement('button');
+      const key = `${p.slug}/${r.name}`;
+      btn.className = `role-btn ${state.activePanel === key ? 'active' : ''}`;
+      const loginW = r.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
+      btn.innerHTML = `<span class="dot ${r.running ? 'running' : 'stopped'}"></span>
+        <span>${r.name}</span>${loginW}
+        <span class="info">${r.account}</span>`;
+      btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
+      rolesDiv.appendChild(btn);
+    }
+    group.appendChild(rolesDiv);
+    tree.appendChild(group);
   }
-  const running = data.roles.filter(r => r.running).length;
-  document.getElementById('status-bar').textContent = `${data.project} · ${running}/${data.roles.length} running`;
+
+  document.getElementById('status-bar').textContent =
+    `${state.projects.length} projects · ${totalRunning}/${totalRoles} running`;
 }
 
-function renderDashboard(data) {
+// --- Dashboard ---
+
+function renderDashboard() {
   const el = document.getElementById('dash-content');
+  if (state.projects.length === 0) {
+    el.innerHTML = '<div class="card"><p style="color:#888">No projects. Click "+ Add Project" to get started.</p></div>';
+    return;
+  }
 
-  const acctOptions = state.accounts.map(a => {
-    const warn = a.needsLogin ? ' (needs login)' : '';
-    return `<option value="${escapeHtml(a.name)}" data-path="${escapeHtml(a.path)}">${escapeHtml(a.name)} (${escapeHtml(a.path)})${warn}</option>`;
+  const acctOpts = state.accounts.map(a => {
+    const w = a.needsLogin ? ' (needs login)' : '';
+    return `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${w}</option>`;
   }).join('');
 
-  const rows = data.roles.map(r => {
-    const loginBadge = r.needsLogin ? '<span class="badge login-needed">needs login</span>' : '';
-    return `
-    <tr>
-      <td><strong>${r.name}</strong></td>
-      <td><span class="badge ${r.type}">${r.type}</span></td>
-      <td>${r.loop_interval}</td>
-      <td><span class="badge ${r.running ? 'running' : 'stopped'}">${r.running ? 'running' : 'stopped'}</span> ${loginBadge}</td>
-      <td>
-        <select class="acct-select" data-role="${r.name}" onchange="switchAccount('${r.name}', this)">
-          ${acctOptions}
-        </select>
-      </td>
-      <td>${r.terminal ? `<a href="${r.terminal}" target="_blank" style="color:#818cf8">Open</a>` : '-'}</td>
-    </tr>`;
-  }).join('');
+  let html = '';
+  for (const p of state.projects) {
+    const rows = p.roles.map(r => {
+      const loginB = r.needsLogin ? '<span class="badge login-needed">login</span>' : '';
+      return `<tr>
+        <td><strong>${r.name}</strong></td>
+        <td><span class="badge ${r.type}">${r.type}</span></td>
+        <td>${r.loop_interval}</td>
+        <td><span class="badge ${r.running ? 'running' : 'stopped'}">${r.running ? 'running' : 'stopped'}</span> ${loginB}</td>
+        <td><select class="acct-select" data-slug="${p.slug}" data-role="${r.name}" onchange="switchAccount('${p.slug}','${r.name}',this)">${acctOpts}</select></td>
+        <td>${r.terminal ? `<a href="${r.terminal}" target="_blank" style="color:#818cf8">Open</a>` : '-'}</td>
+      </tr>`;
+    }).join('');
 
-  el.innerHTML = `
-    <div class="card">
-      <h3>Roles</h3>
+    html += `<div class="card">
+      <h3>${esc(p.name)}</h3>
       <table>
-        <tr><th>Name</th><th>Type</th><th>Interval</th><th>Status</th><th>Account</th><th>Terminal</th></tr>
+        <tr><th>Role</th><th>Type</th><th>Interval</th><th>Status</th><th>Account</th><th>Terminal</th></tr>
         ${rows}
       </table>
-    </div>
-    <div class="card">
-      <h3>Usage</h3>
-      <p style="color:#888;font-size:13px;line-height:1.8">
-        Click a role in the sidebar to embed its terminal.<br>
-        Change the <strong>Account</strong> dropdown to switch accounts (auto-restarts with loop).<br>
-        Use <strong>Grid</strong> to view all terminals side by side.
-      </p>
     </div>`;
 
-  // Set current account selections
-  for (const r of data.roles) {
-    const sel = el.querySelector(`select[data-role="${r.name}"]`);
-    if (sel) sel.value = r.account;
+    // Set account selections after render
+    setTimeout(() => {
+      for (const r of p.roles) {
+        const sel = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`);
+        if (sel) sel.value = r.account;
+      }
+    }, 0);
   }
+
+  el.innerHTML = html;
 }
 
-function openTerminal(roleName, terminalPath) {
-  if (state.openPanels[roleName]) {
-    switchTo(roleName);
-    return;
-  }
-  if (!terminalPath) {
-    alert(`No terminal available for ${roleName}. Is it running?`);
-    return;
-  }
+// --- Terminal ---
 
-  // Create tab
+function openTerminal(slug, projectName, roleName, terminalPath) {
+  const key = `${slug}/${roleName}`;
+  if (state.openPanels[key]) { switchTo(key); return; }
+  if (!terminalPath) { alert(`No terminal for ${projectName}/${roleName}. Is it running?`); return; }
+
   const tab = document.createElement('button');
   tab.className = 'tab';
-  tab.dataset.panel = roleName;
-  tab.onclick = () => switchTo(roleName);
-  tab.innerHTML = `${roleName} <span class="close" onclick="event.stopPropagation(); closePanel('${roleName}')">&times;</span>`;
+  tab.dataset.panel = key;
+  tab.onclick = () => switchTo(key);
+  tab.innerHTML = `${projectName}/${roleName} <span class="close" onclick="event.stopPropagation(); closePanel('${key}')">&times;</span>`;
   document.getElementById('tabs').appendChild(tab);
 
-  // Create panel with iframe to ttyd (proxied through main server)
   const panel = document.createElement('div');
   panel.className = 'panel';
-  panel.id = `panel-${roleName}`;
-
+  panel.id = `panel-${key}`;
   panel.innerHTML = `<iframe src="${terminalPath}" allow="clipboard-read; clipboard-write"></iframe>`;
   document.getElementById('panels').appendChild(panel);
 
-  state.openPanels[roleName] = { tab, panel };
-  switchTo(roleName);
+  state.openPanels[key] = { tab, panel };
+  switchTo(key);
 }
 
-function closePanel(roleName) {
-  const p = state.openPanels[roleName];
+function closePanel(key) {
+  const p = state.openPanels[key];
   if (!p) return;
   p.tab.remove();
   p.panel.remove();
-  delete state.openPanels[roleName];
-  if (state.activePanel === roleName) switchTo('dashboard');
+  delete state.openPanels[key];
+  if (state.activePanel === key) switchTo('dashboard');
 }
 
 function switchTo(name) {
   state.activePanel = name;
-  document.querySelectorAll('.tab').forEach(t =>
-    t.classList.toggle('active', t.dataset.panel === name));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
   if (state.layout === 'tabs') {
-    document.querySelectorAll('.panel').forEach(p =>
-      p.classList.toggle('active', p.id === `panel-${name}`));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
   }
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
 }
@@ -293,7 +357,6 @@ function setLayout(mode) {
   const panels = document.getElementById('panels');
   document.getElementById('btn-tabs').classList.toggle('active', mode === 'tabs');
   document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
-
   if (mode === 'grid') {
     panels.classList.add('grid');
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -309,47 +372,68 @@ function setLayout(mode) {
 
 // --- Account switching ---
 
-async function switchAccount(roleName, selectEl) {
+async function switchAccount(slug, roleName, selectEl) {
   const accountName = selectEl.value;
   const option = selectEl.selectedOptions[0];
-  const accountPath = option?.dataset?.path || '';
-
-  if (!confirm(`Switch ${roleName} to account "${accountName}"?\n\nThis will restart the role and auto-enter loop.`)) {
-    // Revert selection
-    fetchStatus();
-    return;
-  }
-
+  if (!confirm(`Switch ${roleName} to "${accountName}"? This will restart with loop.`)) { fetchAll(); return; }
   try {
-    const res = await fetch(`${API}/roles/${roleName}/account`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accountName, accountPath }),
+    const res = await fetch(`${API}/projects/${slug}/roles/${roleName}/account`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountName, accountPath: option?.dataset?.path }),
     });
     const data = await res.json();
     if (data.ok) {
-      addFeedMessage(
-        `Account switched: <strong>${roleName}</strong> -> ${accountName}` +
-        (data.restarted ? ' (restarting...)' : ''),
-        'system'
-      );
-      // Close any open terminal panel for this role since it will reconnect
-      if (state.openPanels[roleName]) {
-        closePanel(roleName);
-      }
-      // Refresh status after restart completes
-      setTimeout(fetchStatus, 5000);
-    } else {
-      addFeedMessage(`Error switching account: ${data.error}`, 'system');
-      fetchStatus();
+      addFeedMessage(`Account: <strong>${roleName}</strong> -> ${accountName}${data.restarted ? ' (restarting...)' : ''}`, 'system');
+      const key = `${slug}/${roleName}`;
+      if (state.openPanels[key]) closePanel(key);
+      setTimeout(fetchAll, 5000);
     }
-  } catch {
-    addFeedMessage('Failed to switch account', 'system');
-    fetchStatus();
-  }
+  } catch { addFeedMessage('Failed to switch account', 'system'); }
 }
 
-// --- Chat / Feed ---
+// --- Add project ---
+
+function showAddForm() {
+  document.getElementById('add-project-btn').style.display = 'none';
+  document.getElementById('add-form').style.display = 'block';
+  document.getElementById('add-input').focus();
+}
+function hideAddForm() {
+  document.getElementById('add-project-btn').style.display = 'block';
+  document.getElementById('add-form').style.display = 'none';
+  document.getElementById('add-input').value = '';
+}
+
+async function doAddProject() {
+  const input = document.getElementById('add-input').value.trim();
+  if (!input) return;
+
+  const body = input.startsWith('http') || input.startsWith('git@')
+    ? { url: input } : { path: input };
+
+  try {
+    addFeedMessage(`Adding project: ${esc(input)}...`, 'system');
+    const res = await fetch(`${API}/projects/add`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addFeedMessage(`Project <strong>${esc(data.project.name)}</strong> added. Lead starting...`, 'system');
+      hideAddForm();
+      setTimeout(fetchAll, 3000);
+    } else {
+      addFeedMessage(`Error: ${data.error}`, 'system');
+    }
+  } catch { addFeedMessage('Failed to add project', 'system'); }
+}
+
+document.getElementById('add-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doAddProject();
+  if (e.key === 'Escape') hideAddForm();
+});
+
+// --- Chat ---
 
 let lastStatusContent = '';
 
@@ -360,15 +444,35 @@ function addFeedMessage(html, cls = 'status') {
   div.innerHTML = html;
   feed.appendChild(div);
   feed.scrollTop = feed.scrollHeight;
-  // Keep feed manageable (max 100 entries)
   while (feed.children.length > 100) feed.removeChild(feed.firstChild);
 }
 
-function renderStatusBlock(entries, ts) {
-  return entries.map(r => {
-    const dot = `<span class="feed-dot ${r.running ? 'running' : 'stopped'}"></span>`;
-    const nameClass = r.type === 'lead' ? 'role-name lead' : 'role-name';
-    return `${dot}<span class="${nameClass}">${r.role}</span><span class="role-status">${r.status}</span>`;
+function renderChatProjectSelect() {
+  const sel = document.getElementById('chat-project-select');
+  sel.innerHTML = state.projects.map(p =>
+    `<option value="${p.slug}" ${p.slug === state.chatProject ? 'selected' : ''}>${esc(p.name)}</option>`
+  ).join('');
+}
+
+function chatProjectChanged() {
+  state.chatProject = document.getElementById('chat-project-select').value;
+}
+
+function renderStatusBlock(entries) {
+  // Group by project
+  const byProject = {};
+  entries.forEach(e => {
+    if (!byProject[e.slug]) byProject[e.slug] = { name: e.project, entries: [] };
+    byProject[e.slug].entries.push(e);
+  });
+
+  return Object.entries(byProject).map(([slug, g]) => {
+    const lines = g.entries.map(r => {
+      const dot = `<span class="feed-dot ${r.running ? 'running' : 'stopped'}"></span>`;
+      const nc = r.type === 'lead' ? 'role-name lead' : 'role-name';
+      return `${dot}<span class="${nc}">${r.role}</span><span class="role-status">${r.status}</span>`;
+    }).join('<br>');
+    return `<span class="proj-label">${esc(g.name)}</span><br>${lines}`;
   }).join('<br>');
 }
 
@@ -379,82 +483,50 @@ function startSSEFeed() {
       const data = JSON.parse(e.data);
       if (data.type === 'status') {
         const ts = new Date(data.ts).toLocaleTimeString();
-        const content = renderStatusBlock(data.entries, ts);
-
-        // Only append when status actually changed
+        const content = renderStatusBlock(data.entries);
         if (content === lastStatusContent) return;
         lastStatusContent = content;
-
         addFeedMessage(`<span class="ts">${ts}</span>${content}`, 'status');
       }
     } catch {}
   };
-  es.onerror = () => {
-    es.close();
-    setTimeout(() => startSSEFeed(), 5000);
-  };
-}
-
-async function loadChatHistory() {
-  try {
-    const res = await fetch(`${API}/chat/history`);
-    const data = await res.json();
-    for (const msg of data.messages) {
-      addFeedMessage(`<span class="label">You</span> ${escapeHtml(msg.body)}`, 'user');
-    }
-  } catch {}
+  es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); };
 }
 
 async function sendChat() {
   const input = document.getElementById('chat-input');
-  const btn = document.getElementById('chat-send');
   const text = input.value.trim();
-  if (!text) return;
+  if (!text || !state.chatProject) return;
 
-  btn.disabled = true;
+  document.getElementById('chat-send').disabled = true;
   try {
-    const res = await fetch(`${API}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch(`${API}/projects/${state.chatProject}/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text }),
     });
     const data = await res.json();
     if (data.ok) {
-      addFeedMessage(`<span class="label">You</span> ${escapeHtml(text)}`, 'user');
+      addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user');
       addFeedMessage(`Delivered to <strong>${data.delivered_to}</strong>`, 'system');
       input.value = '';
-    } else {
-      addFeedMessage(`Error: ${data.error}`, 'system');
-    }
-  } catch (e) {
-    addFeedMessage('Failed to send message', 'system');
-  }
-  btn.disabled = false;
+    } else { addFeedMessage(`Error: ${data.error}`, 'system'); }
+  } catch { addFeedMessage('Failed to send', 'system'); }
+  document.getElementById('chat-send').disabled = false;
   input.focus();
 }
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-// Enter to send (Shift+Enter for newline)
-document.getElementById('chat-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendChat();
-  }
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
 
 // --- Init ---
-fetchStatus();
-setInterval(fetchStatus, 5000);
-loadChatHistory();
+fetchAll();
+setInterval(fetchAll, 8000);
 startSSEFeed();
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
     e.preventDefault();
     const tabs = [...document.querySelectorAll('.tab')];

@@ -21,3 +21,13 @@ export interface ProjectConfig {
   roles: Record<string, RoleConfig>;
   git: GitConfig;
 }
+
+export interface WorkspaceProject {
+  name: string;
+  path: string;
+  active: boolean;
+}
+
+export interface WorkspaceConfig {
+  projects: WorkspaceProject[];
+}
