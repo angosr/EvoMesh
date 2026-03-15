@@ -6,5 +6,6 @@
 - Loop #10 (2026-03-15): P1 多用户管理系统实现
 - Loop #11: 自我审查 — spawner claudeArgs bug 修复，login.html 提取
 - Loop #12: 自我审查 — 删除死代码 daemon.ts，全模块审查无 bug
-- Loop #13 (2026-03-15): 待排期任务 — bin/evomesh.js 优化为 dist→tsx 优先级
+- Loop #13: 待排期任务 — bin/evomesh.js 优化为 dist→tsx 优先级
+- Loop #14 (2026-03-15): CI 配置 — GitHub Actions (tsc + test on push/PR)
 - 测试: 30/30 全通过, TypeScript 无错误
