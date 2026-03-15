@@ -138,7 +138,7 @@
   #panels { flex: 1; position: relative; overflow: hidden; height: 100%; }
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; }
   .panel.active { display: block; }
-  .panel iframe { width: 100%; height: 100%; border: none; background: #000; touch-action: auto; }
+  .panel iframe { width: 100%; height: 100%; border: none; background: #000; touch-action: none; }
   .panel .reconnect-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .panel .reconnect-overlay.show { display: flex; }
   .panel .reconnect-overlay .reconnect-btn { padding: 14px 28px; background: #e94560; border: none; color: #fff; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
@@ -912,6 +912,14 @@ const origInitResize = initResize;
   const handle = document.getElementById(id);
   handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
 });
+
+// ==================== Touch passthrough for terminal iframes ====================
+document.getElementById('panels').addEventListener('touchstart', e => {
+  if (e.target.tagName === 'IFRAME') e.stopPropagation();
+}, { passive: true });
+document.getElementById('panels').addEventListener('touchmove', e => {
+  if (e.target.tagName === 'IFRAME') e.stopPropagation();
+}, { passive: true });
 
 // ==================== Init ====================
 (async () => {
