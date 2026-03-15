@@ -549,7 +549,14 @@ function reconnectPanel(key) {
   const p = state.openPanels[key];
   if (!p) return;
   p.overlay.classList.remove('show');
-  p.iframe.src = p.iframe.src; // reload iframe
+  // Replace iframe instead of reassigning src (avoids "leave page?" prompt)
+  const oldSrc = p.iframe.src;
+  const newIframe = document.createElement('iframe');
+  newIframe.src = oldSrc;
+  newIframe.allow = 'clipboard-read; clipboard-write';
+  newIframe.style.cssText = p.iframe.style.cssText;
+  p.iframe.replaceWith(newIframe);
+  p.iframe = newIframe;
 }
 
 function closePanel(key) {
@@ -753,7 +760,7 @@ document.getElementById('chat-input').addEventListener('keydown', e => { if (e.k
 // ==================== Metrics ====================
 async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
-function setConnStatus(connected) { if (connected && !serverConnected) { for (const [,p] of Object.entries(state.openPanels)) { if (p.iframe) p.iframe.src = p.iframe.src; if (p.overlay) p.overlay.classList.remove('show'); } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
+function setConnStatus(connected) { if (connected && !serverConnected) { for (const [key] of Object.entries(state.openPanels)) { reconnectPanel(key); } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
 
 // ==================== Layout persistence ====================
 const STORAGE_KEY = 'evomesh-layout';
