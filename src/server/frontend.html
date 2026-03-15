@@ -353,7 +353,7 @@ function renderSidebar() {
     const running = p.roles.filter(r => r.running).length; totalRunning += running; totalRoles += p.roles.length;
     const isOpen = !state.collapsed[p.slug];
     const header = document.createElement('button'); header.className = 'project-header';
-    header.innerHTML = `<span class="arrow ${isOpen?'open':''}">&#9654;</span><span>${p.name}</span><span class="pstats">${running}/${p.roles.length}</span>`;
+    header.innerHTML = `<span class="arrow ${isOpen?'open':''}">&#9654;</span><span>${esc(p.name)}</span><span class="pstats">${running}/${p.roles.length}</span>`;
     header.onclick = () => { state.collapsed[p.slug] = !state.collapsed[p.slug]; renderSidebar(); };
     group.appendChild(header);
     const rd = document.createElement('div'); rd.className = `project-roles ${isOpen?'':'collapsed'}`;
@@ -361,7 +361,7 @@ function renderSidebar() {
       const btn = document.createElement('button'); const key = `${p.slug}/${r.name}`;
       btn.className = `role-btn ${state.activePanel===key?'active':''}`;
       const lw = r.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
-      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${r.name}</span>${lw}<span class="info">${r.account}</span><span class="role-actions"><span class="act-restart" onclick="event.stopPropagation();restartRole('${p.slug}','${r.name}')" title="Restart">&#8635;</span><span class="act-del" onclick="event.stopPropagation();deleteRole('${p.slug}','${r.name}')" title="Delete">&times;</span></span>`;
+      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${esc(r.name)}</span>${lw}<span class="info">${esc(r.account)}</span><span class="role-actions"><span class="act-restart" onclick="event.stopPropagation();restartRole('${esc(p.slug)}','${esc(r.name)}')" title="Restart">&#8635;</span><span class="act-del" onclick="event.stopPropagation();deleteRole('${esc(p.slug)}','${esc(r.name)}')" title="Delete">&times;</span></span>`;
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
       rd.appendChild(btn);
     }
@@ -393,7 +393,7 @@ function renderOpenTabs() {
     t.className = `sidebar-tab ${state.activePanel===key?'active':''}`;
     t.draggable = true;
     t.dataset.key = key;
-    t.innerHTML = `<span class="tab-icon">&#9654;</span><span>${key}</span><span class="close" onclick="event.stopPropagation();closePanel('${key}')">&times;</span>`;
+    t.innerHTML = `<span class="tab-icon">&#9654;</span><span>${esc(key)}</span><span class="close" onclick="event.stopPropagation();closePanel('${esc(key)}')">&times;</span>`;
     t.onclick = () => switchTo(key);
     // Drag reorder
     t.addEventListener('dragstart', e => { t.classList.add('dragging'); e.dataTransfer.setData('text/plain', key); });
@@ -420,7 +420,7 @@ function renderDashboard() {
   const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
   let html = '';
   for (const p of state.projects) {
-    const rows = p.roles.map(r => `<tr><td><strong>${r.name}</strong></td><td><span class="badge ${r.type}">${r.type}</span></td><td>${r.loop_interval}</td><td><span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>${r.needsLogin?' <span class="badge login-needed">login</span>':''}</td><td><select class="acct-select" data-slug="${p.slug}" data-role="${r.name}" onchange="switchAccount('${p.slug}','${r.name}',this)">${ao}</select></td><td>${r.terminal?`<a href="${r.terminal}" target="_blank" style="color:#818cf8">Open</a>`:'-'}</td></tr>`).join('');
+    const rows = p.roles.map(r => `<tr><td><strong>${esc(r.name)}</strong></td><td><span class="badge ${esc(r.type)}">${esc(r.type)}</span></td><td>${esc(r.loop_interval||'')}</td><td><span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>${r.needsLogin?' <span class="badge login-needed">login</span>':''}</td><td><select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" onchange="switchAccount('${esc(p.slug)}','${esc(r.name)}',this)">${ao}</select></td><td>${r.terminal?`<a href="${esc(r.terminal)}" target="_blank" style="color:#818cf8">Open</a>`:'-'}</td></tr>`).join('');
     html += `<div class="card"><h3>${esc(p.name)}</h3><table><tr><th>Role</th><th>Type</th><th>Interval</th><th>Status</th><th>Account</th><th>Terminal</th></tr>${rows}</table></div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
@@ -479,7 +479,7 @@ function switchTo(name) {
   }
   // In grid mode, clicking a tab just updates the "focused" highlight
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-title').innerHTML = `<strong>${name === 'dashboard' ? 'Dashboard' : name}</strong>`;
+  document.getElementById('panel-title').innerHTML = `<strong>${name === 'dashboard' ? 'Dashboard' : esc(name)}</strong>`;
   renderOpenTabs(); saveLayout();
 }
 
@@ -592,9 +592,9 @@ let lastStatusContent = '', serverConnected = true;
 function addFeedMessage(html, cls='status') { const feed = document.getElementById('chat-feed'), div = document.createElement('div'); div.className = `feed-msg ${cls}`; div.innerHTML = html; feed.appendChild(div); feed.scrollTop = feed.scrollHeight; while (feed.children.length > 100) feed.removeChild(feed.firstChild); }
 function renderChatProjectSelect() { const sel = document.getElementById('chat-project-select'); sel.innerHTML = state.projects.map(p => `<option value="${p.slug}" ${p.slug===state.chatProject?'selected':''}>${esc(p.name)}</option>`).join(''); }
 function chatProjectChanged() { state.chatProject = document.getElementById('chat-project-select').value; }
-function renderStatusBlock(entries) { const bp = {}; entries.forEach(e => { if (!bp[e.slug]) bp[e.slug]={name:e.project,entries:[]}; bp[e.slug].entries.push(e); }); return Object.entries(bp).map(([,g]) => { const l = g.entries.map(r => `<span class="feed-dot ${r.running?'running':'stopped'}"></span><span class="${r.type==='lead'?'role-name lead':'role-name'}">${r.role}</span><span class="role-status">${r.status}</span>`).join('<br>'); return `<span class="proj-label">${esc(g.name)}</span><br>${l}`; }).join('<br>'); }
+function renderStatusBlock(entries) { const bp = {}; entries.forEach(e => { if (!bp[e.slug]) bp[e.slug]={name:e.project,entries:[]}; bp[e.slug].entries.push(e); }); return Object.entries(bp).map(([,g]) => { const l = g.entries.map(r => `<span class="feed-dot ${r.running?'running':'stopped'}"></span><span class="${r.type==='lead'?'role-name lead':'role-name'}">${esc(r.role)}</span><span class="role-status">${esc(r.status)}</span>`).join('<br>'); return `<span class="proj-label">${esc(g.name)}</span><br>${l}`; }).join('<br>'); }
 function startSSEFeed() { const es = new EventSource(`${API}/feed?token=${encodeURIComponent(AUTH_TOKEN)}`); es.onmessage = e => { try { const d = JSON.parse(e.data); if (d.type==='status') { const ts = new Date(d.ts).toLocaleTimeString(), c = renderStatusBlock(d.entries); if (c===lastStatusContent) return; lastStatusContent=c; addFeedMessage(`<span class="ts">${ts}</span>${c}`, 'status'); } } catch {} }; es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); }; }
-async function sendChat() { const input = document.getElementById('chat-input'), text = input.value.trim(); if (!text||!state.chatProject) return; document.getElementById('chat-send').disabled = true; try { const r = await authFetch(`${API}/projects/${state.chatProject}/chat`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d = await r.json(); if (d.ok) { addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user'); addFeedMessage(`Delivered to <strong>${d.delivered_to}</strong>`, 'system'); input.value = ''; } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } document.getElementById('chat-send').disabled = false; input.focus(); }
+async function sendChat() { const input = document.getElementById('chat-input'), text = input.value.trim(); if (!text||!state.chatProject) return; document.getElementById('chat-send').disabled = true; try { const r = await authFetch(`${API}/projects/${state.chatProject}/chat`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d = await r.json(); if (d.ok) { addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user'); addFeedMessage(`Delivered to <strong>${esc(d.delivered_to)}</strong>`, 'system'); input.value = ''; } else addFeedMessage(`Error: ${esc(d.error)}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } document.getElementById('chat-send').disabled = false; input.focus(); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); } });
 

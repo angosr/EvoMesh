@@ -35,12 +35,7 @@ export const attachCommand = new Command("attach")
       process.stdout.write(tail);
     }
 
-    // Watch for new content
-    const watcher = fs.watch(logPath, () => {
-      // Re-read on change (simple approach)
-    });
-
-    // Use fs.watchFile for more reliable tailing
+    // Poll for new content
     let lastSize = fs.statSync(logPath).size;
     const interval = setInterval(() => {
       try {
@@ -60,7 +55,6 @@ export const attachCommand = new Command("attach")
 
     const cleanup = () => {
       clearInterval(interval);
-      watcher.close();
       console.log(chalk.dim("\n--- Detached ---"));
       process.exit(0);
     };

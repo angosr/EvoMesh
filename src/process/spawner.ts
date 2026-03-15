@@ -36,8 +36,7 @@ export function spawnRole(
 ): SpawnedRole {
   const existing = readPid(root, roleName);
   if (existing?.alive) {
-    console.error(`Role "${roleName}" is already running (PID ${existing.pid}).`);
-    process.exit(1);
+    throw new Error(`Role "${roleName}" is already running (PID ${existing.pid}).`);
   }
 
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");

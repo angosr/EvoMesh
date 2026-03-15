@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 
 export function findProjectRoot(from: string = process.cwd()): string | null {
   let dir = path.resolve(from);
@@ -16,10 +17,7 @@ export function findProjectRoot(from: string = process.cwd()): string | null {
 export function requireProjectRoot(): string {
   const root = findProjectRoot();
   if (!root) {
-    console.error(
-      "Not inside an EvoMesh project. Run `evomesh init` first."
-    );
-    process.exit(1);
+    throw new Error("Not inside an EvoMesh project. Run `evomesh init` first.");
   }
   return root;
 }
@@ -46,7 +44,7 @@ export function sharedDir(root: string): string {
 
 export function expandHome(p: string): string {
   if (p.startsWith("~/")) {
-    return path.join(process.env.HOME || "/home", p.slice(2));
+    return path.join(os.homedir(), p.slice(2));
   }
   return p;
 }

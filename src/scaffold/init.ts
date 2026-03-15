@@ -7,8 +7,7 @@ export function scaffoldProject(root: string, name: string): void {
   const evomesh = path.join(root, ".evomesh");
 
   if (exists(evomesh)) {
-    console.error(".evomesh/ already exists. Use `evomesh role create` to add roles.");
-    process.exit(1);
+    throw new Error(".evomesh/ already exists. Use `evomesh role create` to add roles.");
   }
 
   // Create directory structure

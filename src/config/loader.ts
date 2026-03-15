@@ -15,8 +15,7 @@ export function resolveAccountPath(
 ): string {
   const raw = config.accounts[accountName];
   if (!raw) {
-    console.error(`Account "${accountName}" not found in project.yaml`);
-    process.exit(1);
+    throw new Error(`Account "${accountName}" not found in project.yaml`);
   }
   return expandHome(raw);
 }
