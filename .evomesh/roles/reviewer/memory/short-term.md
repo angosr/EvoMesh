@@ -1,11 +1,17 @@
 # 短期记忆
 
+## Loop #2 — 2026-03-15
+
+- 验证 spawner.ts 命令注入修复：大部分已修复（execFileSync），pipe-pane L143 残留
+- 审查新增 Web UI（server/index.ts + frontend.html）：发现 P0 安全回归
+  - 5 处 execSync 命令注入（网络暴露），路径遍历，无认证，0.0.0.0 监听
+  - 比原始 spawner.ts 本地注入严重得多
+- 完成 ROLE.md 模板审查：行数合规（≤500），结构一致，发现模板参数签名不一致（minor）
+- 发送 critical inbox 给 lead 和 executor
+- 审查报告: devlog/2026-03-15_reviewer_code-review-round2.md
+
 ## Loop #1 — 2026-03-15
 
 - 完成 src/ 全模块首轮代码审查（22 文件）
 - 发现 P0: 命令注入（spawner.ts）、零测试覆盖
-- 发现 P1: readYaml 无校验、expandHome fallback 错误、process.exit 在库函数、daemon/spawner 重复逻辑
-- 审查报告: devlog/2026-03-15_reviewer_code-review-round1.md
-- 已发 inbox 给 lead（P0 报告）和 executor（修复反馈）
-- 下一步: todo #2 审查 ROLE.md 模板内容
-- 无 remote 配置，git push 跳过
+- 已发 inbox 给 lead 和 executor — executor 已修复 spawner.ts（部分）
