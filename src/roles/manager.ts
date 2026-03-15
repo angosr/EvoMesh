@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { roleDir, rolesDir } from "../utils/paths.js";
 import { ensureDir, writeFile, exists, listDirs, writeYaml } from "../utils/fs.js";
-import { TEMPLATES } from "./templates/index.js";
-import type { ProjectConfig, RoleConfig } from "../config/schema.js";
+import { TEMPLATES, getTemplates } from "./templates/index.js";
+import type { ProjectConfig, RoleConfig, Lang } from "../config/schema.js";
 
 export function createRole(
   root: string,
@@ -12,7 +12,9 @@ export function createRole(
   config: ProjectConfig,
   account: string = "main"
 ): void {
-  const template = TEMPLATES[templateName];
+  const lang: Lang = config.lang || "zh";
+  const templates = getTemplates(lang);
+  const template = templates[templateName];
   if (!template) {
     console.error(
       `Unknown template: ${templateName}. Available: ${Object.keys(TEMPLATES).join(", ")}`

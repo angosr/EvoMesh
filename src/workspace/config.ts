@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import YAML from "yaml";
 import { exists, ensureDir } from "../utils/fs.js";
-import type { WorkspaceConfig, WorkspaceProject } from "../config/schema.js";
+import type { WorkspaceConfig, WorkspaceProject, Lang } from "../config/schema.js";
 
 const WORKSPACE_DIR = path.join(os.homedir(), ".evomesh");
 const WORKSPACE_FILE = path.join(WORKSPACE_DIR, "workspace.yaml");
@@ -29,7 +29,7 @@ export function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
-export function addProject(projectName: string, projectPath: string): WorkspaceProject {
+export function addProject(projectName: string, projectPath: string, lang: Lang = "zh"): WorkspaceProject {
   const ws = loadWorkspace();
   const absPath = path.resolve(projectPath);
 
@@ -41,6 +41,7 @@ export function addProject(projectName: string, projectPath: string): WorkspaceP
     name: projectName,
     path: absPath,
     active: true,
+    lang,
   };
   ws.projects.push(project);
   saveWorkspace(ws);

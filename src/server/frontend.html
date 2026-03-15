@@ -234,6 +234,10 @@
     <div id="add-form">
       <div id="autocomplete"></div>
       <input id="add-input" placeholder="GitHub URL or local path..." autocomplete="off" />
+      <select id="add-lang" style="width:100%;padding:5px 7px;background:#0a0a0a;border:1px solid #222;color:#e0e0e0;border-radius:4px;font-size:11px;margin-bottom:4px;">
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+      </select>
       <div class="btns">
         <button class="btn-ok" onclick="doAddProject()">Add</button>
         <button class="btn-cancel" onclick="hideAddForm()">Cancel</button>
@@ -538,7 +542,7 @@ document.getElementById('rm-name').addEventListener('keydown', e => { if (e.key=
 // ==================== Add project ====================
 function showAddForm() { document.getElementById('add-project-btn').style.display = 'none'; document.getElementById('add-form').style.display = 'block'; document.getElementById('add-input').focus(); }
 function hideAddForm() { document.getElementById('add-project-btn').style.display = 'block'; document.getElementById('add-form').style.display = 'none'; document.getElementById('add-input').value = ''; }
-async function doAddProject() { const input = document.getElementById('add-input').value.trim(); if (!input) return; const body = input.startsWith('http')||input.startsWith('git@') ? {url:input} : {path:input}; try { addFeedMessage(`Adding: ${esc(input)}...`, 'system'); const r = await authFetch(`${API}/projects/add`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(d.project.name)}</strong> added`, 'system'); hideAddForm(); setTimeout(fetchAll, 3000); } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } }
+async function doAddProject() { const input = document.getElementById('add-input').value.trim(); if (!input) return; const lang = document.getElementById('add-lang').value; const body = input.startsWith('http')||input.startsWith('git@') ? {url:input,lang} : {path:input,lang}; try { addFeedMessage(`Adding: ${esc(input)} (${lang})...`, 'system'); const r = await authFetch(`${API}/projects/add`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(d.project.name)}</strong> added`, 'system'); hideAddForm(); setTimeout(fetchAll, 3000); } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } }
 
 // Path autocomplete
 let acTimer = null, acIndex = -1;

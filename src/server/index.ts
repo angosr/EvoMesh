@@ -233,7 +233,8 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
   // --- Add project ---
   app.post("/api/projects/add", async (req, res) => {
     try {
-      const { url, path: localPath } = req.body;
+      const { url, path: localPath, lang: reqLang } = req.body;
+      const lang = (reqLang === "en" ? "en" : "zh") as "zh" | "en";
       let projectRoot: string;
       let projectName: string;
 
@@ -258,10 +259,10 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
       }
 
       // Smart init (creates .evomesh/ if needed, default roles)
-      const config = smartInit(projectRoot, projectName);
+      const config = smartInit(projectRoot, projectName, lang);
 
       // Add to workspace
-      const project = addProject(projectName, projectRoot);
+      const project = addProject(projectName, projectRoot, lang);
       const slug = slugify(projectName);
 
       // Auto-start lead role

@@ -13,10 +13,13 @@ export interface GitConfig {
   auto_push: boolean;
 }
 
+export type Lang = "zh" | "en";
+
 export interface ProjectConfig {
   name: string;
   created: string;
   repo: string;
+  lang: Lang;
   accounts: Record<string, string>;
   roles: Record<string, RoleConfig>;
   git: GitConfig;
@@ -26,6 +29,7 @@ export interface WorkspaceProject {
   name: string;
   path: string;
   active: boolean;
+  lang: Lang;
 }
 
 export interface WorkspaceConfig {

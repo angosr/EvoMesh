@@ -4,7 +4,7 @@ import { exists, ensureDir, writeFile, writeYaml } from "../utils/fs.js";
 import { defaultConfig } from "../config/defaults.js";
 import { createRole } from "../roles/manager.js";
 import { loadConfig } from "../config/loader.js";
-import type { ProjectConfig } from "../config/schema.js";
+import type { ProjectConfig, Lang } from "../config/schema.js";
 
 /**
  * Initialize a project for EvoMesh, preserving existing custom content.
@@ -12,7 +12,7 @@ import type { ProjectConfig } from "../config/schema.js";
  * - If .evomesh/ exists but no roles, creates default lead + executor
  * - If no .evomesh/, scaffolds everything then creates default roles
  */
-export function smartInit(root: string, name: string): ProjectConfig {
+export function smartInit(root: string, name: string, lang: Lang = "zh"): ProjectConfig {
   const evomesh = path.join(root, ".evomesh");
   const projectYaml = path.join(evomesh, "project.yaml");
 
@@ -38,24 +38,25 @@ export function smartInit(root: string, name: string): ProjectConfig {
     ensureDir(path.join(root, "devlog"));
   }
 
-  const config = defaultConfig(name);
+  const config = defaultConfig(name, lang);
   writeYaml(projectYaml, config);
 
   // Write shared docs only if missing
+  const isEn = lang === "en";
   const sharedDir = path.join(evomesh, "shared");
   if (!exists(path.join(sharedDir, "decisions.md"))) {
-    writeFile(path.join(sharedDir, "decisions.md"), "# 技术决策记录\n\n（暂无）\n");
+    writeFile(path.join(sharedDir, "decisions.md"), isEn ? "# Technical Decisions\n\n(none yet)\n" : "# 技术决策记录\n\n（暂无）\n");
   }
   if (!exists(path.join(sharedDir, "blockers.md"))) {
-    writeFile(path.join(sharedDir, "blockers.md"), "# 阻塞问题\n\n（暂无）\n");
+    writeFile(path.join(sharedDir, "blockers.md"), isEn ? "# Blockers\n\n(none yet)\n" : "# 阻塞问题\n\n（暂无）\n");
   }
 
   // Blueprint and status
   if (!exists(path.join(evomesh, "blueprint.md"))) {
-    writeFile(path.join(evomesh, "blueprint.md"), `# ${name} — 战略蓝图\n\n（待填写）\n`);
+    writeFile(path.join(evomesh, "blueprint.md"), isEn ? `# ${name} — Strategic Blueprint\n\n(to be filled)\n` : `# ${name} — 战略蓝图\n\n（待填写）\n`);
   }
   if (!exists(path.join(evomesh, "status.md"))) {
-    writeFile(path.join(evomesh, "status.md"), `# ${name} — 项目现况\n\n（项目刚初始化）\n`);
+    writeFile(path.join(evomesh, "status.md"), isEn ? `# ${name} — Project Status\n\n(just initialized)\n` : `# ${name} — 项目现况\n\n（项目刚初始化）\n`);
   }
 
   // Gitignore

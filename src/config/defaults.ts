@@ -1,4 +1,4 @@
-import type { GitConfig, ProjectConfig } from "./schema.js";
+import type { GitConfig, Lang, ProjectConfig } from "./schema.js";
 
 export const DEFAULT_GIT: GitConfig = {
   branch: "main",
@@ -6,12 +6,13 @@ export const DEFAULT_GIT: GitConfig = {
   auto_push: true,
 };
 
-export function defaultConfig(name: string): ProjectConfig {
+export function defaultConfig(name: string, lang: Lang = "zh"): ProjectConfig {
   const today = new Date().toISOString().slice(0, 10);
   return {
     name,
     created: today,
     repo: "",
+    lang,
     accounts: {
       main: "~/.claude",
     },
