@@ -68,18 +68,27 @@ function spawnForeground(
 
   let loopSent = false;
   let buffer = "";
+  let readyDetected = false;
+  let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const sendLoop = () => {
+    loopSent = true;
+    buffer = "";
+    pty.write(`/loop ${interval} ${loopPrompt}`);
+    setTimeout(() => pty.write("\r"), 500);
+  };
 
   pty.onData((data) => {
     process.stdout.write(data);
     if (!loopSent) {
       buffer += data;
-      if (buffer.includes("bypass permissions")) {
-        loopSent = true;
-        buffer = "";
-        setTimeout(() => {
-          pty.write(`/loop ${interval} ${loopPrompt}`);
-          setTimeout(() => pty.write("\r"), 500);
-        }, 3000);
+      if (!readyDetected && buffer.includes("bypass permissions")) {
+        readyDetected = true;
+      }
+      if (readyDetected) {
+        // Debounce: wait for output to settle (no new data for 1.5s)
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(sendLoop, 1500);
       }
     }
   });
@@ -145,12 +154,30 @@ function spawnTmux(
   }
   writePid(root, roleName, pid);
 
-  // Schedule /loop command after claude starts up
-  // Use tmux send-keys with a delay via a background shell script
+  // Schedule /loop command after claude is ready
+  // Poll log file for readiness indicator, then wait for output to settle
+  const escapedPrompt = loopPrompt.replace(/'/g, "'\\''");
   const sendScript = path.join(runtimeDir(root), `${roleName}-send.sh`);
   fs.writeFileSync(sendScript, `#!/bin/bash
-sleep 10
-tmux send-keys -t ${session} '/loop ${interval} ${loopPrompt.replace(/'/g, "'\\''")}' Enter
+# Poll log until "bypass permissions" appears (max 60s)
+for i in $(seq 1 120); do
+  if grep -q "bypass permissions" "${logPath}" 2>/dev/null; then
+    # Wait for output to settle (no log growth for 1.5s)
+    prev_size=0
+    while true; do
+      curr_size=$(wc -c < "${logPath}" 2>/dev/null || echo 0)
+      if [ "$curr_size" = "$prev_size" ] && [ "$curr_size" -gt 0 ]; then
+        break
+      fi
+      prev_size=$curr_size
+      sleep 1.5
+    done
+    tmux send-keys -t ${session} '/loop ${interval} ${escapedPrompt}' Enter
+    exit 0
+  fi
+  sleep 0.5
+done
+echo "[evomesh] Timed out waiting for Claude readiness" >> "${logPath}"
 `, { mode: 0o755 });
 
   cpSpawn("bash", [sendScript], {

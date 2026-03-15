@@ -45,25 +45,29 @@ fs.writeFileSync(pidFile, String(process.pid), "utf-8");
 // Readiness detection + /loop injection
 let loopSent = false;
 let buffer = "";
+let readyDetected = false;
+let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+const sendLoop = () => {
+  loopSent = true;
+  buffer = "";
+  const cmd = `/loop ${interval} ${loopPrompt}`;
+  pty.write(cmd);
+  setTimeout(() => pty.write("\r"), 500);
+};
 
 pty.onData((data) => {
   logStream.write(data);
 
   if (!loopSent) {
     buffer += data;
-    // "bypass permissions" appears when Claude Code TUI is ready for input
-    if (buffer.includes("bypass permissions")) {
-      loopSent = true;
-      buffer = ""; // Free memory
-      // Give TUI time to fully render, then type the /loop command
-      setTimeout(() => {
-        const cmd = `/loop ${interval} ${loopPrompt}`;
-        pty.write(cmd);
-        // Press Enter
-        setTimeout(() => {
-          pty.write("\r");
-        }, 500);
-      }, 3000);
+    if (!readyDetected && buffer.includes("bypass permissions")) {
+      readyDetected = true;
+    }
+    if (readyDetected) {
+      // Debounce: wait for output to settle (no new data for 1.5s)
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(sendLoop, 1500);
     }
   }
 });
