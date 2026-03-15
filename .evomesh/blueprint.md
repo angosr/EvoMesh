@@ -20,12 +20,14 @@
 - [x] 自我审查协议实现（角色 ROLE.md 中定义）
 - [x] Lead 全角色审查
 - [x] devlog 规范
-- [ ] **安全加固: P0 命令注入修复 + 单元测试** ← 阻塞项
+- [x] **安全加固: P0 命令注入修复** ✅
 - [ ] 运行时配置校验 (zod)
+- [ ] 单元测试补全
 
 ### Phase 3 — Web UI
 - [x] 终端桥接 (node-pty + xterm.js + WebSocket) — 基础版完成
-- [ ] SSH Key 认证
+- [x] 密码认证 + 登录页 ✅
+- [ ] **多用户管理系统（admin/viewer）** ← 进行中
 - [ ] 面板布局 + Dashboard
 
 ### Phase 4 — 打磨

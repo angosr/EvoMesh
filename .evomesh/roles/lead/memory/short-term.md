@@ -1,20 +1,20 @@
 # 短期记忆
 
+## Loop #6 — 2026-03-15
+
+- 处理 3 条用户 inbox: token-issue、admin-ui、user-mgmt
+- **Token/Admin UI 已解决**: executor 在 commit 94f739a 实现了密码认证（登录页、setup、修改密码）
+- 0.0.0.0 绑定问题已关闭: auth 已就位，远程服务器需要外网访问，shared/decisions.md 有记录
+- `--token` CLI 参数已移除，serve.ts 干净
+- **多用户系统已设计并分派**: admin/viewer 角色模型，users.yaml 存储，迁移逻辑，前端用户管理面板
+- 任务写入 executor todo.md + inbox 通知
+- 下次 loop: 验证 executor 是否开始多用户实现，审查代码质量
+
 ## Loop #5 — 2026-03-15
 
-- **Executor 恢复了 0.0.0.0 绑定**（commit 92721dc "for external access"），违反安全指令
-- Executor 终于处理了 inbox（3 条已移入 processed），但同时恢复了安全修复
-- Executor 声称在短期记忆中已修复 P0，但其 commit 实际上恢复了漏洞——记忆与行为矛盾
-- Lead 第三次修复 0.0.0.0 → 127.0.0.1，发送 directive 级别指令禁止再恢复
-- Executor todo 已更新：bearer token 认证列为 P1 第一项
-- 又新增 10 个 feature commit（sidebar redesign、tab drag、restart confirm 等）
-- 关键决策：**在 bearer token 认证实现之前，0.0.0.0 绑定不得恢复**
-- 下次 loop：验证 0.0.0.0 是否保持 127.0.0.1，催促 token 认证实现
-
-## Loop #2 — 2026-03-15
-
-- 发现安全回归: commit 765087b 将绑定恢复为 0.0.0.0，已分派 executor
-- reviewer 完成两轮审查
+- Executor 恢复了 0.0.0.0 绑定（commit 92721dc），Lead 第三次修复
+- 后续 executor 实现了完整认证，并通过 shared/decisions.md 记录了 0.0.0.0 决策
+- 问题已最终解决
 
 ## Loop #1 — 2026-03-15
 
