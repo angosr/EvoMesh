@@ -24,7 +24,7 @@
 - [ ] 运行时配置校验 (zod) — 低优先，配置由 scaffold 生成
 - [ ] 单元测试补全
 
-### Phase 3 — Web UI ← 当前
+### Phase 3 — Web UI ✅
 - [x] 终端桥接 (ttyd + WebSocket) — 含 scrollback、touch 支持
 - [x] 密码认证 + 登录页 + session 管理
 - [x] 多用户管理系统（admin/viewer 角色，用户增删改查）
@@ -32,14 +32,16 @@
 - [x] 移动端适配（touch 事件、响应式布局）
 - [x] 多项目管理（workspace.yaml）
 - [x] Claude Code 会话自动恢复（--name + session ID）
+- [x] CI: GitHub Actions (tsc + test)
+
+### Phase 4 — 打磨 ← 当前
+- [ ] server/index.ts 拆分重构（800 行 → 3 个模块）
 - [ ] WebSocket 认证刷新
 - [ ] API 安全头 / 限流
-
-### Phase 4 — 打磨 (planned)
+- [ ] Session 持久化（当前服务器重启丢失）
 - [ ] 模板导入/导出
 - [ ] 演进可视化
 - [ ] 审计日志
-- [ ] Session 持久化（当前服务器重启丢失）
 
 ## 架构决策
 
