@@ -180,7 +180,10 @@ export function startServer(root: string, port: number) {
         const accountDir = expandHome(config.accounts[rc.account] || "~/.claude");
         let needsLogin = false;
         try {
-          const credsPath = path.join(accountDir, "credentials.json");
+          // Claude Code stores credentials as .credentials.json (dot prefix)
+          const dotCreds = path.join(accountDir, ".credentials.json");
+          const plainCreds = path.join(accountDir, "credentials.json");
+          const credsPath = fs.existsSync(dotCreds) ? dotCreds : plainCreds;
           if (!fs.existsSync(credsPath)) {
             needsLogin = true;
           } else {
@@ -386,8 +389,9 @@ export function startServer(root: string, port: number) {
       const accounts = all.map(a => {
         let needsLogin = false;
         try {
-          // Check if credentials file exists and has content
-          const credsPath = path.join(a.fullPath, "credentials.json");
+          const dotCreds = path.join(a.fullPath, ".credentials.json");
+          const plainCreds = path.join(a.fullPath, "credentials.json");
+          const credsPath = fs.existsSync(dotCreds) ? dotCreds : plainCreds;
           if (!fs.existsSync(credsPath)) {
             needsLogin = true;
           } else {
