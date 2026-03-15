@@ -42,7 +42,8 @@ export function spawnRole(
 
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
   const interval = roleConfig.loop_interval || "10m";
-  const loopPrompt = `读取 .evomesh/roles/${roleName}/ROLE.md 并按其中的 Loop 执行流程工作。检查 todo.md 和 inbox/。角色目录: .evomesh/roles/${roleName}/`;
+  const roleRoot = `.evomesh/roles/${roleName}`;
+  const loopPrompt = `你是 ${roleName} 角色。执行 ${roleRoot}/ROLE.md 第 1.1 节的 Loop 流程（从 git pull 到 commit）。工作目录: ${roleRoot}/`;
 
   ensureDir(runtimeDir(root));
 
