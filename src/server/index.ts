@@ -761,7 +761,11 @@ export function startServer(port: number, initialRoot?: string) {
 
   // Login page
   app.get("/login", (_req, res) => {
-    res.type("html").send(loginPageHtml());
+    const loginSrc = path.join(__dirname, "..", "..", "src", "server", "login.html");
+    const loginDist = path.join(__dirname, "login.html");
+    const loginPath = fs.existsSync(loginSrc) ? loginSrc : loginDist;
+    if (!fs.existsSync(loginPath)) { res.send("Login page not found."); return; }
+    res.type("html").sendFile(path.resolve(loginPath));
   });
 
   // Serve static frontend
@@ -793,97 +797,4 @@ export function startServer(port: number, initialRoot?: string) {
   });
 }
 
-function loginPageHtml(): string {
-  return `<!DOCTYPE html><html><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EvoMesh — Login</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
-  .login-box { background: #111; border: 1px solid #222; border-radius: 12px; padding: 32px; width: 90vw; max-width: 360px; }
-  h1 { color: #e94560; font-size: 24px; margin-bottom: 8px; }
-  .sub { color: #666; font-size: 12px; margin-bottom: 24px; }
-  label { display: block; color: #888; font-size: 11px; margin-bottom: 6px; }
-  input { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; border-radius: 6px; font-size: 14px; margin-bottom: 16px; }
-  input:focus { outline: none; border-color: #e94560; }
-  button { width: 100%; padding: 12px; background: #e94560; border: none; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  button:hover { background: #d63851; }
-  button:disabled { background: #444; cursor: not-allowed; }
-  .error { color: #ef4444; font-size: 12px; margin-bottom: 12px; display: none; }
-  .error.show { display: block; }
-</style></head><body>
-<div class="login-box">
-  <h1>EvoMesh</h1>
-  <div class="sub" id="subtitle">Loading...</div>
-  <div class="error" id="error"></div>
-  <div id="setup-form" style="display:none">
-    <label>Admin Username</label>
-    <input type="text" id="setup-user" value="admin" placeholder="Username" />
-    <label>Password</label>
-    <input type="password" id="new-pw" placeholder="Choose a password (min 4 chars)" />
-    <label>Confirm Password</label>
-    <input type="password" id="confirm-pw" placeholder="Confirm password" />
-    <button onclick="doSetup()">Create Admin & Enter</button>
-  </div>
-  <div id="login-form" style="display:none">
-    <label>Username</label>
-    <input type="text" id="login-user" placeholder="Username" />
-    <label>Password</label>
-    <input type="password" id="pw" placeholder="Password" />
-    <button onclick="doLogin()">Login</button>
-  </div>
-</div>
-<script>
-async function init() {
-  const r = await fetch('/auth/status');
-  const d = await r.json();
-  if (d.hasUsers) {
-    document.getElementById('subtitle').textContent = 'Sign in to continue';
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('login-user').focus();
-  } else {
-    document.getElementById('subtitle').textContent = 'First time setup — create admin account';
-    document.getElementById('setup-form').style.display = 'block';
-    document.getElementById('setup-user').focus();
-  }
-}
-function showError(msg) { const e = document.getElementById('error'); e.textContent = msg; e.classList.add('show'); }
-async function doSetup() {
-  const username = document.getElementById('setup-user').value.trim();
-  const pw = document.getElementById('new-pw').value;
-  const confirm = document.getElementById('confirm-pw').value;
-  if (username.length < 2) { showError('Username must be at least 2 characters'); return; }
-  if (pw.length < 4) { showError('Password must be at least 4 characters'); return; }
-  if (pw !== confirm) { showError('Passwords do not match'); return; }
-  const r = await fetch('/auth/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password:pw}) });
-  const d = await r.json();
-  if (d.ok) { localStorage.setItem('evomesh-token', d.token); localStorage.setItem('evomesh-user', JSON.stringify({username:d.username,role:d.role})); location.href = '/'; }
-  else showError(d.error);
-}
-async function doLogin() {
-  const username = document.getElementById('login-user').value.trim();
-  const pw = document.getElementById('pw').value;
-  if (!username) { showError('Enter your username'); return; }
-  const r = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password:pw}) });
-  const d = await r.json();
-  if (d.ok) { localStorage.setItem('evomesh-token', d.token); localStorage.setItem('evomesh-user', JSON.stringify({username:d.username,role:d.role})); location.href = '/'; }
-  else showError(d.error || 'Invalid credentials');
-}
-document.addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('login-form').style.display !== 'none' ? doLogin() : doSetup(); } });
-// Auto-login: verify saved token before redirecting
-(async () => {
-  const saved = localStorage.getItem('evomesh-token');
-  if (saved) {
-    try {
-      const r = await fetch('/auth/validate', { headers: { 'Authorization': 'Bearer ' + saved } });
-      const d = await r.json();
-      if (d.valid) { location.href = '/'; return; }
-    } catch {}
-    localStorage.removeItem('evomesh-token');
-    localStorage.removeItem('evomesh-user');
-  }
-  init();
-})();
-</script></body></html>`;
-}
 
