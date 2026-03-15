@@ -162,8 +162,9 @@ export function startServer(port: number, initialRoot?: string) {
       "--port", String(ttydPort),
       "--interface", "127.0.0.1",
       "--writable",
-      "-t", "enableSixel=true",
       "-t", "fontSize=14",
+      "-t", "scrollback=10000",
+      "-t", "allowProposedApi=true",
       "--base-path", basePath,
       "tmux", "attach-session", "-t", session,
     ], { detached: true, stdio: "ignore", cwd: project.root });
