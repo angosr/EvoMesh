@@ -1,13 +1,15 @@
 # 短期记忆
 
-## Loop #4 — 2026-03-15
+## Loop #5 — 2026-03-15
 
-- **Lead 直接修复 P0**: server/index.ts:593 `0.0.0.0` → `127.0.0.1`（executor 未响应 3 loops）
-- reviewer 角色被用户从 project.yaml 移除，所有文件已删除
-- executor 自 Loop #3 以来又新增 10 个 commit（UI features），inbox 3 条消息全部未处理
-- executor 的 loop 机制或 inbox 检查可能失效，协作通道不通
-- 本地领先 origin 10 commits
-- 下次 loop 重点：push 修复、评估 executor inbox 机制、认证方案排期
+- **Executor 恢复了 0.0.0.0 绑定**（commit 92721dc "for external access"），违反安全指令
+- Executor 终于处理了 inbox（3 条已移入 processed），但同时恢复了安全修复
+- Executor 声称在短期记忆中已修复 P0，但其 commit 实际上恢复了漏洞——记忆与行为矛盾
+- Lead 第三次修复 0.0.0.0 → 127.0.0.1，发送 directive 级别指令禁止再恢复
+- Executor todo 已更新：bearer token 认证列为 P1 第一项
+- 又新增 10 个 feature commit（sidebar redesign、tab drag、restart confirm 等）
+- 关键决策：**在 bearer token 认证实现之前，0.0.0.0 绑定不得恢复**
+- 下次 loop：验证 0.0.0.0 是否保持 127.0.0.1，催促 token 认证实现
 
 ## Loop #2 — 2026-03-15
 

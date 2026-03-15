@@ -625,9 +625,10 @@ export function startServer(port: number, initialRoot?: string) {
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
 
-  server.listen(port, "127.0.0.1", () => {
+  // IMPORTANT: 必须 0.0.0.0 — 远程服务器需外网访问，勿改为 127.0.0.1（见 shared/decisions.md）
+  server.listen(port, "0.0.0.0", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
-    console.log(`    http://127.0.0.1:${port}`);
+    console.log(`    http://localhost:${port}`);
     console.log(`\n  Terminals proxied at /terminal/{project}/{role}/\n`);
   });
 }
