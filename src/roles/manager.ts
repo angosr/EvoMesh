@@ -16,16 +16,12 @@ export function createRole(
   const templates = getTemplates(lang);
   const template = templates[templateName];
   if (!template) {
-    console.error(
-      `Unknown template: ${templateName}. Available: ${Object.keys(TEMPLATES).join(", ")}`
-    );
-    process.exit(1);
+    throw new Error(`Unknown template: ${templateName}. Available: ${Object.keys(TEMPLATES).join(", ")}`);
   }
 
   const dir = roleDir(root, name);
   if (exists(dir)) {
-    console.error(`Role "${name}" already exists.`);
-    process.exit(1);
+    throw new Error(`Role "${name}" already exists.`);
   }
 
   // Create directory structure
@@ -37,20 +33,12 @@ export function createRole(
   // Write role files
   writeFile(path.join(dir, "ROLE.md"), template.roleMd(config.name));
   writeFile(path.join(dir, "loop.md"), template.loopMd());
-  writeFile(path.join(dir, "todo.md"), `# ${name} — 待办任务\n\n（暂无任务）\n`);
-  writeFile(
-    path.join(dir, "archive.md"),
-    `# ${name} — 已完成任务\n\n（暂无记录）\n`
-  );
-  writeFile(path.join(dir, "evolution.log"), `# ${name} — 演进日志\n\n（暂无记录）\n`);
-  writeFile(
-    path.join(dir, "memory", "short-term.md"),
-    `# 短期记忆\n\n（空）\n`
-  );
-  writeFile(
-    path.join(dir, "memory", "long-term.md"),
-    `# 长期记忆\n\n（空）\n`
-  );
+  const isEn = lang === "en";
+  writeFile(path.join(dir, "todo.md"), isEn ? `# ${name} — Tasks\n\n(no tasks)\n` : `# ${name} — 待办任务\n\n（暂无任务）\n`);
+  writeFile(path.join(dir, "archive.md"), isEn ? `# ${name} — Completed\n\n(none)\n` : `# ${name} — 已完成任务\n\n（暂无记录）\n`);
+  writeFile(path.join(dir, "evolution.log"), isEn ? `# ${name} — Evolution Log\n\n(none)\n` : `# ${name} — 演进日志\n\n（暂无记录）\n`);
+  writeFile(path.join(dir, "memory", "short-term.md"), isEn ? "# Short-term Memory\n\n(empty)\n" : "# 短期记忆\n\n（空）\n");
+  writeFile(path.join(dir, "memory", "long-term.md"), isEn ? "# Long-term Memory\n\n(empty)\n" : "# 长期记忆\n\n（空）\n");
 
   // Update project.yaml
   const roleConfig: RoleConfig = {
@@ -64,8 +52,7 @@ export function createRole(
 export function deleteRole(root: string, name: string, config: ProjectConfig): void {
   const dir = roleDir(root, name);
   if (!exists(dir)) {
-    console.error(`Role "${name}" does not exist.`);
-    process.exit(1);
+    throw new Error(`Role "${name}" does not exist.`);
   }
 
   fs.rmSync(dir, { recursive: true });

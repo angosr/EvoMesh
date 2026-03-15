@@ -265,9 +265,17 @@ export function startServer(port: number, initialRoot?: string, userToken?: stri
       const project = addProject(projectName, projectRoot, lang);
       const slug = slugify(projectName);
 
-      // Auto-start lead role
+      // Write initialization task for lead
       const leadName = Object.entries(config.roles).find(([, rc]) => rc.type === "lead")?.[0];
       if (leadName) {
+        const isEn = lang === "en";
+        const todoPath = path.join(roleDir(projectRoot, leadName), "todo.md");
+        const initTask = isEn
+          ? `# ${leadName} — Tasks\n\n## P0 — Project Initialization\n\n1. **Analyze project structure**: Read the codebase (README, package.json, src/, etc.) to understand what this project does\n2. **Review existing roles**: If the project has custom role definitions or CLAUDE.md, preserve their domain-specific prompts while ensuring EvoMesh structure compliance\n3. **Design role strategy**: Decide if additional roles are needed beyond lead+executor (e.g. reviewer, designer)\n4. **Update blueprint.md**: Write project vision, technical roadmap, architecture overview\n5. **Update status.md**: Document current project state\n6. **Dispatch initial tasks**: Write concrete tasks to executor's todo.md\n`
+          : `# ${leadName} — 待办任务\n\n## P0 — 项目初始化\n\n1. **分析项目结构**: 阅读代码库（README、package.json、src/ 等），理解项目做什么\n2. **审查现有角色**: 如果项目有自定义角色定义或 CLAUDE.md，保留其领域特定提示词，同时确保 EvoMesh 结构合规\n3. **设计角色策略**: 判断是否需要 lead+executor 之外的额外角色（如 reviewer、designer）\n4. **更新 blueprint.md**: 撰写项目愿景、技术路线、架构概览\n5. **更新 status.md**: 记录当前项目状态\n6. **分派初始任务**: 向 executor 的 todo.md 写入具体任务\n`;
+        fs.writeFileSync(todoPath, initTask, "utf-8");
+
+        // Start lead
         const rc = config.roles[leadName];
         try { spawnRole(projectRoot, leadName, rc, config); } catch {}
         setTimeout(ensureTtydRunning, 3000);
