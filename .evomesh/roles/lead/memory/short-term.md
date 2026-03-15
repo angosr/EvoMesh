@@ -1,19 +1,20 @@
 # 短期记忆
 
+## Loop #10 — 2026-03-15
+
+- Inbox 空，触发自我审查
+- **reviewer 角色残余已清理**: 7 个文件删除已提交 (550d6e0)，跨 10 loop 的遗留问题终于解决
+- **代码质量审查**: frontend.html 1167 行 **超过 1000 行上限**，已分派 executor 拆分为 CSS+JS+HTML
+- **Phase 4 优先级排序完成**:
+  1. frontend.html 拆分 (P1) — 违反代码规范
+  2. Server 路由集成测试 (P2)
+  3. WebSocket 认证刷新 / API 安全头 (P3)
+  4. Session 持久化 / zod 校验 (P3)
+- Executor 状态: Loop #18，空闲，待接收 frontend 拆分任务
+- project.yaml 仍有未提交变更（账号切换），非 lead 职责范围
+- Executor 新增: 移动端 tmux 触摸滚动 (3121219)，devlog 规范 (5e79dc1)
+- 下次 loop: 跟踪 frontend.html 拆分进度
+
 ## Loop #9 — 2026-03-15
 
-- 处理 executor inbox: 文档过时报告（stale-docs）
-- **index.ts 拆分已验证**: 242 + 359 + 131 = 732 行，全部 <400 行，测试通过
-- **文档已同步更新**: blueprint/status 中英文版均已更新
-  - Phase 3 → ✅, Phase 4 ← 当前
-  - index.ts 拆分标记完成
-  - expandHome/process.exit 修复标记完成
-  - 测试覆盖状态更新（30 单元测试，server 路由未覆盖）
-- Executor 状态: Loop #16，大方向审查中，高效产出
-- **持续未提交变更**: reviewer 角色 7 个文件删除 + project.yaml 修改，跨 9 个 loop 仍未处理
-- 下次 loop: Phase 4 优先级排序，处理 reviewer 残余文件
-
-## Loop #8 — 2026-03-15
-
-- 自我审查: index.ts 800 行需拆分，分派 executor
-- Phase 3 标记完成
+- 验证 index.ts 拆分完成，更新文档
