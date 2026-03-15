@@ -31,7 +31,7 @@ const env: Record<string, string> = {
   CLAUDE_CONFIG_DIR: accountPath,
 };
 
-const pty = ptySpawn("claude", ["--dangerously-skip-permissions"], {
+const pty = ptySpawn("claude", ["--continue", "--dangerously-skip-permissions"], {
   name: "xterm-256color",
   cols: 120,
   rows: 40,

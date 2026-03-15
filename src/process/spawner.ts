@@ -146,7 +146,7 @@ function spawnTmux(
   // Create tmux session running claude with env var set via `env`
   execFileSync("tmux", [
     "new-session", "-d", "-s", session, "-x", "120", "-y", "40",
-    "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", "--dangerously-skip-permissions",
+    "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", "--continue", "--dangerously-skip-permissions",
   ], { cwd: root, stdio: "ignore" });
 
   // Enable mouse mode for touch scrolling on mobile
