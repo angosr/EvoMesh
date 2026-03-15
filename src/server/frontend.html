@@ -48,7 +48,7 @@
   .conn-dot.disconnected { background: #ef4444; animation: pulse 1s infinite; }
 
   /* Project tree */
-  #project-tree { overflow-y: auto; flex: 1; }
+  #project-tree { overflow-y: auto; flex: 1; min-height: 0; }
   .project-group { border-bottom: 1px solid #222; }
   .project-header { display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer; border: none; background: none; color: #e0e0e0; font-size: 12px; width: 100%; text-align: left; font-weight: 600; }
   .project-header:hover { background: #1a1a1a; }
@@ -76,7 +76,7 @@
   .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 4px 8px; margin: 4px 10px; border-radius: 4px; font-size: 9px; }
 
   /* Open tabs section in sidebar */
-  #open-tabs-section { border-top: 1px solid #222; }
+  #open-tabs-section { border-top: 1px solid #222; flex-shrink: 0; }
   #open-tabs-header { padding: 6px 12px; font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: 1px; }
   .sidebar-tab { display: flex; align-items: center; gap: 5px; padding: 5px 12px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 11px; width: 100%; text-align: left; }
   .sidebar-tab:hover { background: #1a1a1a; }
@@ -442,11 +442,20 @@ function initResize(handleId, target, side) {
   handle.addEventListener('mousedown', e => {
     e.preventDefault(); handle.classList.add('active');
     startX = e.clientX; startW = el.offsetWidth;
+    // Disable iframe pointer-events during drag so mouse events aren't swallowed
+    document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
+    document.body.style.cursor = 'col-resize';
     const onMove = ev => {
       const dx = side === 'left' ? ev.clientX - startX : startX - ev.clientX;
       el.style.width = Math.max(180, startW + dx) + 'px';
     };
-    const onUp = () => { handle.classList.remove('active'); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    const onUp = () => {
+      handle.classList.remove('active');
+      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
+      document.body.style.cursor = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
