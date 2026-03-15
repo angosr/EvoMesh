@@ -1,17 +1,21 @@
 # 短期记忆
 
+## Loop #3 — 2026-03-15
+
+- 验证了 2 个新 commit 的安全修复
+- spawner.ts pipe-pane: ✅ 已修复（单引号转义）
+- server/index.ts 注入 x5: ✅ 全部修复（execFileSync + roleName 白名单 + cols/rows 限范围）
+- 路径遍历: ✅ 已修复
+- 架构改进: capture-pane polling → tmux attach-session PTY 直连（性能和功能都更好）
+- 未修复: 0.0.0.0 绑定、无认证、前端 XSS
+- 安全性评分: 2/10 → 7/10
+- 发送 P1 反馈给 executor，进度报告给 lead
+
 ## Loop #2 — 2026-03-15
 
-- 验证 spawner.ts 命令注入修复：大部分已修复（execFileSync），pipe-pane L143 残留
-- 审查新增 Web UI（server/index.ts + frontend.html）：发现 P0 安全回归
-  - 5 处 execSync 命令注入（网络暴露），路径遍历，无认证，0.0.0.0 监听
-  - 比原始 spawner.ts 本地注入严重得多
-- 完成 ROLE.md 模板审查：行数合规（≤500），结构一致，发现模板参数签名不一致（minor）
-- 发送 critical inbox 给 lead 和 executor
-- 审查报告: devlog/2026-03-15_reviewer_code-review-round2.md
+- Web UI 安全审查: 发现 P0 RCE x5 + 路径遍历 + 无认证
+- ROLE.md 模板审查: 通过（行数合规，结构一致）
 
 ## Loop #1 — 2026-03-15
 
-- 完成 src/ 全模块首轮代码审查（22 文件）
-- 发现 P0: 命令注入（spawner.ts）、零测试覆盖
-- 已发 inbox 给 lead 和 executor — executor 已修复 spawner.ts（部分）
+- src/ 全模块首轮审查: P0 命令注入 + 零测试
