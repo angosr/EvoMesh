@@ -149,6 +149,9 @@ function spawnTmux(
     "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", "--dangerously-skip-permissions",
   ], { cwd: root, stdio: "ignore" });
 
+  // Enable mouse mode for touch scrolling on mobile
+  try { execFileSync("tmux", ["set-option", "-t", session, "mouse", "on"], { stdio: "ignore" }); } catch {}
+
   // Start logging (pipe-pane captures output to file)
   // pipe-pane -o passes its argument to the shell, so logPath must be quoted
   const quotedLogPath = `'${logPath.replace(/'/g, "'\\''")}'`;
