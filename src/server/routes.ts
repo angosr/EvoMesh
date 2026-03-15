@@ -356,4 +356,24 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     if (projects.length === 0) { res.json({ project: "none", roles: [] }); return; }
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });
+
+  // --- Mobile scroll: send mouse wheel events to tmux ---
+  const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
+  app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
+    const project = ctx.getProject(req.params.slug);
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    const { direction } = req.body; // "Up" or "Down"
+    if (direction !== "Up" && direction !== "Down") { res.status(400).send("Invalid direction"); return; }
+    const session = ctx.tmuxSession(project.slug, req.params.name);
+    try {
+      if (direction === "Up") {
+        // Enter copy mode and scroll up
+        execFileSync("tmux", ["copy-mode", "-t", session], { stdio: "ignore" });
+        execFileSync("tmux", ["send-keys", "-t", session, "-X", "scroll-up"], { stdio: "ignore" });
+      } else {
+        execFileSync("tmux", ["send-keys", "-t", session, "-X", "scroll-down"], { stdio: "ignore" });
+      }
+      res.json({ ok: true });
+    } catch { res.status(500).json({ error: "Failed to scroll" }); }
+  });
 }

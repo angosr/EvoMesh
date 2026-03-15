@@ -200,6 +200,46 @@
   #chat-send:hover { background: #d63851; }
   #chat-send:disabled { background: #444; cursor: not-allowed; }
 
+  /* Settings panel */
+  #settings { padding: 20px; overflow-y: auto; height: 100%; }
+  #settings h2 { color: #e94560; margin-bottom: 14px; font-size: 16px; }
+  .settings-section { margin-bottom: 24px; }
+  .settings-section h3 { color: #4ade80; font-size: 13px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #222; }
+  .settings-form { display: flex; flex-direction: column; gap: 10px; max-width: 400px; }
+  .settings-form label { color: #888; font-size: 11px; }
+  .settings-form input { padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-size: 13px; }
+  .settings-form input:focus { outline: none; border-color: var(--accent); }
+  .settings-form .form-row { display: flex; flex-direction: column; gap: 4px; }
+  .settings-btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .settings-btn.primary { background: var(--accent); color: #fff; }
+  .settings-btn.primary:hover { background: var(--accent-hover); }
+  .settings-btn.danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+  .settings-btn.danger:hover { background: var(--red); color: #fff; }
+  .settings-btn.secondary { background: #333; color: #888; }
+  .settings-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .settings-info { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 12px; }
+  .settings-info dt { color: #888; }
+  .settings-info dd { color: var(--text); }
+  .settings-msg { padding: 8px 12px; border-radius: 4px; font-size: 11px; margin-top: 8px; display: none; }
+  .settings-msg.success { display: block; background: #064e3b; color: #4ade80; border: 1px solid #0f4620; }
+  .settings-msg.error { display: block; background: #3b1010; color: #ef4444; border: 1px solid #ef4444; }
+  .user-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .user-table th { text-align: left; padding: 8px; color: #888; font-size: 9px; text-transform: uppercase; border-bottom: 1px solid #333; }
+  .user-table td { padding: 8px; font-size: 12px; border-bottom: 1px solid #222; vertical-align: middle; }
+  .user-table .role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+  .user-table .role-badge.admin { background: #422006; color: #fbbf24; }
+  .user-table .role-badge.viewer { background: #1e1b4b; color: #818cf8; }
+  .user-table .actions { display: flex; gap: 6px; }
+  .user-table .act-btn { background: none; border: 1px solid #333; color: #888; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; }
+  .user-table .act-btn:hover { border-color: #888; color: #e0e0e0; }
+  .user-table .act-btn.del:hover { border-color: var(--red); color: var(--red); }
+  .add-user-form { display: none; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 8px; padding: 12px; background: var(--bg-hover); border-radius: 6px; border: 1px solid var(--border); }
+  .add-user-form.show { display: flex; }
+  .add-user-form .field { display: flex; flex-direction: column; gap: 4px; }
+  .add-user-form label { color: #888; font-size: 10px; }
+  .add-user-form input, .add-user-form select { padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-size: 12px; }
+  .add-user-form input:focus, .add-user-form select:focus { outline: none; border-color: var(--accent); }
+
   /* Role modal */
   #role-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
   #role-modal-overlay.show { display: flex; }
@@ -294,6 +334,9 @@
   <button id="dashboard-btn" class="active" onclick="switchTo('dashboard')">
     <span class="dash-icon">&#9638;</span> Dashboard
   </button>
+  <button id="settings-btn" onclick="switchTo('settings')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer;border:none;background:none;color:#ccc;font-size:12px;width:100%;text-align:left;border-bottom:1px solid #222;">
+    <span style="font-size:14px;">&#9881;</span> Settings
+  </button>
   <div id="open-tabs-section">
     <div id="open-tabs-header" onclick="toggleOpenTabs()">
       <span class="arrow open" id="tabs-arrow">&#9654;</span>
@@ -338,13 +381,79 @@
       <div class="metric" title="Disk"><span>DISK</span><div class="metric-bar"><div class="metric-bar-fill ok" id="m-disk2" style="width:0%"></div></div><span id="m-disk-val2"></span></div>
     </div>
     <button class="toggle-sidebar-btn" onclick="toggleChat()" title="Toggle chat">&#128172;</button>
-    <button class="toggle-sidebar-btn" onclick="showSettings()" title="Settings">&#9881;</button>
+    <button class="toggle-sidebar-btn" onclick="switchTo('settings')" title="Settings">&#9881;</button>
   </div>
   <div id="panels">
     <div class="panel active" id="panel-dashboard">
       <div id="dashboard">
         <h2>Project Overview</h2>
         <div id="dash-content">Loading...</div>
+      </div>
+    </div>
+    <div class="panel" id="panel-settings">
+      <div id="settings">
+        <h2>Settings</h2>
+
+        <div class="settings-section">
+          <h3>Profile</h3>
+          <dl class="settings-info" id="profile-info"></dl>
+        </div>
+
+        <div class="settings-section">
+          <h3>Change Password</h3>
+          <div class="settings-form" id="pw-form">
+            <div class="form-row">
+              <label>Current Password</label>
+              <input type="password" id="pw-old" />
+            </div>
+            <div class="form-row">
+              <label>New Password</label>
+              <input type="password" id="pw-new" placeholder="Min 4 characters" />
+            </div>
+            <div class="form-row">
+              <label>Confirm New Password</label>
+              <input type="password" id="pw-confirm" />
+            </div>
+            <div>
+              <button class="settings-btn primary" onclick="doChangePassword()">Update Password</button>
+            </div>
+            <div class="settings-msg" id="pw-msg"></div>
+          </div>
+        </div>
+
+        <div class="settings-section" id="users-section" style="display:none">
+          <h3>User Management</h3>
+          <table class="user-table">
+            <thead><tr><th>User</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+          <button class="settings-btn secondary" id="add-user-toggle" onclick="toggleAddUser()">+ Add User</button>
+          <div class="add-user-form" id="add-user-form">
+            <div class="field">
+              <label>Username</label>
+              <input id="new-username" placeholder="username" />
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input type="password" id="new-password" placeholder="min 4 chars" />
+            </div>
+            <div class="field">
+              <label>Role</label>
+              <select id="new-role"><option value="viewer">viewer</option><option value="admin">admin</option></select>
+            </div>
+            <button class="settings-btn primary" onclick="doAddUser()">Add</button>
+            <button class="settings-btn secondary" onclick="toggleAddUser()">Cancel</button>
+            <div class="settings-msg" id="add-user-msg" style="width:100%"></div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>System</h3>
+          <dl class="settings-info" id="system-info"></dl>
+          <div style="margin-top: 16px;">
+            <button class="settings-btn danger" onclick="doLogout()">Logout</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -574,8 +683,7 @@ function closePanel(key) {
 
 function switchTo(name) {
   state.activePanel = name;
-  if (name === 'dashboard' && state.layout === 'grid') {
-    // Only dashboard exits grid mode
+  if ((name === 'dashboard' || name === 'settings') && state.layout === 'grid') {
     setLayout('tabs');
     return;
   }
@@ -584,7 +692,18 @@ function switchTo(name) {
   }
   // In grid mode, clicking a tab just updates the "focused" highlight
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-title').innerHTML = `<strong>${name === 'dashboard' ? 'Dashboard' : esc(name)}</strong>`;
+  const title = name === 'dashboard' ? 'Dashboard' : name === 'settings' ? 'Settings' : esc(name);
+  document.getElementById('panel-title').innerHTML = `<strong>${title}</strong>`;
+  // Update sidebar buttons
+  const dashBtn = document.getElementById('dashboard-btn');
+  const settingsBtn = document.getElementById('settings-btn');
+  if (dashBtn) { dashBtn.classList.toggle('active', name === 'dashboard'); }
+  if (settingsBtn) {
+    settingsBtn.style.background = name === 'settings' ? '#1a1a2e' : '';
+    settingsBtn.style.color = name === 'settings' ? '#e94560' : '#ccc';
+    settingsBtn.style.fontWeight = name === 'settings' ? '600' : '';
+  }
+  if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
 }
 
@@ -594,6 +713,7 @@ function refreshGrid() {
   panels.className = 'grid';
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active', 'hidden-grid'));
   document.getElementById('panel-dashboard')?.classList.add('hidden-grid');
+  document.getElementById('panel-settings')?.classList.add('hidden-grid');
   const visible = document.querySelectorAll('#panels .panel:not(.hidden-grid)').length;
   if (visible <= 1) panels.classList.add('grid-1');
   else if (visible === 2) panels.classList.add('grid-2');
@@ -652,93 +772,152 @@ function getCurrentUser() {
   try { return JSON.parse(localStorage.getItem('evomesh-user') || '{}'); } catch { return {}; }
 }
 
-function showSettings() {
-  const user = getCurrentUser();
-  const isAdmin = user.role === 'admin';
-  let options = `Logged in as: ${user.username || '?'} (${user.role || '?'})\n\n1 = Change password\n2 = Logout`;
-  if (isAdmin) options += '\n3 = Manage users';
-  const action = prompt(options + '\n\nEnter number:');
-  if (action === '1') changePw();
-  else if (action === '2') doLogout();
-  else if (action === '3' && isAdmin) showUserManagement();
-}
-
 function doLogout() {
   localStorage.removeItem('evomesh-token');
   localStorage.removeItem('evomesh-user');
   location.href = '/login';
 }
 
-async function changePw() {
-  const oldPw = prompt('Current password:');
-  if (!oldPw) return;
-  const newPw = prompt('New password (min 4 chars):');
-  if (!newPw || newPw.length < 4) { alert('Password too short'); return; }
-  const c = prompt('Confirm new password:');
-  if (newPw !== c) { alert('Passwords do not match'); return; }
-  try {
-    const r = await authFetch(`/auth/change-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({oldPassword:oldPw, newPassword:newPw}) });
-    const d = await r.json();
-    if (d.ok) alert('Password changed');
-    else alert(d.error || 'Failed');
-  } catch { alert('Failed'); }
+// ==================== Settings Panel ====================
+function renderSettings() {
+  const user = getCurrentUser();
+  const isAdmin = user.role === 'admin';
+
+  // Profile info
+  document.getElementById('profile-info').innerHTML = `
+    <dt>Username</dt><dd>${esc(user.username || '?')}</dd>
+    <dt>Role</dt><dd><span class="role-badge ${user.role || ''}">${esc(user.role || '?')}</span></dd>`;
+
+  // Show user management section for admins
+  const usersSection = document.getElementById('users-section');
+  usersSection.style.display = isAdmin ? 'block' : 'none';
+  if (isAdmin) loadUsers();
+
+  // System info
+  const totalRoles = state.projects.reduce((s, p) => s + p.roles.length, 0);
+  const runningRoles = state.projects.reduce((s, p) => s + p.roles.filter(r => r.running).length, 0);
+  document.getElementById('system-info').innerHTML = `
+    <dt>Version</dt><dd>0.1.0</dd>
+    <dt>Projects</dt><dd>${state.projects.length}</dd>
+    <dt>Roles</dt><dd>${runningRoles} running / ${totalRoles} total</dd>`;
+
+  // Clear password form
+  document.getElementById('pw-old').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  document.getElementById('pw-msg').className = 'settings-msg';
+  document.getElementById('pw-msg').textContent = '';
+
+  // Update sidebar button
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.classList.toggle('active', state.activePanel === 'settings');
+    settingsBtn.style.background = state.activePanel === 'settings' ? '#1a1a2e' : '';
+    settingsBtn.style.color = state.activePanel === 'settings' ? '#e94560' : '#ccc';
+    settingsBtn.style.fontWeight = state.activePanel === 'settings' ? '600' : '';
+  }
 }
 
-async function showUserManagement() {
+async function doChangePassword() {
+  const oldPw = document.getElementById('pw-old').value;
+  const newPw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  const msg = document.getElementById('pw-msg');
+
+  if (!oldPw) { msg.className = 'settings-msg error'; msg.textContent = 'Enter current password'; return; }
+  if (!newPw || newPw.length < 4) { msg.className = 'settings-msg error'; msg.textContent = 'New password must be at least 4 characters'; return; }
+  if (newPw !== confirm) { msg.className = 'settings-msg error'; msg.textContent = 'Passwords do not match'; return; }
+
+  try {
+    const r = await authFetch('/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
+    const d = await r.json();
+    if (d.ok) {
+      msg.className = 'settings-msg success'; msg.textContent = 'Password updated successfully';
+      document.getElementById('pw-old').value = '';
+      document.getElementById('pw-new').value = '';
+      document.getElementById('pw-confirm').value = '';
+    } else {
+      msg.className = 'settings-msg error'; msg.textContent = d.error || 'Failed to update password';
+    }
+  } catch { msg.className = 'settings-msg error'; msg.textContent = 'Connection error'; }
+}
+
+async function loadUsers() {
   try {
     const r = await authFetch(`${API}/users`);
     const d = await r.json();
-    if (!d.users) { alert('Failed to load users'); return; }
-    let msg = 'Users:\n\n';
-    d.users.forEach((u, i) => { msg += `${i+1}. ${u.username} [${u.role}] (${new Date(u.createdAt).toLocaleDateString()})\n`; });
-    msg += '\nActions:\n  A = Add user\n  D = Delete user\n  R = Reset password\n  (or press Cancel)';
-    const action = prompt(msg);
-    if (!action) return;
-    const cmd = action.toUpperCase();
-    if (cmd === 'A') await addUserPrompt();
-    else if (cmd === 'D') await deleteUserPrompt();
-    else if (cmd === 'R') await resetPwPrompt();
-  } catch { alert('Failed'); }
+    if (!d.users) return;
+    const currentUser = getCurrentUser().username;
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = d.users.map(u => `
+      <tr>
+        <td><strong>${esc(u.username)}</strong>${u.username === currentUser ? ' <span style="color:#888;font-size:10px">(you)</span>' : ''}</td>
+        <td><span class="role-badge ${u.role}">${esc(u.role)}</span></td>
+        <td style="color:#888;font-size:11px">${new Date(u.createdAt).toLocaleDateString()}</td>
+        <td class="actions">
+          <button class="act-btn" onclick="resetUserPassword('${esc(u.username).replace(/'/g, "\\'")}')">Reset PW</button>
+          ${u.username !== currentUser ? `<button class="act-btn del" onclick="deleteUser('${esc(u.username).replace(/'/g, "\\'")}')">Delete</button>` : ''}
+        </td>
+      </tr>`).join('');
+  } catch {}
 }
 
-async function addUserPrompt() {
-  const username = prompt('New username:');
-  if (!username || username.trim().length < 2) { alert('Username too short (min 2)'); return; }
-  const role = prompt('Role (admin/viewer):', 'viewer');
-  if (role !== 'admin' && role !== 'viewer') { alert('Invalid role'); return; }
-  const password = prompt('Password (min 4 chars):');
-  if (!password || password.length < 4) { alert('Password too short'); return; }
+function toggleAddUser() {
+  const form = document.getElementById('add-user-form');
+  form.classList.toggle('show');
+  if (form.classList.contains('show')) {
+    document.getElementById('new-username').value = '';
+    document.getElementById('new-password').value = '';
+    document.getElementById('new-role').value = 'viewer';
+    document.getElementById('add-user-msg').className = 'settings-msg';
+    document.getElementById('new-username').focus();
+  }
+}
+
+async function doAddUser() {
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value;
+  const role = document.getElementById('new-role').value;
+  const msg = document.getElementById('add-user-msg');
+
+  if (!username || username.length < 2) { msg.className = 'settings-msg error'; msg.textContent = 'Username must be at least 2 characters'; return; }
+  if (!password || password.length < 4) { msg.className = 'settings-msg error'; msg.textContent = 'Password must be at least 4 characters'; return; }
+
   try {
-    const r = await authFetch(`${API}/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:username.trim(),password,role}) });
+    const r = await authFetch(`${API}/users`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) });
     const d = await r.json();
-    if (d.ok) { alert(`User "${d.username}" created as ${d.role}`); addFeedMessage(`User <strong>${esc(d.username)}</strong> added [${esc(d.role)}]`, 'system'); }
-    else alert(d.error || 'Failed');
-  } catch { alert('Failed'); }
+    if (d.ok) {
+      msg.className = 'settings-msg success'; msg.textContent = `User "${d.username}" created as ${d.role}`;
+      addFeedMessage(`User <strong>${esc(d.username)}</strong> added [${esc(d.role)}]`, 'system');
+      loadUsers();
+      setTimeout(() => { toggleAddUser(); }, 1500);
+    } else {
+      msg.className = 'settings-msg error'; msg.textContent = d.error || 'Failed';
+    }
+  } catch { msg.className = 'settings-msg error'; msg.textContent = 'Connection error'; }
 }
 
-async function deleteUserPrompt() {
-  const username = prompt('Username to delete:');
-  if (!username) return;
+async function deleteUser(username) {
   if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
   try {
-    const r = await authFetch(`${API}/users/${encodeURIComponent(username)}`, { method:'DELETE' });
+    const r = await authFetch(`${API}/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
     const d = await r.json();
-    if (d.ok) { alert(`User "${username}" deleted`); addFeedMessage(`User <strong>${esc(username)}</strong> deleted`, 'system'); }
-    else alert(d.error || 'Failed');
-  } catch { alert('Failed'); }
+    if (d.ok) {
+      addFeedMessage(`User <strong>${esc(username)}</strong> deleted`, 'system');
+      loadUsers();
+    } else { alert(d.error || 'Failed'); }
+  } catch { alert('Connection error'); }
 }
 
-async function resetPwPrompt() {
-  const username = prompt('Username to reset password:');
-  if (!username) return;
-  const password = prompt('New password (min 4 chars):');
-  if (!password || password.length < 4) { alert('Password too short'); return; }
+async function resetUserPassword(username) {
+  const password = prompt(`New password for "${username}" (min 4 chars):`);
+  if (!password || password.length < 4) { if (password !== null) alert('Password must be at least 4 characters'); return; }
   try {
-    const r = await authFetch(`${API}/users/${encodeURIComponent(username)}/reset-password`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password}) });
+    const r = await authFetch(`${API}/users/${encodeURIComponent(username)}/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
     const d = await r.json();
-    if (d.ok) alert(`Password reset for "${username}"`);
-    else alert(d.error || 'Failed');
-  } catch { alert('Failed'); }
+    if (d.ok) { addFeedMessage(`Password reset for <strong>${esc(username)}</strong>`, 'system'); }
+    else { alert(d.error || 'Failed'); }
+  } catch { alert('Connection error'); }
 }
 
 function closeMobileOverlay() {
@@ -913,13 +1092,60 @@ const origInitResize = initResize;
   handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
 });
 
-// ==================== Touch passthrough for terminal iframes ====================
-document.getElementById('panels').addEventListener('touchstart', e => {
-  if (e.target.tagName === 'IFRAME') e.stopPropagation();
-}, { passive: true });
-document.getElementById('panels').addEventListener('touchmove', e => {
-  if (e.target.tagName === 'IFRAME') e.stopPropagation();
-}, { passive: true });
+// ==================== Mobile touch scroll for terminals ====================
+// ttyd's xterm.js doesn't convert touch-drag to scroll in tmux mode.
+// We overlay a transparent touch layer that converts swipe gestures into
+// tmux scroll commands via the API.
+(function setupTouchScroll() {
+  const panels = document.getElementById('panels');
+  let touchStartY = 0;
+  let touchActive = false;
+  let lastScrollTime = 0;
+  const SCROLL_THRESHOLD = 15; // px per scroll step
+  const THROTTLE_MS = 80;
+
+  panels.addEventListener('touchstart', e => {
+    // Only activate on terminal panels (not dashboard)
+    if (state.activePanel === 'dashboard') return;
+    const p = state.openPanels[state.activePanel];
+    if (!p) return;
+    touchStartY = e.touches[0].clientY;
+    touchActive = true;
+  }, { passive: true });
+
+  panels.addEventListener('touchmove', e => {
+    if (!touchActive) return;
+    const now = Date.now();
+    if (now - lastScrollTime < THROTTLE_MS) return;
+
+    const dy = touchStartY - e.touches[0].clientY;
+    if (Math.abs(dy) < SCROLL_THRESHOLD) return;
+
+    lastScrollTime = now;
+    touchStartY = e.touches[0].clientY;
+
+    // Send scroll to the active role's tmux session via API
+    const key = state.activePanel;
+    const parts = key.split('/');
+    if (parts.length !== 2) return;
+
+    const scrollLines = Math.ceil(Math.abs(dy) / SCROLL_THRESHOLD);
+    // tmux: send Page Up / Page Down in copy-mode, or mouse wheel
+    // Simplest: send Up/Down arrow keys in copy-mode
+    // Actually, send mouse wheel events via tmux send-keys
+    const direction = dy > 0 ? 'Up' : 'Down';
+    for (let i = 0; i < scrollLines; i++) {
+      authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ direction }),
+      }).catch(() => {});
+    }
+  }, { passive: true });
+
+  panels.addEventListener('touchend', () => { touchActive = false; });
+  panels.addEventListener('touchcancel', () => { touchActive = false; });
+})();
 
 // ==================== Init ====================
 (async () => {
