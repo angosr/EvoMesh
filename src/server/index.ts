@@ -625,9 +625,9 @@ export function startServer(port: number, initialRoot?: string) {
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
 
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(port, "127.0.0.1", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
-    console.log(`    http://localhost:${port}`);
+    console.log(`    http://127.0.0.1:${port}`);
     console.log(`\n  Terminals proxied at /terminal/{project}/{role}/\n`);
   });
 }
