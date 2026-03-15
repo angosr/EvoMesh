@@ -19,7 +19,14 @@
   .role-btn .dot.running { background: #4ade80; }
   .role-btn .dot.stopped { background: #666; }
   .role-btn .info { font-size: 11px; color: #888; margin-left: auto; }
+  .role-btn .login-warn { color: #ef4444; font-size: 10px; margin-left: 4px; font-weight: 600; }
   #status-bar { margin-top: auto; padding: 12px 16px; border-top: 1px solid #0f3460; font-size: 11px; color: #666; }
+  .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 8px 12px; margin: 8px 16px; border-radius: 6px; font-size: 11px; }
+
+  /* Account select */
+  .acct-select { background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 3px 6px; border-radius: 4px; font-size: 12px; cursor: pointer; max-width: 120px; }
+  .acct-select:focus { border-color: #e94560; outline: none; }
+  .badge.login-needed { background: #3b1010; color: #ef4444; animation: pulse 2s infinite; }
 
   /* Main area */
   #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -131,6 +138,7 @@ const API = `${location.origin}/api`;
 
 const state = {
   roles: [],
+  accounts: [],  // { name, path, needsLogin }
   openPanels: {},  // roleName -> { tab, panel }
   activePanel: 'dashboard',
   layout: 'tabs',
@@ -138,9 +146,14 @@ const state = {
 
 async function fetchStatus() {
   try {
-    const res = await fetch(`${API}/status`);
-    const data = await res.json();
+    const [statusRes, accountsRes] = await Promise.all([
+      fetch(`${API}/status`),
+      fetch(`${API}/accounts`),
+    ]);
+    const data = await statusRes.json();
+    const acctData = await accountsRes.json();
     state.roles = data.roles;
+    state.accounts = acctData.accounts || [];
     renderSidebar(data);
     renderDashboard(data);
   } catch {
@@ -151,13 +164,24 @@ async function fetchStatus() {
 function renderSidebar(data) {
   const list = document.getElementById('role-list');
   list.innerHTML = '';
+
+  // Show login alerts at top
+  const needLogin = data.roles.filter(r => r.needsLogin);
+  if (needLogin.length > 0) {
+    const alert = document.createElement('div');
+    alert.className = 'login-alert';
+    alert.innerHTML = `Need login: ${needLogin.map(r => r.name).join(', ')}`;
+    list.appendChild(alert);
+  }
+
   for (const role of data.roles) {
     const btn = document.createElement('button');
     btn.className = `role-btn ${state.activePanel === role.name ? 'active' : ''}`;
+    const loginWarn = role.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
     btn.innerHTML = `
       <span class="dot ${role.running ? 'running' : 'stopped'}"></span>
-      <span>${role.name}</span>
-      <span class="info">${role.loop_interval}</span>`;
+      <span>${role.name}</span>${loginWarn}
+      <span class="info">${role.account}</span>`;
     btn.onclick = () => openTerminal(role.name, role.terminal);
     list.appendChild(btn);
   }
@@ -167,21 +191,34 @@ function renderSidebar(data) {
 
 function renderDashboard(data) {
   const el = document.getElementById('dash-content');
-  const rows = data.roles.map(r => `
+
+  const acctOptions = state.accounts.map(a => {
+    const warn = a.needsLogin ? ' (needs login)' : '';
+    return `<option value="${escapeHtml(a.name)}" data-path="${escapeHtml(a.path)}">${escapeHtml(a.name)} (${escapeHtml(a.path)})${warn}</option>`;
+  }).join('');
+
+  const rows = data.roles.map(r => {
+    const loginBadge = r.needsLogin ? '<span class="badge login-needed">needs login</span>' : '';
+    return `
     <tr>
       <td><strong>${r.name}</strong></td>
       <td><span class="badge ${r.type}">${r.type}</span></td>
       <td>${r.loop_interval}</td>
-      <td><span class="badge ${r.running ? 'running' : 'stopped'}">${r.running ? 'running' : 'stopped'}</span></td>
-      <td style="color:#888">${r.description}</td>
+      <td><span class="badge ${r.running ? 'running' : 'stopped'}">${r.running ? 'running' : 'stopped'}</span> ${loginBadge}</td>
+      <td>
+        <select class="acct-select" data-role="${r.name}" onchange="switchAccount('${r.name}', this)">
+          ${acctOptions}
+        </select>
+      </td>
       <td>${r.terminal ? `<a href="${r.terminal}" target="_blank" style="color:#818cf8">Open</a>` : '-'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   el.innerHTML = `
     <div class="card">
       <h3>Roles</h3>
       <table>
-        <tr><th>Name</th><th>Type</th><th>Interval</th><th>Status</th><th>Description</th><th>Terminal</th></tr>
+        <tr><th>Name</th><th>Type</th><th>Interval</th><th>Status</th><th>Account</th><th>Terminal</th></tr>
         ${rows}
       </table>
     </div>
@@ -189,10 +226,16 @@ function renderDashboard(data) {
       <h3>Usage</h3>
       <p style="color:#888;font-size:13px;line-height:1.8">
         Click a role in the sidebar to embed its terminal.<br>
-        Click "Open" to open ttyd in a new tab (full standalone terminal).<br>
+        Change the <strong>Account</strong> dropdown to switch accounts (auto-restarts with loop).<br>
         Use <strong>Grid</strong> to view all terminals side by side.
       </p>
     </div>`;
+
+  // Set current account selections
+  for (const r of data.roles) {
+    const sel = el.querySelector(`select[data-role="${r.name}"]`);
+    if (sel) sel.value = r.account;
+  }
 }
 
 function openTerminal(roleName, terminalPath) {
@@ -261,6 +304,48 @@ function setLayout(mode) {
       p.classList.remove('hidden-grid');
       p.classList.toggle('active', p.id === `panel-${state.activePanel}`);
     });
+  }
+}
+
+// --- Account switching ---
+
+async function switchAccount(roleName, selectEl) {
+  const accountName = selectEl.value;
+  const option = selectEl.selectedOptions[0];
+  const accountPath = option?.dataset?.path || '';
+
+  if (!confirm(`Switch ${roleName} to account "${accountName}"?\n\nThis will restart the role and auto-enter loop.`)) {
+    // Revert selection
+    fetchStatus();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/roles/${roleName}/account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountName, accountPath }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addFeedMessage(
+        `Account switched: <strong>${roleName}</strong> -> ${accountName}` +
+        (data.restarted ? ' (restarting...)' : ''),
+        'system'
+      );
+      // Close any open terminal panel for this role since it will reconnect
+      if (state.openPanels[roleName]) {
+        closePanel(roleName);
+      }
+      // Refresh status after restart completes
+      setTimeout(fetchStatus, 5000);
+    } else {
+      addFeedMessage(`Error switching account: ${data.error}`, 'system');
+      fetchStatus();
+    }
+  } catch {
+    addFeedMessage('Failed to switch account', 'system');
+    fetchStatus();
   }
 }
 

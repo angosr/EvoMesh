@@ -4,9 +4,12 @@ import fs from "node:fs";
 import express from "express";
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import os from "node:os";
+import YAML from "yaml";
 import { loadConfig } from "../config/loader.js";
 import { readPid } from "../process/registry.js";
-import { runtimeDir, roleDir } from "../utils/paths.js";
+import { runtimeDir, roleDir, evomeshDir, expandHome } from "../utils/paths.js";
+import { spawnRole, stopRole } from "../process/spawner.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -172,6 +175,35 @@ export function startServer(root: string, port: number) {
       const roles = Object.entries(config.roles).map(([name, rc]) => {
         const info = readPid(root, name);
         const ttyd = ttydProcesses.get(name);
+
+        // Check login status for this role's account
+        const accountDir = expandHome(config.accounts[rc.account] || "~/.claude");
+        let needsLogin = false;
+        try {
+          const credsPath = path.join(accountDir, "credentials.json");
+          if (!fs.existsSync(credsPath)) {
+            needsLogin = true;
+          } else {
+            const creds = fs.readFileSync(credsPath, "utf-8").trim();
+            if (!creds || creds === "{}" || creds === "null") needsLogin = true;
+          }
+        } catch { needsLogin = true; }
+
+        // Also check log for login prompts
+        if (!needsLogin && info?.alive) {
+          try {
+            const logPath = path.join(runtimeDir(root), `${name}.log`);
+            if (fs.existsSync(logPath)) {
+              const stat = fs.statSync(logPath);
+              const start = Math.max(0, stat.size - 5000);
+              const tail = fs.readFileSync(logPath, { encoding: "utf-8" }).slice(start);
+              if (/login|sign in|authenticate|oauth|expired/i.test(tail)) {
+                needsLogin = true;
+              }
+            }
+          } catch {}
+        }
+
         return {
           name,
           type: rc.type,
@@ -180,9 +212,11 @@ export function startServer(root: string, port: number) {
           running: info?.alive ?? false,
           pid: info?.pid ?? null,
           terminal: ttyd ? `/terminal/${name}/` : null,
+          account: rc.account,
+          needsLogin,
         };
       });
-      res.json({ project: config.name, roles });
+      res.json({ project: config.name, roles, accounts: config.accounts });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -315,6 +349,141 @@ export function startServer(root: string, port: number) {
       res.json({ messages });
     } catch {
       res.json({ messages: [] });
+    }
+  });
+
+  // --- Accounts API ---
+
+  // Auto-detect ~/.claude* directories
+  app.get("/api/accounts", (_req, res) => {
+    try {
+      const homeDir = os.homedir();
+      const entries = fs.readdirSync(homeDir, { withFileTypes: true });
+      const detected = entries
+        .filter(e => e.isDirectory() && e.name.startsWith(".claude"))
+        .map(e => ({
+          name: e.name.replace(/^\.claude/, "") || "default",
+          path: `~/${e.name}`,
+          fullPath: path.join(homeDir, e.name),
+        }));
+
+      // Also include accounts from project.yaml
+      const config = loadConfig(root);
+      const configured = Object.entries(config.accounts).map(([name, p]) => ({
+        name,
+        path: p,
+        fullPath: expandHome(p),
+      }));
+
+      // Merge: configured first, then detected ones not already listed
+      const configuredPaths = new Set(configured.map(a => a.fullPath));
+      const all = [
+        ...configured,
+        ...detected.filter(d => !configuredPaths.has(d.fullPath)),
+      ];
+
+      // Check login status for each account
+      const accounts = all.map(a => {
+        let needsLogin = false;
+        try {
+          // Check if credentials file exists and has content
+          const credsPath = path.join(a.fullPath, "credentials.json");
+          if (!fs.existsSync(credsPath)) {
+            needsLogin = true;
+          } else {
+            const creds = fs.readFileSync(credsPath, "utf-8").trim();
+            if (!creds || creds === "{}" || creds === "null") {
+              needsLogin = true;
+            }
+          }
+        } catch {
+          needsLogin = true;
+        }
+        return { ...a, needsLogin };
+      });
+
+      res.json({ accounts });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Switch account for a role (updates project.yaml, restarts role with auto-loop)
+  app.post("/api/roles/:name/account", (req, res) => {
+    const roleName = req.params.name;
+    if (!ROLE_NAME_RE.test(roleName)) {
+      res.status(400).json({ error: "Invalid role name" });
+      return;
+    }
+
+    try {
+      const { accountName, accountPath: rawPath } = req.body;
+      if (!accountName || typeof accountName !== "string") {
+        res.status(400).json({ error: "Missing accountName" });
+        return;
+      }
+
+      const config = loadConfig(root);
+      const rc = config.roles[roleName];
+      if (!rc) {
+        res.status(404).json({ error: `Role "${roleName}" not found` });
+        return;
+      }
+
+      // Ensure account exists in config.accounts
+      if (rawPath && !config.accounts[accountName]) {
+        config.accounts[accountName] = rawPath;
+      }
+      if (!config.accounts[accountName]) {
+        res.status(400).json({ error: `Account "${accountName}" not found` });
+        return;
+      }
+
+      // Update role's account
+      const oldAccount = rc.account;
+      rc.account = accountName;
+
+      // Save project.yaml
+      const yamlPath = path.join(evomeshDir(root), "project.yaml");
+      fs.writeFileSync(yamlPath, YAML.stringify(config), "utf-8");
+
+      // Stop the role if running
+      const wasRunning = readPid(root, roleName)?.alive ?? false;
+      if (wasRunning) {
+        stopRole(root, roleName);
+
+        // Clean up ttyd for this role
+        const ttyd = ttydProcesses.get(roleName);
+        if (ttyd) {
+          try { ttyd.process.kill(); } catch {}
+          ttydProcesses.delete(roleName);
+        }
+
+        // Wait a moment for cleanup, then restart
+        setTimeout(() => {
+          try {
+            const freshConfig = loadConfig(root);
+            const freshRc = freshConfig.roles[roleName];
+            if (freshRc) {
+              spawnRole(root, roleName, freshRc, freshConfig);
+              // ttyd will be picked up by ensureTtydRunning
+              setTimeout(ensureTtydRunning, 3000);
+            }
+          } catch (e: any) {
+            console.error(`Failed to restart ${roleName}:`, e.message);
+          }
+        }, 2000);
+      }
+
+      res.json({
+        ok: true,
+        role: roleName,
+        oldAccount,
+        newAccount: accountName,
+        restarted: wasRunning,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
