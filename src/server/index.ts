@@ -3,13 +3,15 @@ import path from "node:path";
 import fs from "node:fs";
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
-import { execSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config/loader.js";
 import { readPid, listRunning } from "../process/registry.js";
 import { runtimeDir } from "../utils/paths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
 
 interface TmuxBridge {
   roleName: string;
@@ -48,6 +50,10 @@ export function startServer(root: string, port: number) {
   });
 
   app.get("/api/roles/:name/log", (req, res) => {
+    if (!ROLE_NAME_RE.test(req.params.name)) {
+      res.status(400).json({ error: "Invalid role name" });
+      return;
+    }
     const logPath = path.join(runtimeDir(root), `${req.params.name}.log`);
     if (!fs.existsSync(logPath)) {
       res.status(404).json({ error: "Log not found" });
@@ -79,8 +85,8 @@ export function startServer(root: string, port: number) {
     const url = new URL(req.url || "/", `http://localhost:${port}`);
     const roleName = url.searchParams.get("role");
 
-    if (!roleName) {
-      ws.send(JSON.stringify({ type: "error", message: "Missing ?role= parameter" }));
+    if (!roleName || !ROLE_NAME_RE.test(roleName)) {
+      ws.send(JSON.stringify({ type: "error", message: "Missing or invalid ?role= parameter" }));
       ws.close();
       return;
     }
@@ -89,7 +95,7 @@ export function startServer(root: string, port: number) {
 
     // Check if tmux session exists
     try {
-      execSync(`tmux has-session -t ${session} 2>/dev/null`);
+      execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
     } catch {
       ws.send(JSON.stringify({ type: "error", message: `tmux session '${session}' not found. Is the role running?` }));
       ws.close();
@@ -106,8 +112,8 @@ export function startServer(root: string, port: number) {
 
     // Send initial screen capture
     try {
-      const capture = execSync(
-        `tmux capture-pane -t ${session} -p -S -200`,
+      const capture = execFileSync(
+        "tmux", ["capture-pane", "-t", session, "-p", "-S", "-200"],
         { encoding: "utf-8", maxBuffer: 1024 * 1024 }
       );
       ws.send(JSON.stringify({ type: "output", data: capture }));
@@ -123,8 +129,8 @@ export function startServer(root: string, port: number) {
           return;
         }
         try {
-          const capture = execSync(
-            `tmux capture-pane -t ${session} -p -S -50`,
+          const capture = execFileSync(
+            "tmux", ["capture-pane", "-t", session, "-p", "-S", "-50"],
             { encoding: "utf-8", maxBuffer: 1024 * 1024 }
           );
           if (capture !== lastCapture) {
@@ -144,16 +150,18 @@ export function startServer(root: string, port: number) {
     ws.on("message", (raw) => {
       try {
         const msg = JSON.parse(raw.toString());
-        if (msg.type === "input" && msg.data) {
-          // Use tmux send-keys to forward input
-          const keys = msg.data;
-          execSync(`tmux send-keys -t ${session} -l ${JSON.stringify(keys)}`, {
+        if (msg.type === "input" && typeof msg.data === "string") {
+          execFileSync("tmux", ["send-keys", "-t", session, "-l", msg.data], {
             stdio: "ignore",
           });
         } else if (msg.type === "resize" && msg.cols && msg.rows) {
-          execSync(`tmux resize-window -t ${session} -x ${msg.cols} -y ${msg.rows}`, {
-            stdio: "ignore",
-          });
+          const cols = Math.max(10, Math.min(500, parseInt(msg.cols, 10)));
+          const rows = Math.max(10, Math.min(500, parseInt(msg.rows, 10)));
+          if (!isNaN(cols) && !isNaN(rows)) {
+            execFileSync("tmux", ["resize-window", "-t", session, "-x", String(cols), "-y", String(rows)], {
+              stdio: "ignore",
+            });
+          }
         }
       } catch {}
     });
@@ -163,7 +171,7 @@ export function startServer(root: string, port: number) {
     });
   });
 
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(port, "127.0.0.1", () => {
     console.log(`\n  EvoMesh Web UI running at:`);
     console.log(`    http://localhost:${port}`);
     console.log(`\n  Press Ctrl+C to stop.\n`);

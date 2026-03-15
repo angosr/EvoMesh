@@ -140,7 +140,9 @@ function spawnTmux(
   ], { cwd: root, stdio: "ignore" });
 
   // Start logging (pipe-pane captures output to file)
-  execFileSync("tmux", ["pipe-pane", "-t", session, "-o", `cat >> ${logPath}`], { stdio: "ignore" });
+  // pipe-pane -o passes its argument to the shell, so logPath must be quoted
+  const quotedLogPath = `'${logPath.replace(/'/g, "'\\''")}'`;
+  execFileSync("tmux", ["pipe-pane", "-t", session, "-o", `cat >> ${quotedLogPath}`], { stdio: "ignore" });
 
   // Get the tmux session's shell PID
   let pid: number;
