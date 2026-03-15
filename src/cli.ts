@@ -5,7 +5,7 @@ import { startCommand } from "./commands/start.js";
 import { stopCommand } from "./commands/stop.js";
 import { statusCommand } from "./commands/status.js";
 import { attachCommand } from "./commands/attach.js";
-import { serveCommand } from "./commands/serve.js";
+import { serveCommand, restartCommand } from "./commands/serve.js";
 
 const program = new Command("evomesh")
   .version("0.1.0")
@@ -18,5 +18,6 @@ program.addCommand(stopCommand);
 program.addCommand(statusCommand);
 program.addCommand(attachCommand);
 program.addCommand(serveCommand);
+program.addCommand(restartCommand);
 
 program.parse(process.argv);

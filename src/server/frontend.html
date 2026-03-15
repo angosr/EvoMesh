@@ -267,7 +267,7 @@ function setLayout(mode) {
 
 // --- Chat / Feed ---
 
-let lastFeedTs = '';
+let lastStatusContent = '';
 
 function addFeedMessage(html, cls = 'status') {
   const feed = document.getElementById('chat-feed');
@@ -276,6 +276,16 @@ function addFeedMessage(html, cls = 'status') {
   div.innerHTML = html;
   feed.appendChild(div);
   feed.scrollTop = feed.scrollHeight;
+  // Keep feed manageable (max 100 entries)
+  while (feed.children.length > 100) feed.removeChild(feed.firstChild);
+}
+
+function renderStatusBlock(entries, ts) {
+  return entries.map(r => {
+    const dot = `<span class="feed-dot ${r.running ? 'running' : 'stopped'}"></span>`;
+    const nameClass = r.type === 'lead' ? 'role-name lead' : 'role-name';
+    return `${dot}<span class="${nameClass}">${r.role}</span><span class="role-status">${r.status}</span>`;
+  }).join('<br>');
 }
 
 function startSSEFeed() {
@@ -285,26 +295,19 @@ function startSSEFeed() {
       const data = JSON.parse(e.data);
       if (data.type === 'status') {
         const ts = new Date(data.ts).toLocaleTimeString();
-        if (ts === lastFeedTs) return; // skip duplicate
-        lastFeedTs = ts;
+        const content = renderStatusBlock(data.entries, ts);
 
-        const lines = data.entries.map(r => {
-          const dot = `<span class="feed-dot ${r.running ? 'running' : 'stopped'}"></span>`;
-          const nameClass = r.type === 'lead' ? 'role-name lead' : 'role-name';
-          return `${dot}<span class="${nameClass}">${r.role}</span><span class="role-status">${r.status}</span>`;
-        }).join('<br>');
+        // Only append when status actually changed
+        if (content === lastStatusContent) return;
+        lastStatusContent = content;
 
-        addFeedMessage(`<span class="ts">${ts}</span>${lines}`, 'status');
-
-        // Keep feed manageable (max 50 entries)
-        const feed = document.getElementById('chat-feed');
-        while (feed.children.length > 50) feed.removeChild(feed.firstChild);
+        addFeedMessage(`<span class="ts">${ts}</span>${content}`, 'status');
       }
     } catch {}
   };
   es.onerror = () => {
-    setTimeout(() => startSSEFeed(), 5000);
     es.close();
+    setTimeout(() => startSSEFeed(), 5000);
   };
 }
 
