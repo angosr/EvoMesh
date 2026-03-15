@@ -28,9 +28,12 @@
   .role-btn .dot.stopped { background: #555; }
   .role-btn .login-warn { color: #ef4444; font-size: 9px; margin-left: 2px; font-weight: 600; }
   .role-btn .info { font-size: 10px; color: #666; margin-left: auto; }
-  .role-btn .del-role { opacity: 0; color: #ef4444; cursor: pointer; font-size: 12px; margin-left: 4px; }
-  .role-btn:hover .del-role { opacity: 0.5; }
-  .role-btn .del-role:hover { opacity: 1; }
+  .role-btn .role-actions { opacity: 0; margin-left: 4px; display: flex; gap: 2px; }
+  .role-btn:hover .role-actions { opacity: 0.6; }
+  .role-btn .role-actions span { cursor: pointer; font-size: 11px; padding: 0 2px; }
+  .role-btn .role-actions span:hover { opacity: 1; }
+  .role-btn .role-actions .act-restart { color: #fbbf24; }
+  .role-btn .role-actions .act-del { color: #ef4444; }
   .add-role-btn { display: flex; align-items: center; gap: 4px; padding: 5px 12px; cursor: pointer; border: none; background: none; color: #555; font-size: 11px; width: 100%; text-align: left; }
   .add-role-btn:hover { color: #e94560; }
   /* Role add modal */
@@ -335,7 +338,10 @@ function renderSidebar() {
       btn.innerHTML = `<span class="dot ${r.running ? 'running' : 'stopped'}"></span>
         <span>${r.name}</span>${loginW}
         <span class="info">${r.account}</span>
-        <span class="del-role" onclick="event.stopPropagation(); deleteRole('${p.slug}','${r.name}')" title="Delete role">&times;</span>`;
+        <span class="role-actions">
+          <span class="act-restart" onclick="event.stopPropagation(); restartRole('${p.slug}','${r.name}')" title="Restart (enter loop)">&#8635;</span>
+          <span class="act-del" onclick="event.stopPropagation(); deleteRole('${p.slug}','${r.name}')" title="Delete role">&times;</span>
+        </span>`;
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
       rolesDiv.appendChild(btn);
     }
@@ -668,6 +674,20 @@ async function doCreateRole() {
       alert(data.error);
     }
   } catch { alert('Failed to create role'); }
+}
+
+async function restartRole(slug, roleName) {
+  try {
+    addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system');
+    const res = await fetch(`${API}/projects/${slug}/roles/${roleName}/restart`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      addFeedMessage(`<strong>${esc(roleName)}</strong> restarting (auto-enters loop)`, 'system');
+      const key = `${slug}/${roleName}`;
+      if (state.openPanels[key]) closePanel(key);
+      setTimeout(fetchAll, 5000);
+    } else { addFeedMessage(`Error: ${data.error}`, 'system'); }
+  } catch { addFeedMessage('Failed to restart', 'system'); }
 }
 
 async function deleteRole(slug, roleName) {
