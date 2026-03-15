@@ -440,7 +440,15 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   iframe.addEventListener('error', () => setTimeout(() => { iframe.src = authPath; }, 3000));
   state.openPanels[key] = { panel, iframe, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
-  renderOpenTabs(); switchTo(key); saveLayout();
+
+  if (state.layout === 'grid') {
+    // In grid mode: just add the panel to the grid, don't switch away
+    state.activePanel = key;
+    refreshGrid();
+  } else {
+    switchTo(key);
+  }
+  renderOpenTabs(); saveLayout();
 }
 
 function closePanel(key) {
@@ -449,17 +457,44 @@ function closePanel(key) {
   if (p.reconnectTimer) clearInterval(p.reconnectTimer);
   p.panel.remove(); delete state.openPanels[key];
   state.tabOrder = state.tabOrder.filter(k => k !== key);
-  if (state.activePanel === key) switchTo('dashboard');
-  renderOpenTabs();
+  if (state.activePanel === key) {
+    // Pick another panel or fallback to dashboard
+    const remaining = state.tabOrder.filter(k => k !== 'dashboard' && state.openPanels[k]);
+    state.activePanel = remaining.length > 0 ? remaining[0] : 'dashboard';
+  }
+  if (state.layout === 'grid') refreshGrid();
+  else switchTo(state.activePanel);
+  renderOpenTabs(); saveLayout();
 }
 
 function switchTo(name) {
   state.activePanel = name;
-  if (state.layout === 'grid') setLayout('tabs');
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+  if (name === 'dashboard' && state.layout === 'grid') {
+    // Only dashboard exits grid mode
+    setLayout('tabs');
+    return;
+  }
+  if (state.layout === 'tabs') {
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+  }
+  // In grid mode, clicking a tab just updates the "focused" highlight
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-title').innerHTML = `<strong>${name === 'dashboard' ? 'Dashboard' : name}</strong>`;
-  renderOpenTabs();
+  renderOpenTabs(); saveLayout();
+}
+
+function refreshGrid() {
+  const panels = document.getElementById('panels');
+  // Clean grid classes
+  panels.className = 'grid';
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active', 'hidden-grid'));
+  document.getElementById('panel-dashboard')?.classList.add('hidden-grid');
+  const visible = document.querySelectorAll('#panels .panel:not(.hidden-grid)').length;
+  if (visible <= 1) panels.classList.add('grid-1');
+  else if (visible === 2) panels.classList.add('grid-2');
+  else if (visible === 3) panels.classList.add('grid-3');
+  else if (visible === 4) panels.classList.add('grid-4');
+  else panels.classList.add('grid-many');
 }
 
 function setLayout(mode) {
@@ -468,23 +503,15 @@ function setLayout(mode) {
   document.getElementById('btn-tabs').classList.toggle('active', mode === 'tabs');
   document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
   if (mode === 'grid') {
-    panels.classList.add('grid');
-    // Remove old grid-N classes
-    panels.className = panels.className.replace(/grid-\S+/g, '').trim();
-    panels.classList.add('grid');
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-dashboard')?.classList.add('hidden-grid');
-    // Count visible panels and apply adaptive class
-    const visible = document.querySelectorAll('#panels .panel:not(.hidden-grid)').length;
-    if (visible <= 1) panels.classList.add('grid-1');
-    else if (visible === 2) panels.classList.add('grid-2');
-    else if (visible === 3) panels.classList.add('grid-3');
-    else if (visible === 4) panels.classList.add('grid-4');
-    else panels.classList.add('grid-many');
+    refreshGrid();
   } else {
-    panels.classList.remove('grid');
-    document.querySelectorAll('.panel').forEach(p => { p.classList.remove('hidden-grid'); p.classList.toggle('active', p.id === `panel-${state.activePanel}`); });
+    panels.className = '';
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.remove('hidden-grid');
+      p.classList.toggle('active', p.id === `panel-${state.activePanel}`);
+    });
   }
+  saveLayout();
 }
 
 // ==================== Toggle sidebars ====================
