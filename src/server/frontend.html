@@ -212,7 +212,7 @@
   @media (max-width: 768px) {
     body { flex-direction: column; }
 
-    /* Sidebar: full width drawer, hidden by default on mobile */
+    /* Sidebar: drawer from left */
     #sidebar { position: fixed; top: 0; left: 0; width: 80vw !important; max-width: 320px; height: 100vh; z-index: 50; transform: translateX(-100%); transition: transform 0.25s ease; }
     #sidebar.mobile-open { transform: translateX(0); }
     #sidebar.hidden { transform: translateX(-100%); }
@@ -221,31 +221,31 @@
     /* Main takes full width */
     #main { width: 100%; min-width: 0; }
 
-    /* Chat sidebar: slide from right */
+    /* Chat sidebar: drawer from right */
     #chat-sidebar { position: fixed; top: 0; right: 0; width: 85vw !important; max-width: 340px; height: 100vh; z-index: 50; transform: translateX(100%); transition: transform 0.25s ease; }
     #chat-sidebar.mobile-open { transform: translateX(0); }
     #chat-sidebar.hidden { transform: translateX(100%); }
 
-    /* Overlay when sidebars are open */
+    /* Overlay */
     .mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 40; }
     .mobile-overlay.show { display: block; }
 
-    /* Top bar: bigger touch targets */
-    #top-bar { padding: 6px 8px; min-height: 40px; }
-    .toggle-sidebar-btn { padding: 8px 12px; font-size: 16px; }
-    #layout-controls button { padding: 6px 10px; font-size: 11px; }
+    /* Top bar: wrap onto two rows if needed, hide metrics */
+    #top-bar { flex-wrap: wrap; padding: 4px 6px; min-height: 36px; gap: 4px; }
+    #top-bar .panel-title { order: 2; flex: 1; min-width: 60px; font-size: 11px; }
+    .toggle-sidebar-btn { padding: 8px 10px; font-size: 18px; min-width: 36px; text-align: center; }
+    #layout-controls { order: 3; }
+    #layout-controls button { padding: 6px 8px; font-size: 10px; }
 
-    /* Metrics: compact on mobile */
-    #metrics { gap: 6px; }
-    .metric { font-size: 9px; }
-    .metric-bar { width: 24px; }
+    /* Hide metrics on mobile — saves space */
+    #metrics { display: none !important; }
 
-    /* Dashboard: less padding */
-    #dashboard { padding: 12px; }
+    /* Dashboard */
+    #dashboard { padding: 10px; }
     .card { padding: 10px; }
-    table { display: block; overflow-x: auto; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* Terminal iframe: allow touch scrolling */
+    /* Terminal iframe: touch scroll */
     .panel iframe { -webkit-overflow-scrolling: touch; }
 
     /* Grid on mobile: single column */
@@ -255,22 +255,24 @@
     }
     #panels.grid .panel:last-child { grid-column: auto; }
 
-    /* Modal: full width on mobile */
-    #role-modal { width: 90vw; max-width: 340px; }
+    /* Modal */
+    #role-modal { width: 92vw; max-width: 340px; padding: 16px; }
   }
 
-  /* Touch-friendly: larger hit targets for all interactive elements */
+  /* Touch-friendly */
   @media (pointer: coarse) {
     .role-btn { padding: 10px 12px; font-size: 14px; }
     .role-btn .role-actions { opacity: 0.5; }
-    .role-btn .role-actions span { padding: 4px 6px; font-size: 14px; }
+    .role-btn .role-actions span { padding: 6px 8px; font-size: 16px; }
     .sidebar-tab { padding: 10px 14px; font-size: 13px; }
-    .sidebar-tab .close { font-size: 16px; opacity: 0.5; }
+    .sidebar-tab .close { font-size: 18px; opacity: 0.5; padding: 4px; }
     .project-header { padding: 12px; font-size: 14px; }
-    .add-role-btn { padding: 10px 12px; font-size: 12px; }
+    .add-role-btn { padding: 10px 12px; font-size: 13px; }
     #add-project-btn { padding: 12px; font-size: 13px; }
-    #chat-input { font-size: 14px; padding: 10px; }
+    #chat-input { font-size: 16px; padding: 10px; }
     #chat-send { padding: 10px 16px; font-size: 14px; }
+    .toggle-sidebar-btn { padding: 8px 12px; font-size: 18px; }
+    #dashboard-btn { padding: 12px 14px; font-size: 14px; }
   }
 </style>
 </head>
