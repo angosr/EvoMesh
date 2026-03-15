@@ -36,6 +36,9 @@
 
 ### Phase 4 — 打磨 ← 当前
 - [x] server/index.ts 拆分重构（800 行 → index 242 + routes 359 + terminal 131）
+- [x] frontend.html 拆分（1167 行 → html 181 + css 294 + js 670）
+- [x] Settings 面板（替换 prompt() 弹窗为正式界面）
+- [x] 移动端 tmux 触摸滚动
 - [ ] WebSocket 认证刷新
 - [ ] API 安全头 / 限流
 - [ ] Session 持久化（当前服务器重启丢失）
@@ -50,4 +53,4 @@
 3. 所有角色同分支同目录
 4. tmux 进程管理，foreground + background 模式
 5. 认证: PBKDF2-SHA512 + 内存 session，用户数据存 ~/.evomesh/users.yaml
-6. Web UI: 单 HTML 文件 SPA，无前端构建依赖
+6. Web UI: HTML + CSS + JS 分离，Express 内联 serve（无前端构建依赖）
