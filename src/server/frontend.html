@@ -75,14 +75,26 @@
   .add-role-btn:hover { color: #e94560; }
   .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 4px 8px; margin: 4px 10px; border-radius: 4px; font-size: 9px; }
 
+  /* Dashboard button */
+  #dashboard-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 12px; width: 100%; text-align: left; border-bottom: 1px solid #222; }
+  #dashboard-btn:hover { background: #1a1a1a; }
+  #dashboard-btn.active { background: #1a1a2e; color: #e94560; font-weight: 600; }
+  #dashboard-btn .dash-icon { font-size: 14px; }
+
   /* Open tabs section in sidebar */
   #open-tabs-section { border-bottom: 1px solid #222; flex-shrink: 0; }
-  #open-tabs-header { padding: 6px 12px; font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: 1px; }
-  .sidebar-tab { display: flex; align-items: center; gap: 5px; padding: 5px 12px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 11px; width: 100%; text-align: left; }
-  .sidebar-tab:hover { background: #1a1a1a; }
-  .sidebar-tab.active { background: #1a1a2e; color: #fff; }
-  .sidebar-tab .close { margin-left: auto; opacity: 0.3; cursor: pointer; font-size: 12px; }
-  .sidebar-tab:hover .close { opacity: 0.7; }
+  #open-tabs-header { display: flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: 1px; cursor: pointer; user-select: none; }
+  #open-tabs-header:hover { color: #888; }
+  #open-tabs-header .arrow { font-size: 8px; transition: transform 0.2s; }
+  #open-tabs-header .arrow.open { transform: rotate(90deg); }
+  #open-tabs-header .tab-count { margin-left: auto; font-size: 9px; color: #555; }
+  #open-tabs-list.collapsed { display: none; }
+  .sidebar-tab { display: flex; align-items: center; gap: 6px; padding: 6px 14px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 11px; width: 100%; text-align: left; border-left: 3px solid transparent; }
+  .sidebar-tab:hover { background: #1a1a1a; border-left-color: #333; }
+  .sidebar-tab.active { background: #1a1a2e; color: #fff; border-left-color: #e94560; }
+  .sidebar-tab .tab-icon { color: #666; font-size: 10px; }
+  .sidebar-tab .close { margin-left: auto; opacity: 0; cursor: pointer; font-size: 12px; }
+  .sidebar-tab:hover .close { opacity: 0.5; }
   .sidebar-tab .close:hover { opacity: 1; color: #ef4444; }
   .sidebar-tab.dragging { opacity: 0.4; }
   .sidebar-tab.drag-over { border-top: 2px solid #e94560; }
@@ -199,8 +211,15 @@
     <span>EvoMesh</span>
     <span class="conn-dot connected" id="conn-dot" title="Connection"></span>
   </div>
+  <button id="dashboard-btn" class="active" onclick="switchTo('dashboard')">
+    <span class="dash-icon">&#9638;</span> Dashboard
+  </button>
   <div id="open-tabs-section">
-    <div id="open-tabs-header">Open Tabs</div>
+    <div id="open-tabs-header" onclick="toggleOpenTabs()">
+      <span class="arrow open" id="tabs-arrow">&#9654;</span>
+      <span>Terminals</span>
+      <span class="tab-count" id="tab-count">0</span>
+    </div>
     <div id="open-tabs-list"></div>
   </div>
   <div id="project-tree"></div>
@@ -337,17 +356,28 @@ function renderSidebar() {
   document.getElementById('status-bar').textContent = `${state.projects.length} projects · ${totalRunning}/${totalRoles} running`;
 }
 
+function toggleOpenTabs() {
+  const list = document.getElementById('open-tabs-list');
+  const arrow = document.getElementById('tabs-arrow');
+  list.classList.toggle('collapsed');
+  arrow.classList.toggle('open');
+}
+
 function renderOpenTabs() {
   const list = document.getElementById('open-tabs-list');
   list.innerHTML = '';
-  for (const key of state.tabOrder) {
+  // Update dashboard button active state
+  const dashBtn = document.getElementById('dashboard-btn');
+  if (dashBtn) dashBtn.classList.toggle('active', state.activePanel === 'dashboard');
+  // Only show non-dashboard tabs
+  const tabs = state.tabOrder.filter(k => k !== 'dashboard');
+  document.getElementById('tab-count').textContent = tabs.length;
+  for (const key of tabs) {
     const t = document.createElement('div');
     t.className = `sidebar-tab ${state.activePanel===key?'active':''}`;
     t.draggable = true;
     t.dataset.key = key;
-    const label = key === 'dashboard' ? 'Dashboard' : key;
-    const closeHtml = key === 'dashboard' ? '' : `<span class="close" onclick="event.stopPropagation();closePanel('${key}')">&times;</span>`;
-    t.innerHTML = `<span>${label}</span>${closeHtml}`;
+    t.innerHTML = `<span class="tab-icon">&#9654;</span><span>${key}</span><span class="close" onclick="event.stopPropagation();closePanel('${key}')">&times;</span>`;
     t.onclick = () => switchTo(key);
     // Drag reorder
     t.addEventListener('dragstart', e => { t.classList.add('dragging'); e.dataTransfer.setData('text/plain', key); });
