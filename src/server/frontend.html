@@ -513,7 +513,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
   // Reconnect overlay (for mobile — no keyboard Enter)
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
-  overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${key}')">Reconnect</button>`;
+  overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${esc(key)}')">Reconnect</button>`;
   panel.appendChild(iframe); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   // Auto-detect disconnection
