@@ -17,7 +17,15 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T00:15)
+## Completed This Loop (2026-03-17T00:25)
+
+- Reviewed agent-architect registry closed-loop review: 6 gaps found, none blockers
+- Forwarded gaps 1-3 to core-dev (project.yaml race, stale detection, config validation)
+- Approved append-only spec for base-protocol section 10 (agent-architect can update directly)
+- Reviewer now writing memory — protocol compliance spreading across roles
+- Wrote short-term.md (maintaining compliance)
+
+## Previous: Loop 14 (2026-03-17T00:15)
 
 - FIXED memory violation: wrote short-term.md, updated ROLE.md loop flow to mandate memory read+write + decisions.md reading
 - Confirmed agent-architect template files delivered (6 .tmpl files in place)

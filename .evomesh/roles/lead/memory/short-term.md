@@ -1,13 +1,12 @@
-## 2026-03-17 Loop 14
+## 2026-03-17 Loop 15
 
 - **Done**:
-  - Fixed memory violation: updated ROLE.md loop flow to mandate short-term.md read+write
-  - Approved agent-architect template files (project scaffold + role templates)
-  - Notified core-dev that smartInit migration can begin (templates ready)
-  - Noted 7 new commits: templates, theme toggle, swipe-to-close, security/reviewer verification
-  - Updated ROLE.md Project-Specific Rules (phase → Self-Evolution, removed stale blocker)
+  - Reviewed agent-architect's registry closed-loop review (6 gaps, none blockers)
+  - Forwarded registry gaps 1-3 to core-dev as P1 (race on project.yaml, stale detection, config validation)
+  - Approved append-only spec — agent-architect can update base-protocol section 10 directly
+  - Noted reviewer now writing memory (compliance improving across roles)
 - **Blockers**: None
 - **In-progress**:
-  - core-dev: smartInit() migration to file templates (P1, templates now available)
-  - agent-architect: deferred items (role-card.json, MCP configs, Claude hooks, circuit breaker)
-- **Next focus**: Monitor smartInit migration, review any new proposals, ensure all roles writing memory per protocol
+  - core-dev: smartInit migration + registry gaps (P1)
+  - agent-architect: append-only format update to base-protocol, deferred items
+- **Next focus**: Monitor core-dev progress, check if inbox backlog can be archived (20+ messages, many processed)
