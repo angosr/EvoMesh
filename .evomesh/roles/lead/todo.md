@@ -13,6 +13,7 @@ ALL P0 COMPLETE ✅
 
 ## P2 — Later
 
+- ⬜ Account concentration risk: move lead to "default" account, rebalance 3 accounts (on next natural restart)
 - ⬜ Additional role templates (security, frontend, research .tmpl files)
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
