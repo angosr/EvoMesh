@@ -284,11 +284,9 @@ function switchTo(name) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   const title = name === 'dashboard' ? 'Dashboard' : name === 'settings' ? 'Settings' : esc(name);
   document.getElementById('panel-title').innerHTML = `<strong>${title}</strong>`;
-  // Update sidebar buttons — always sync both
+  // Update sidebar dashboard button
   const dashBtn = document.getElementById('dashboard-btn');
-  const settingsBtn = document.getElementById('settings-btn');
   if (dashBtn) { name === 'dashboard' ? dashBtn.classList.add('active') : dashBtn.classList.remove('active'); }
-  if (settingsBtn) { name === 'settings' ? settingsBtn.classList.add('active') : settingsBtn.classList.remove('active'); }
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
 }
@@ -740,7 +738,7 @@ const origInitResize = initResize;
   const panels = document.getElementById('panels');
   if (!panels) return;
   let lastScroll = 0;
-  const THROTTLE = 150;
+  const THROTTLE = 80;
 
   function doScroll(direction, lines) {
     const now = Date.now();
@@ -775,9 +773,10 @@ const origInitResize = initResize;
   document.addEventListener('touchmove', e => {
     if (!e.target.classList?.contains('touch-scroll-layer')) return;
     const dy = touchStartY - e.touches[0].clientY;
-    if (Math.abs(dy) > 30) {
+    if (Math.abs(dy) > 15) {
       touchMoved = true;
-      doScroll(dy > 0 ? 'up' : 'down', Math.min(Math.floor(Math.abs(dy) / 30), 5));
+      const lines = Math.min(Math.ceil(Math.abs(dy) / 15), 10);
+      doScroll(dy > 0 ? 'up' : 'down', lines);
       touchStartY = e.touches[0].clientY;
     }
   }, { passive: true });
