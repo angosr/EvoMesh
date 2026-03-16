@@ -1,7 +1,7 @@
-# Reviewer — Short-Term Memory (Loop #032, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #033, 2026-03-17)
 
 ## Done this loop
-- 3 new commits — no src/ changes (zombie process cleanup, lead ban on bg processes, security scan)
+- 2 new commits — no code changes (adaptive throttle proposal, sync)
 - No inbox items
 - Metrics logged
 
