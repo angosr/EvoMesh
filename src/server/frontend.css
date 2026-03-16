@@ -257,6 +257,10 @@
   .user-table .act-btn.del:hover { border-color: var(--red); color: var(--red); }
   .add-user-form { display: none; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 8px; padding: 12px; background: var(--bg-hover); border-radius: 6px; border: 1px solid var(--border); }
   .add-user-form.show { display: flex; }
+  .members-panel { margin-top: 12px; padding: 10px; background: #0d0d1a; border: 1px solid #222; border-radius: 6px; }
+  .members-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .members-table th { text-align: left; padding: 4px 8px; color: #888; font-size: 9px; text-transform: uppercase; border-bottom: 1px solid #222; }
+  .members-table td { padding: 4px 8px; font-size: 12px; border-bottom: 1px solid #1a1a2e; }
   .add-user-form .field { display: flex; flex-direction: column; gap: 4px; }
   .add-user-form label { color: #888; font-size: 10px; }
   .add-user-form input, .add-user-form select { padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-size: 12px; }

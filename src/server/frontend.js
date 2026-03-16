@@ -12,6 +12,7 @@ const state = {
   projects: [], accounts: [], openPanels: {}, activePanel: 'dashboard',
   layout: 'tabs', collapsed: {}, chatProject: null, tabOrder: ['dashboard'],
   systemRole: 'user', // 'admin' | 'user' — set from /auth/validate or localStorage
+  membersOpen: null, // slug of project with members panel open
 };
 // Load cached user info
 try { const u = JSON.parse(localStorage.getItem('evomesh-user') || '{}'); if (u.role) state.systemRole = u.role; } catch {}
@@ -148,10 +149,73 @@ function renderDashboard() {
       </tr>`;
     }).join('');
     const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:#1e1b4b;color:#818cf8">${esc(p.myRole||'')}</span>`;
-    html += `<div class="card"><h3>${roleLabel}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table></div>`;
+    const membersBtn = isOwner ? ` <button class="dash-action" style="float:right;font-size:11px" onclick="toggleMembers('${esc(p.slug)}')">Members</button>` : '';
+    const membersOpen = state.membersOpen === p.slug;
+    const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"><div style="color:#888;font-size:12px">Loading...</div></div>` : '';
+    html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
   el.innerHTML = html;
+  // If members panel is open, load its data
+  if (state.membersOpen) loadMembers(state.membersOpen);
+}
+
+// ==================== Members Panel ====================
+function toggleMembers(slug) {
+  state.membersOpen = state.membersOpen === slug ? null : slug;
+  renderDashboard();
+}
+
+async function loadMembers(slug) {
+  const panel = document.getElementById(`members-${slug}`);
+  if (!panel) return;
+  try {
+    const res = await authFetch(`${API}/projects/${slug}/members`);
+    const data = await res.json();
+    let html = `<div style="margin-bottom:8px"><strong>Owner:</strong> ${esc(data.owner)}</div>`;
+    if (data.members.length) {
+      html += '<table class="members-table"><tr><th>User</th><th>Role</th><th></th></tr>';
+      for (const m of data.members) {
+        html += `<tr><td>${esc(m.username)}</td><td><span class="badge" style="font-size:10px">${esc(m.role)}</span></td><td><button class="dash-action danger" style="font-size:10px;padding:2px 6px" onclick="removeMember('${esc(slug)}','${esc(m.username)}')">Remove</button></td></tr>`;
+      }
+      html += '</table>';
+    } else {
+      html += '<div style="color:#666;font-size:12px">No members yet.</div>';
+    }
+    html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+      <input id="member-user-${esc(slug)}" placeholder="username" style="background:#1a1a2e;border:1px solid #333;color:#eee;padding:4px 8px;border-radius:4px;font-size:12px;width:120px">
+      <select id="member-role-${esc(slug)}" style="background:#1a1a2e;border:1px solid #333;color:#eee;padding:4px 8px;border-radius:4px;font-size:12px"><option value="member">member</option><option value="viewer">viewer</option></select>
+      <button class="dash-action" style="font-size:11px" onclick="addMember('${esc(slug)}')">Add</button>
+    </div>`;
+    panel.innerHTML = html;
+  } catch { panel.innerHTML = '<div style="color:#f87171;font-size:12px">Failed to load members</div>'; }
+}
+
+async function addMember(slug) {
+  const userInput = document.getElementById(`member-user-${slug}`);
+  const roleSelect = document.getElementById(`member-role-${slug}`);
+  if (!userInput || !roleSelect) return;
+  const username = userInput.value.trim();
+  const role = roleSelect.value;
+  if (!username) return;
+  try {
+    const res = await authFetch(`${API}/projects/${slug}/members`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Failed'); return; }
+    loadMembers(slug);
+  } catch { alert('Connection error'); }
+}
+
+async function removeMember(slug, username) {
+  try {
+    const res = await authFetch(`${API}/projects/${slug}/members/${encodeURIComponent(username)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Failed'); return; }
+    loadMembers(slug);
+  } catch { alert('Connection error'); }
 }
 
 // ==================== Panels ====================
