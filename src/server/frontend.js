@@ -493,27 +493,42 @@ function closeMobileOverlay() {
 function initResize(handleId, target, side) {
   const handle = document.getElementById(handleId);
   const el = document.getElementById(target);
+  if (!handle || !el) return;
   let startX, startW;
-  handle.addEventListener('mousedown', e => {
-    e.preventDefault(); handle.classList.add('active');
-    startX = e.clientX; startW = el.offsetWidth;
-    // Disable iframe pointer-events during drag so mouse events aren't swallowed
+
+  function onStart(x) {
+    handle.classList.add('active');
+    startX = x; startW = el.offsetWidth;
     document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
     document.body.style.cursor = 'col-resize';
-    const onMove = ev => {
-      const dx = side === 'left' ? ev.clientX - startX : startX - ev.clientX;
-      el.style.width = Math.max(180, startW + dx) + 'px';
-    };
-    const onUp = () => {
-      handle.classList.remove('active');
-      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
-      document.body.style.cursor = '';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+  }
+  function onMove(x) {
+    const dx = side === 'left' ? x - startX : startX - x;
+    el.style.width = Math.max(180, startW + dx) + 'px';
+  }
+  function onEnd() {
+    handle.classList.remove('active');
+    document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
+    document.body.style.cursor = '';
+  }
+
+  // Mouse
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault(); onStart(e.clientX);
+    const mm = ev => onMove(ev.clientX);
+    const mu = () => { onEnd(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
   });
+
+  // Touch
+  handle.addEventListener('touchstart', e => {
+    e.preventDefault(); onStart(e.touches[0].clientX);
+    const tm = ev => { ev.preventDefault(); onMove(ev.touches[0].clientX); };
+    const te = () => { onEnd(); document.removeEventListener('touchmove', tm); document.removeEventListener('touchend', te); };
+    document.addEventListener('touchmove', tm, { passive: false });
+    document.addEventListener('touchend', te);
+  }, { passive: false });
 }
 initResize('rh-left', 'sidebar', 'left');
 initResize('rh-right', 'chat-sidebar', 'right');
