@@ -144,6 +144,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     } catch { /* cross-origin = ttyd alive */ }
   }, 2000);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
+  injectTouchScroll(iframe);
   state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
 
@@ -169,6 +170,7 @@ function reconnectPanel(key) {
   newIframe.style.cssText = p.iframe.style.cssText;
   p.iframe.replaceWith(newIframe);
   p.iframe = newIframe;
+  injectTouchScroll(newIframe);
 }
 
 function closePanel(key) {
@@ -599,59 +601,92 @@ const origInitResize = initResize;
 });
 
 // ==================== Mobile touch scroll for terminals ====================
-// ttyd's xterm.js doesn't convert touch-drag to scroll in tmux mode.
-// We overlay a transparent touch layer that converts swipe gestures into
-// tmux scroll commands via the API.
-(function setupTouchScroll() {
-  const panels = document.getElementById('panels');
-  let touchStartY = 0;
-  let touchActive = false;
-  let lastScrollTime = 0;
-  const SCROLL_THRESHOLD = 15; // px per scroll step
-  const THROTTLE_MS = 80;
+// Problem: tmux uses alternate screen buffer, so xterm.js native scrollback
+// is disabled. On desktop, mouse wheel sends escape sequences to tmux. On
+// mobile, touch-drag does NOT generate wheel events in xterm.js.
+//
+// Solution: inject touch handlers into the same-origin ttyd iframe, converting
+// touch-drag gestures into synthetic WheelEvents on xterm.js's viewport.
+// xterm.js then sends mouse wheel sequences to tmux via the terminal protocol.
+// No HTTP API, no copy-mode — direct, low-latency scrolling.
+function injectTouchScroll(iframe) {
+  const POLL_INTERVAL = 500;
+  const MAX_ATTEMPTS = 20;
+  let attempts = 0;
 
-  panels.addEventListener('touchstart', e => {
-    // Only activate on terminal panels (not dashboard)
-    if (state.activePanel === 'dashboard') return;
-    const p = state.openPanels[state.activePanel];
-    if (!p) return;
-    touchStartY = e.touches[0].clientY;
-    touchActive = true;
-  }, { passive: true });
+  function tryInject() {
+    attempts++;
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
 
-  panels.addEventListener('touchmove', e => {
-    if (!touchActive) return;
-    const now = Date.now();
-    if (now - lastScrollTime < THROTTLE_MS) return;
+      const xtermScreen = iframeDoc.querySelector('.xterm-screen');
+      const xtermViewport = iframeDoc.querySelector('.xterm-viewport');
+      if (!xtermScreen || !xtermViewport) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
 
-    const dy = touchStartY - e.touches[0].clientY;
-    if (Math.abs(dy) < SCROLL_THRESHOLD) return;
+      // Already injected?
+      if (xtermScreen.dataset.touchScrollInjected) return;
+      xtermScreen.dataset.touchScrollInjected = 'true';
 
-    lastScrollTime = now;
-    touchStartY = e.touches[0].clientY;
+      let startY = 0;
+      let lastY = 0;
+      let scrolling = false;
+      const THRESHOLD = 8; // px to start scrolling
+      const WHEEL_DELTA = 80; // px per wheel step (matches typical mouse wheel)
 
-    // Send scroll to the active role's tmux session via API
-    const key = state.activePanel;
-    const parts = key.split('/');
-    if (parts.length !== 2) return;
+      xtermScreen.addEventListener('touchstart', e => {
+        if (e.touches.length !== 1) return;
+        startY = e.touches[0].clientY;
+        lastY = startY;
+        scrolling = false;
+      }, { passive: true });
 
-    const scrollLines = Math.ceil(Math.abs(dy) / SCROLL_THRESHOLD);
-    // tmux: send Page Up / Page Down in copy-mode, or mouse wheel
-    // Simplest: send Up/Down arrow keys in copy-mode
-    // Actually, send mouse wheel events via tmux send-keys
-    const direction = dy > 0 ? 'Up' : 'Down';
-    for (let i = 0; i < scrollLines; i++) {
-      authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ direction }),
-      }).catch(() => {});
+      xtermScreen.addEventListener('touchmove', e => {
+        if (e.touches.length !== 1) return;
+        const currentY = e.touches[0].clientY;
+        const totalDy = Math.abs(currentY - startY);
+
+        // Activate scroll mode after passing threshold
+        if (!scrolling && totalDy > THRESHOLD) {
+          scrolling = true;
+          lastY = currentY;
+          return;
+        }
+        if (!scrolling) return;
+
+        const dy = lastY - currentY; // positive = scroll up (finger moves up)
+        if (Math.abs(dy) < 4) return;
+
+        // Dispatch synthetic wheel event to xterm.js viewport
+        const wheelEvent = new WheelEvent('wheel', {
+          deltaY: dy > 0 ? WHEEL_DELTA : -WHEEL_DELTA,
+          deltaX: 0,
+          deltaMode: 0, // DOM_DELTA_PIXEL
+          bubbles: true,
+          cancelable: true,
+          clientX: e.touches[0].clientX,
+          clientY: e.touches[0].clientY,
+        });
+        xtermViewport.dispatchEvent(wheelEvent);
+        lastY = currentY;
+
+        // Prevent default to stop page scroll / rubber-banding
+        e.preventDefault();
+      }, { passive: false }); // Must be non-passive to preventDefault
+
+      xtermScreen.addEventListener('touchend', () => { scrolling = false; });
+      xtermScreen.addEventListener('touchcancel', () => { scrolling = false; });
+
+    } catch {
+      // Cross-origin or iframe not ready
+      if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL);
     }
-  }, { passive: true });
+  }
 
-  panels.addEventListener('touchend', () => { touchActive = false; });
-  panels.addEventListener('touchcancel', () => { touchActive = false; });
-})();
+  iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
+  // Also try immediately in case iframe already loaded
+  tryInject();
+}
 
 // ==================== Init ====================
 (async () => {
