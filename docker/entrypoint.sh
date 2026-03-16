@@ -18,7 +18,8 @@ export HOME="${HOST_HOME:-$HOME}"
 
 # Session resume
 WORK_DIR="${PWD:-/project}"
-ROLE_SESSION_FILE="${WORK_DIR}/.evomesh/roles/${ROLE_NAME:-role}/.session-id"
+ROLE_SESSION_DIR="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME:-role}}"
+ROLE_SESSION_FILE="${WORK_DIR}/${ROLE_SESSION_DIR}/.session-id"
 CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 HISTORY_FILE="${CONFIG_DIR}/history.jsonl"
 CLAUDE_ARGS="--dangerously-skip-permissions"
@@ -37,6 +38,12 @@ if [ -n "$SESSION_ID" ]; then
 else
   CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
   echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
+fi
+
+# Record history.jsonl line count BEFORE starting claude (shared file)
+HISTORY_LINES_BEFORE=0
+if [ -f "$HISTORY_FILE" ]; then
+  HISTORY_LINES_BEFORE=$(wc -l < "$HISTORY_FILE" 2>/dev/null || echo 0)
 fi
 
 # Graceful shutdown (session ID saved by background task, not here)
@@ -64,60 +71,58 @@ ttyd \
   -- tmux -f /dev/null attach-session -t claude &
 TTYD_PID=$!
 
-# Send /loop command for fresh sessions
+# Send /loop command via tmux send-keys (much more reliable than WS)
 (
-  ROLE_ROOT=".evomesh/roles/${ROLE_NAME}"
+  ROLE_ROOT="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME}}"
   LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/"
 
-  WAIT_TIME=15
-  if [ "$IS_RESUME" = "true" ]; then WAIT_TIME=25; fi
+  # Minimum wait: let Claude Code TUI fully initialize
+  MIN_WAIT=12
+  if [ "$IS_RESUME" = "true" ]; then MIN_WAIT=20; fi
 
-  echo "[evomesh] Waiting for Claude to be ready..."
+  echo "[evomesh] Waiting ${MIN_WAIT}s minimum for Claude TUI to initialize..."
+  sleep $MIN_WAIT
+
+  # Then poll for the actual prompt
+  READY=false
   for i in $(seq 1 60); do
-    if pgrep -f "claude" > /dev/null 2>&1; then
-      echo "[evomesh] Claude process found. Waiting ${WAIT_TIME}s..."
-      sleep $WAIT_TIME
-      echo "[evomesh] Sending /loop command..."
-      export EVOMESH_TTYD_PORT="${TTYD_PORT:-7681}"
-      export EVOMESH_LOOP_CMD="$LOOP_CMD"
-      python3 << 'PYEOF' 2>&1
-import asyncio, websockets, os
-
-async def send_loop():
-    port = os.environ.get('EVOMESH_TTYD_PORT', '7681')
-    cmd = os.environ.get('EVOMESH_LOOP_CMD', '/loop 10m default')
-    uri = f'ws://127.0.0.1:{port}/ws'
-    try:
-        async with websockets.connect(uri, subprotocols=['tty']) as ws:
-            for _ in range(10):
-                try:
-                    await asyncio.wait_for(ws.recv(), timeout=0.5)
-                except asyncio.TimeoutError:
-                    break
-            full_cmd = cmd + "\r"
-            for ch in full_cmd:
-                await ws.send(bytes([0]) + ch.encode('utf-8'))
-                await asyncio.sleep(0.02)
-            await asyncio.sleep(2)
-            print(f'[evomesh] /loop command sent: {cmd[:50]}...')
-    except Exception as e:
-        print(f'[evomesh] WS error: {e}')
-
-asyncio.run(send_loop())
-PYEOF
+    PANE=$(tmux -f /dev/null capture-pane -t claude -p 2>/dev/null || echo "")
+    if echo "$PANE" | grep -q '❯'; then
+      echo "[evomesh] Claude prompt confirmed after $((MIN_WAIT + i))s total"
+      READY=true
       break
     fi
     sleep 1
   done
 
-  # Save session ID
-  sleep 10
+  if [ "$READY" = "true" ]; then
+    sleep 2
+    echo "[evomesh] Sending /loop command..."
+    tmux -f /dev/null send-keys -t claude -l "$LOOP_CMD" 2>&1
+    sleep 1
+    tmux -f /dev/null send-keys -t claude Enter 2>&1
+    echo "[evomesh] /loop command sent"
+  else
+    echo "[evomesh] ERROR: Claude prompt never appeared (timeout)"
+  fi
+
+  # Save session ID — only look at NEW lines in shared history.jsonl
+  sleep 15
   if [ -f "$HISTORY_FILE" ]; then
-    SID=$(tail -1 "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
-    if [ -n "$SID" ]; then
-      mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
-      echo "$SID" > "$ROLE_SESSION_FILE"
-      echo "[evomesh] Saved session: $SID"
+    HISTORY_LINES_NOW=$(wc -l < "$HISTORY_FILE" 2>/dev/null || echo 0)
+    if [ "$HISTORY_LINES_NOW" -gt "$HISTORY_LINES_BEFORE" ]; then
+      # Only search new lines added since container started
+      NEW_LINES=$((HISTORY_LINES_NOW - HISTORY_LINES_BEFORE))
+      SID=$(tail -n "$NEW_LINES" "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | tail -1 | cut -d'"' -f4)
+      if [ -n "$SID" ]; then
+        mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
+        echo "$SID" > "$ROLE_SESSION_FILE"
+        echo "[evomesh] Saved session: $SID"
+      else
+        echo "[evomesh] No new session ID found in $NEW_LINES new history lines"
+      fi
+    else
+      echo "[evomesh] No new history lines (before=$HISTORY_LINES_BEFORE, now=$HISTORY_LINES_NOW)"
     fi
   fi
 ) &

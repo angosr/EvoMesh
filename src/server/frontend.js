@@ -77,11 +77,21 @@ async function fetchAll() {
     state.projects = projects;
     if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
     renderSidebar(); renderDashboard(); renderChatProjectSelect();
+    // Update Central AI status dot
+    try {
+      const centralRes = await authFetch(`${API}/admin/status`);
+      const centralData = await centralRes.json();
+      const dot = document.getElementById('central-dot');
+      if (dot) dot.className = `dot ${centralData.running ? 'running' : 'stopped'}`;
+    } catch {}
     // Clean up tabs for roles that are no longer running
+    // BUT don't close panels that are still starting (iframe is null = startAndOpenTerminal in progress)
     const activeTerminals = new Set();
     state.projects.forEach(p => p.roles.forEach(r => { if (r.terminal) activeTerminals.add(`${p.slug}/${r.name}`); }));
     for (const key of Object.keys(state.openPanels)) {
       if (key !== 'dashboard' && key !== 'settings' && key !== 'central/ai' && !activeTerminals.has(key)) {
+        // Don't close if panel is still starting (iframe not yet created)
+        if (!state.openPanels[key].iframe) continue;
         closePanel(key);
       }
     }
@@ -512,9 +522,52 @@ function openCentralTerminal() {
     if (status.running && status.terminal) {
       openTerminal('central', 'Central AI', 'ai', status.terminal);
     } else {
-      startAndOpenTerminal('central', 'Central AI', 'ai');
+      startAndOpenCentral();
     }
-  }).catch(() => alert('Failed to start Central AI'));
+  }).catch(() => alert('Failed to check Central AI status'));
+}
+
+async function startAndOpenCentral() {
+  const key = 'central/ai';
+  const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:#888">
+    <div style="font-size:24px" class="loading-spinner">&#9881;</div>
+    <div>Starting Central AI...</div>
+  </div>`;
+  document.getElementById('panels').appendChild(panel);
+  state.openPanels[key] = { panel, iframe: null, overlay: null, reconnectTimer: null };
+  if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
+  renderOpenTabs(); switchTo(key);
+
+  try {
+    const res = await authFetch(`${API}/admin/start`, { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) {
+      panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Failed to start Central AI: ${esc(data.error || 'unknown')}</div>`;
+      return;
+    }
+    // Poll for terminal readiness
+    let retries = 0;
+    const check = setInterval(async () => {
+      retries++;
+      try {
+        const s = await (await authFetch(`${API}/admin/status`)).json();
+        if (s.running && s.terminal) {
+          clearInterval(check);
+          panel.remove();
+          delete state.openPanels[key];
+          state.tabOrder = state.tabOrder.filter(k => k !== key);
+          openTerminal('central', 'Central AI', 'ai', s.terminal);
+        }
+      } catch {}
+      if (retries > 30) {
+        clearInterval(check);
+        panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Timeout. Try refreshing.</div>`;
+      }
+    }, 2000);
+  } catch (e) {
+    panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Error: ${esc(String(e))}</div>`;
+  }
 }
 
 // ==================== Central AI Panel ====================

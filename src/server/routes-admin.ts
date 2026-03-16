@@ -45,6 +45,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       const mainClaudeJson = path.join(homeDir, ".claude.json");
 
       // Start central AI container — bridge network like normal roles
+      // Central AI: bridge network, mounts entire HOME for file-based access
       const args = [
         "run", "-d",
         "--name", `evomesh-${process.env.USER || "user"}-central`,

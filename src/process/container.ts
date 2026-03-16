@@ -121,10 +121,11 @@ export function startRole(
   roleName: string,
   roleConfig: RoleConfig,
   config: ProjectConfig,
-  ttydPort: number
+  ttydPort: number,
+  opts: { centralAI?: boolean; containerNameOverride?: string } = {}
 ): ContainerRole {
   const projectSlug = projectSlugFromRoot(root);
-  const name = containerName(projectSlug, roleName);
+  const name = opts.containerNameOverride || containerName(projectSlug, roleName);
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
 
   // If container is already running, just return its info
@@ -146,17 +147,24 @@ export function startRole(
     "run", "-d",
     "--name", name,
     "--hostname", roleName,
-    "-p", `127.0.0.1:${ttydPort}:7681`,
-
-    // Project directory (RW)
-    "-v", `${path.resolve(root)}:${path.resolve(root)}:rw`,
-
-    // Claude config dir — the account directory (RW, for token refresh)
-    "-v", `${accountPath}:${accountPath}:rw`,
-
-    // ~/.claude.json — onboarding state, theme (at HOME root, separate from config dir)
-    "-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`,
   ];
+  if (opts.centralAI) {
+    args.push("--network", "host");
+    args.push("-e", `TTYD_PORT=${ttydPort}`);
+  } else {
+    args.push("-p", `127.0.0.1:${ttydPort}:7681`);
+  }
+
+  if (opts.centralAI) {
+    // Central AI: mount entire HOME, no port mapping (host network)
+    args.push("-v", `${homeDir}:${homeDir}:rw`);
+    args.push("-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`);
+  } else {
+    // Normal role: mount project dir + claude config only
+    args.push("-v", `${path.resolve(root)}:${path.resolve(root)}:rw`);
+    args.push("-v", `${accountPath}:${accountPath}:rw`);
+    args.push("-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`);
+  }
 
   // Git config (RO)
   const gitconfig = path.join(homeDir, ".gitconfig");
