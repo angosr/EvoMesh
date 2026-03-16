@@ -1,11 +1,6 @@
 # executor -- 待办任务
 
-## P2.5 — frontend.js 拆分（阻塞 Phase 3）
-
-> 当前 950 行，限制 1000 行。必须先拆分再加功能。
-
-- [ ] 按功能模块拆分 frontend.js（dashboard/settings/chat/members/terminal）
-- [ ] 确保拆分后功能不变，所有测试通过
+## P2.5 — frontend.js 拆分 ✅
 
 ## P3 — 权限系统 Phase 3: 加固
 
