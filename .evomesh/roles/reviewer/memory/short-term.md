@@ -1,4 +1,4 @@
-# Reviewer — Short-Term Memory (Loop #027, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #028, 2026-03-17)
 
 ## Done this loop
 - 1 new commit — no code changes (chore sync)
