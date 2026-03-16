@@ -590,11 +590,11 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const accountPath = path.join(homeDir, ".claude");
       const mainClaudeJson = path.join(homeDir, ".claude.json");
 
-      // Start central AI container — mount entire HOME, host network
+      // Start central AI container — bridge network like normal roles
       const args = [
         "run", "-d",
         "--name", `evomesh-${process.env.USER || "user"}-central`,
-        "--network", "host",
+        "-p", `127.0.0.1:${adminPort}:7681`,
         "-v", `${homeDir}:${homeDir}:rw`,
         "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
         "-e", `HOST_UID=${process.getuid?.() || 1000}`,
@@ -604,7 +604,6 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         "-e", `HOME=${homeDir}`,
         "-e", `CLAUDE_CONFIG_DIR=${accountPath}`,
         "-e", "ROLE_NAME=central",
-        "-e", `TTYD_PORT=${adminPort}`,
         "-w", `${homeDir}`,
         "--log-opt", "max-size=10m",
         "evomesh-role",
