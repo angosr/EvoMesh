@@ -586,21 +586,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       // Remove old container
       try { execFileSync("docker", ["rm", "-f", `evomesh-${process.env.USER || "user"}-central`], { stdio: ["pipe","pipe","ignore"] }); } catch {}
 
-      // Ensure central AI has its own claude config dir
-      const centralConfigDir = path.join(homeDir, ".claude-central");
-      if (!fs.existsSync(centralConfigDir)) {
-        fs.mkdirSync(centralConfigDir, { recursive: true });
-        // Copy essential files from main claude config
-        const mainConfig = path.join(homeDir, ".claude");
-        for (const f of [".credentials.json", ".claude.json", "settings.json"]) {
-          const src = path.join(mainConfig, f);
-          if (fs.existsSync(src)) fs.copyFileSync(src, path.join(centralConfigDir, f));
-        }
-      }
-      // Copy .claude.json (onboarding flags) to central config
+      // Central AI uses same account as configured (default: main ~/.claude)
+      const accountPath = path.join(homeDir, ".claude");
       const mainClaudeJson = path.join(homeDir, ".claude.json");
-      const centralClaudeJson = path.join(centralConfigDir, ".claude.json");
-      if (fs.existsSync(mainClaudeJson)) fs.copyFileSync(mainClaudeJson, centralClaudeJson);
 
       // Start central AI container — mount entire HOME, host network
       const args = [
@@ -614,7 +602,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         "-e", `HOST_USER=${process.env.USER || "user"}`,
         "-e", `HOST_HOME=${homeDir}`,
         "-e", `HOME=${homeDir}`,
-        "-e", `CLAUDE_CONFIG_DIR=${centralConfigDir}`,
+        "-e", `CLAUDE_CONFIG_DIR=${accountPath}`,
         "-e", "ROLE_NAME=central",
         "-e", `TTYD_PORT=${adminPort}`,
         "-w", `${homeDir}`,
