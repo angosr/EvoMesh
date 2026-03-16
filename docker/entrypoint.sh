@@ -66,27 +66,35 @@ TTYD_PID=$!
     if pgrep -f "claude" > /dev/null 2>&1; then
       sleep 5  # Give claude time to fully render
       echo "[evomesh] Claude is ready. Sending /loop command..."
-      # Send /loop via ttyd's WebSocket using Python
-      python3 -c "
-import asyncio, websockets, struct
+      # Send /loop via ttyd's WebSocket
+      # Wait for claude to fully start, then connect and type the command
+      sleep 10  # Give claude time to render UI
+      python3 << 'PYEOF' 2>&1
+import asyncio, websockets
 
 async def send_loop():
     uri = 'ws://127.0.0.1:7681/ws'
-    async with websockets.connect(uri, subprotocols=['tty']) as ws:
-        # Wait for initial output
-        await asyncio.sleep(3)
-        # ttyd input: first byte 0x00 (stdin), then the text
-        cmd = '''$LOOP_CMD'''
-        msg = b'\x00' + cmd.encode('utf-8')
-        await ws.send(msg)
-        await asyncio.sleep(0.5)
-        # Send Enter
-        await ws.send(b'\x00\r')
-        await asyncio.sleep(1)
-        print('[evomesh] /loop command sent')
+    try:
+        async with websockets.connect(uri, subprotocols=['tty']) as ws:
+            # Drain any initial output
+            for _ in range(10):
+                try:
+                    await asyncio.wait_for(ws.recv(), timeout=0.5)
+                except asyncio.TimeoutError:
+                    break
+
+            # Type /loop command one char at a time
+            cmd = "$LOOP_CMD" + "\r"
+            for ch in cmd:
+                await ws.send(bytes([0]) + ch.encode('utf-8'))
+                await asyncio.sleep(0.02)
+            await asyncio.sleep(2)
+            print('[evomesh] /loop command sent')
+    except Exception as e:
+        print(f'[evomesh] WS error: {e}')
 
 asyncio.run(send_loop())
-" 2>&1
+PYEOF
       break
     fi
     sleep 1
