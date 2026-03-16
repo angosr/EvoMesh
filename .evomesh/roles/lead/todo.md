@@ -2,37 +2,44 @@
 
 ## P0 — Immediate
 
-ALL P0 COMPLETE ✅
+ALL P0 COMPLETE ✅ (own tasks). User P0 directives dispatched to roles.
 
-1. ✅ Read ALL roles' ROLE.md — verified all reference base-protocol.md
-2. ✅ Update blueprint.md — updated phase, added key decisions
-3. ✅ Update status.md — all 7 roles listed, timestamps
-4. ✅ Review agent-architect proposals — ALL 3 APPROVED
-5. ✅ Write initial tasks to each role's todo.md
-6. ✅ Review and optimize each role's ROLE.md — added Project-Specific Rules to all 7
-7. ✅ CREATE base-protocol.md — agent-architect didn't loop, so lead created it directly at `.evomesh/templates/base-protocol.md`
-8. ✅ Fix path references — changed `~/.evomesh/templates/` → `.evomesh/templates/` in all ROLE.md + CLAUDE.md (home dir was read-only)
+## P1 — Active
 
-## P1 — This Week
+- ⬜ Monitor core-dev progress on registry.json + mission control API
+- ⬜ Monitor frontend progress on Mission Control panel UI
+- ⬜ Track remaining reviewer P0 findings (HOME mount, SSE auth) — dispatched to core-dev
+- ⬜ Create shared/decisions.md entry for "Central AI architecture" (partially done — registry closed-loop recorded)
+- ⬜ Evaluate role count: security and research still haven't started — consider if they should be merged or deprioritized
+- ⬜ Review agent-architect's closed-loop design feedback when it arrives
 
-- ⬜ Create shared/decisions.md entry for "Central AI architecture"
-- ⬜ Evaluate: are 7 roles the right number?
-  - Current data: core-dev and frontend are active and productive. Agent-architect completed assessment but hasn't looped since. Reviewer/security/research haven't started
-- ⬜ Once roles are all running, review collaboration efficiency
-- ⬜ Design shared/decisions.md entry for "base-protocol.md location change" (was `~/.evomesh/`, now `.evomesh/`)
+## P2 — Later
+
+- ⬜ Reviewer P0-3 (SSH keys in containers) — needs architectural decision (agent forwarding vs accept risk)
+- ⬜ Reviewer P2 findings — low priority, track for code cleanup pass
 
 ## Completed This Loop (2026-03-16T22:10)
 
-- Created `.evomesh/templates/base-protocol.md` — the #1 critical blocker, now RESOLVED
-  - Includes: inbox format with threading, memory lifecycle, commit conventions, conflict resolution, P0 direct channel
-- Changed all ROLE.md + CLAUDE.md references from `~/.evomesh/templates/` to `.evomesh/templates/` (project-local, git-trackable)
-- Updated status.md: core-dev and frontend now marked ACTIVE with completed work
-- Resolved the critical blocker in status.md
+- Processed 5 new inbox messages (2 from user P0, 1 user design-override, 1 agent-architect, 1 central)
+- Recorded 2 architectural decisions in shared/decisions.md:
+  1. Registry Closed-Loop (config = source of truth, registry.json = derived, Server = only writer)
+  2. Mission Control panel (Server-aggregated, replaces static Central AI status)
+- Dispatched P0 tasks:
+  - core-dev: registry.json implementation + /api/mission-control API + reviewer P0 fixes
+  - frontend: Mission Control panel UI (blocked on API)
+  - agent-architect: heartbeat accepted as Phase 2, review closed-loop design
+- Noted reviewer first review: 4 P0, 3 P1, 4 P2. Two P0s (XSS, shell injection) already fixed
+- Updated blueprint.md with registry + mission control in roadmap
+- Updated status.md with all current work items
+- Updated reviewer ROLE.md change noted (feedback goes to lead inbox only)
 
 ## Previous Loops
 
-### Loop 2 (2026-03-16T21:50)
-- Added Project-Specific Rules to all 7 ROLE.md files, logged to evolution.log
+### Loop 3 (earlier today)
+- Created base-protocol.md, fixed template path references
 
-### Loop 1 (2026-03-16T21:30)
-- Approved agent-architect's 3 proposals, updated blueprint.md and status.md
+### Loop 2
+- Added Project-Specific Rules to all 7 ROLE.md files
+
+### Loop 1
+- Approved agent-architect proposals, initial strategic doc updates
