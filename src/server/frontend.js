@@ -601,14 +601,14 @@ const origInitResize = initResize;
 });
 
 // ==================== Mobile touch scroll for terminals ====================
-// Problem: tmux uses alternate screen buffer, so xterm.js native scrollback
-// is disabled. On desktop, mouse wheel sends escape sequences to tmux. On
-// mobile, touch-drag does NOT generate wheel events in xterm.js.
+// tmux mouse is OFF (allows text selection/copy). Scrolling is done by
+// writing tmux key sequences directly into the terminal via ttyd's WebSocket:
+//   - Enter copy-mode: Ctrl-B [  (prefix + '[')
+//   - Scroll up/down: arrow keys or Page Up/Down in copy-mode
+//   - Exit copy-mode: 'q' (sent after a scroll-idle timeout)
 //
-// Solution: inject touch handlers into the same-origin ttyd iframe, converting
-// touch-drag gestures into synthetic WheelEvents on xterm.js's viewport.
-// xterm.js then sends mouse wheel sequences to tmux via the terminal protocol.
-// No HTTP API, no copy-mode — direct, low-latency scrolling.
+// We inject touch handlers into the same-origin ttyd iframe, find the
+// WebSocket, and write raw bytes. Low-latency, no HTTP roundtrip.
 function injectTouchScroll(iframe) {
   const POLL_INTERVAL = 500;
   const MAX_ATTEMPTS = 20;
@@ -621,18 +621,103 @@ function injectTouchScroll(iframe) {
       if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
 
       const xtermScreen = iframeDoc.querySelector('.xterm-screen');
-      const xtermViewport = iframeDoc.querySelector('.xterm-viewport');
-      if (!xtermScreen || !xtermViewport) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (!xtermScreen) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
 
       // Already injected?
       if (xtermScreen.dataset.touchScrollInjected) return;
       xtermScreen.dataset.touchScrollInjected = 'true';
 
+      // Find ttyd's WebSocket by hooking into the iframe's window
+      // ttyd sends terminal input as: 0 (input type byte) + data
+      function sendToTerminal(str) {
+        try {
+          const iframeWin = iframe.contentWindow;
+          // ttyd stores the WebSocket on window.term or we find it via the global
+          // The most reliable way: find the active WebSocket
+          const ws = findWebSocket(iframeWin);
+          if (!ws || ws.readyState !== 1) return false;
+          // ttyd protocol: first byte 0 = input, followed by the actual data
+          const encoder = new TextEncoder();
+          const data = encoder.encode(str);
+          const msg = new Uint8Array(data.length + 1);
+          msg[0] = 0; // ttyd input type
+          msg.set(data, 1);
+          ws.send(msg);
+          return true;
+        } catch { return false; }
+      }
+
+      function findWebSocket(win) {
+        // ttyd v1.7+ stores ws on the global lib object
+        // Try common locations
+        if (win.term?.socket) return win.term.socket;
+        if (win.lib?.socket) return win.lib.socket;
+        // Fallback: find any open WebSocket
+        // We intercept WebSocket creation to capture it
+        return win._evomeshWs || null;
+      }
+
+      // Intercept WebSocket creation to capture the instance
+      const iframeWin = iframe.contentWindow;
+      if (iframeWin && !iframeWin._evomeshWsHooked) {
+        iframeWin._evomeshWsHooked = true;
+        const OrigWS = iframeWin.WebSocket;
+        iframeWin.WebSocket = function(url, protocols) {
+          const ws = protocols ? new OrigWS(url, protocols) : new OrigWS(url);
+          iframeWin._evomeshWs = ws;
+          return ws;
+        };
+        iframeWin.WebSocket.prototype = OrigWS.prototype;
+        iframeWin.WebSocket.CONNECTING = OrigWS.CONNECTING;
+        iframeWin.WebSocket.OPEN = OrigWS.OPEN;
+        iframeWin.WebSocket.CLOSING = OrigWS.CLOSING;
+        iframeWin.WebSocket.CLOSED = OrigWS.CLOSED;
+      }
+
       let startY = 0;
       let lastY = 0;
       let scrolling = false;
-      const THRESHOLD = 8; // px to start scrolling
-      const WHEEL_DELTA = 80; // px per wheel step (matches typical mouse wheel)
+      let inCopyMode = false;
+      let exitTimer = null;
+      const THRESHOLD = 12;
+      const STEP_PX = 20; // px per scroll line
+
+      function enterCopyMode() {
+        if (inCopyMode) return;
+        // tmux prefix (Ctrl-B) + [ to enter copy-mode
+        if (sendToTerminal('\x02[')) {
+          inCopyMode = true;
+        }
+      }
+
+      function exitCopyMode() {
+        if (!inCopyMode) return;
+        sendToTerminal('q');
+        inCopyMode = false;
+      }
+
+      function scrollUp(lines) {
+        enterCopyMode();
+        // In tmux copy-mode, Up arrow scrolls up one line
+        for (let i = 0; i < lines; i++) {
+          sendToTerminal('\x1b[A'); // Up arrow escape sequence
+        }
+        resetExitTimer();
+      }
+
+      function scrollDown(lines) {
+        if (!inCopyMode) return; // Can only scroll down in copy-mode
+        for (let i = 0; i < lines; i++) {
+          sendToTerminal('\x1b[B'); // Down arrow escape sequence
+        }
+        resetExitTimer();
+      }
+
+      function resetExitTimer() {
+        if (exitTimer) clearTimeout(exitTimer);
+        // Exit copy-mode after 3 seconds of inactivity
+        exitTimer = setTimeout(exitCopyMode, 3000);
+      }
 
       xtermScreen.addEventListener('touchstart', e => {
         if (e.touches.length !== 1) return;
@@ -646,7 +731,6 @@ function injectTouchScroll(iframe) {
         const currentY = e.touches[0].clientY;
         const totalDy = Math.abs(currentY - startY);
 
-        // Activate scroll mode after passing threshold
         if (!scrolling && totalDy > THRESHOLD) {
           scrolling = true;
           lastY = currentY;
@@ -654,37 +738,26 @@ function injectTouchScroll(iframe) {
         }
         if (!scrolling) return;
 
-        const dy = lastY - currentY; // positive = scroll up (finger moves up)
-        if (Math.abs(dy) < 4) return;
+        const dy = lastY - currentY;
+        const lines = Math.floor(Math.abs(dy) / STEP_PX);
+        if (lines < 1) return;
 
-        // Dispatch synthetic wheel event to xterm.js viewport
-        const wheelEvent = new WheelEvent('wheel', {
-          deltaY: dy > 0 ? WHEEL_DELTA : -WHEEL_DELTA,
-          deltaX: 0,
-          deltaMode: 0, // DOM_DELTA_PIXEL
-          bubbles: true,
-          cancelable: true,
-          clientX: e.touches[0].clientX,
-          clientY: e.touches[0].clientY,
-        });
-        xtermViewport.dispatchEvent(wheelEvent);
+        if (dy > 0) scrollUp(lines);
+        else scrollDown(lines);
+
         lastY = currentY;
-
-        // Prevent default to stop page scroll / rubber-banding
         e.preventDefault();
-      }, { passive: false }); // Must be non-passive to preventDefault
+      }, { passive: false });
 
       xtermScreen.addEventListener('touchend', () => { scrolling = false; });
       xtermScreen.addEventListener('touchcancel', () => { scrolling = false; });
 
     } catch {
-      // Cross-origin or iframe not ready
       if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL);
     }
   }
 
   iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
-  // Also try immediately in case iframe already loaded
   tryInject();
 }
 
