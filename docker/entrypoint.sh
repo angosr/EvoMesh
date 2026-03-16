@@ -20,14 +20,9 @@ ROLE_SESSION_DIR="${WORK_DIR}/.evomesh/roles/${ROLE_NAME:-role}"
 SESSION_FILE="${ROLE_SESSION_DIR}/.session-id"
 CLAUDE_ARGS="--dangerously-skip-permissions"
 
-if [ -f "$SESSION_FILE" ] && [ -s "$SESSION_FILE" ]; then
-  SID=$(cat "$SESSION_FILE")
-  CLAUDE_ARGS="--resume $SID $CLAUDE_ARGS"
-  echo "[evomesh] Resuming session: $SID"
-else
-  CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
-  echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
-fi
+# Always start with --name (resume disabled: shared config dir makes session IDs unreliable)
+CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
+echo "[evomesh] Starting session for: ${ROLE_NAME:-role}"
 
 # Graceful shutdown
 cleanup() {
