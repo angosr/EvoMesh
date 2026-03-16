@@ -1,40 +1,37 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-16T23:00
+> Last updated: 2026-03-16T23:45
 
-## Current Progress
-- Docker container backend: operational
-- Web UI: functional + Mission Control panel scaffolded ✅
-- Central AI: Phase 1 implemented
-- Role templates: base-protocol.md ✅ (updated with direct-channel rules)
-- Auth: password-based login + terminal proxy cookie auth ✅
-- Security: All P0 findings FIXED ✅ (container mount scoping, SSH agent forwarding, admin auth)
-- registry.json: Implementation committed ✅
-- Mission Control: API + frontend scaffolding done ✅
-- Research: 2 loops complete (landscape survey + deep dives) ✅
+## Current Phase: Collaboration → Self-Evolution
 
-## Active Roles — ALL 7 OPERATIONAL
-- **lead**: Operational — dispatching, routing, monitoring
-- **core-dev**: ACTIVE — P0/P1 all clear. registry.json ✅, mission-control API ✅, security fixes ✅
-- **frontend**: ACTIVE — Mission Control panel ✅, responsive dashboard ✅, smoke tests ✅, Add Project form restored
-- **reviewer**: ACTIVE — 3 review cycles complete, findings being addressed
-- **security**: ACTIVE — first audit complete, all 3 P0 findings fixed
-- **research**: ACTIVE — 2 loops complete, 6 actionable recommendations delivered
-- **agent-architect**: Tasks queued (closed-loop review, research recs, project creation flow)
+Core infrastructure stable. Shared protocols established. Now implementing self-evolution mechanisms.
+
+## System Health: ALL 7 ROLES ACTIVE
+- **lead**: Operational — 11 loops completed, all P0s resolved
+- **core-dev**: Productive — registry.json ✅, mission-control API ✅, all security fixes ✅. P0/P1 clear
+- **frontend**: Productive — Mission Control panel ✅, mobile optimization ✅, smoke tests ✅
+- **reviewer**: Effective — 7 review cycles, findings driving fixes
+- **security**: Effective — initial audit + 3 follow-up audits, path traversal found+fixed
+- **research**: Highly productive — 5 loops, 13 topics, 10 architecture recommendations delivered
+- **agent-architect**: Now active — protocol v2 proposal delivered and APPROVED
+
+## Milestone: Protocol v2 Approved
+Agent-architect's consolidated proposal approved:
+- Self-evolution protocol (metrics.log + 10-loop self-audit + lead approval)
+- Prompt hygiene rules (<200 line target, dead rule pruning)
+- Memory storage strategy (short-term ephemeral, long-term in git)
+- Inbox frontmatter simplification (5 required fields)
+Awaiting implementation.
 
 ## Current Work Items
-1. `/api/mission-control` data enrichment — core-dev (basic API done, needs activity feed + task aggregation)
-2. Agent-architect: 3 pending design tasks (append-only logs, role-card.json, Claude hooks)
-3. Agent-architect: Central AI project creation flow design
-4. Frontend: Mission Control panel consuming full API data
-
-## Known Issues
-- Containers running old loop intervals — need restart from Web UI (user decision)
-- Mobile terminal scrolling still choppy
-- routes.ts at 474 lines — approaching 500 limit
+1. **agent-architect**: Implement protocol v2 in base-protocol.md (approved)
+2. **agent-architect**: Design Central AI project creation flow (user P0, next priority)
+3. **frontend**: Continue Mission Control refinement
+4. **research**: P2 monitoring mode (Agent SDK, ecosystem)
 
 ## Architecture Validated
-- Research confirms file-based communication is a genuine differentiator
-- CrewAI Flows is NOT a direct threat (different niche)
-- Append-only pattern for shared docs recommended to prevent merge conflicts
+- Research confirms file-based communication is unique differentiator
+- Anthropic Agent SDK validates our lead+sub-agent topology
+- Our persistence via git is a competitive moat (Agent SDK is ephemeral)
+- Academic papers (EvoMAC, WMAC 2026) validate hub-spoke governance + self-evolution approach
