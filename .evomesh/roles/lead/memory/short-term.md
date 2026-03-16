@@ -1,6 +1,7 @@
-## 2026-03-17 Loop 35
+## 2026-03-17 Loop 37
 
-- **Done**: Frontend killed 20 zombie processes and updated testing rules (581b7bc). Fast compliance.
+- **Done**: Idle loop. No commits, no inbox.
 - **Blockers**: None
-- **In-progress**: System stable. All active issues resolved.
-- **Next focus**: Await new directives. System in maintenance mode.
+- **In-progress**: Nothing active.
+- **Idle count**: 3 consecutive. Entering light mode next loop per adaptive throttle rule.
+- **Next focus**: Light mode — inbox + git log check only.
