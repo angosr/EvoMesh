@@ -31,7 +31,16 @@ async function fetchAll() {
     }
     state.projects = projects;
     if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
-    renderSidebar(); renderDashboard(); renderChatProjectSelect(); renderOpenTabs();
+    renderSidebar(); renderDashboard(); renderChatProjectSelect();
+    // Clean up tabs for roles that are no longer running
+    const activeTerminals = new Set();
+    state.projects.forEach(p => p.roles.forEach(r => { if (r.terminal) activeTerminals.add(`${p.slug}/${r.name}`); }));
+    for (const key of Object.keys(state.openPanels)) {
+      if (key !== 'dashboard' && key !== 'settings' && !activeTerminals.has(key)) {
+        closePanel(key);
+      }
+    }
+    renderOpenTabs();
   } catch { document.getElementById('status-bar').textContent = 'Connection error'; }
 }
 
