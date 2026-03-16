@@ -81,26 +81,15 @@ TTYD_PID=$!
   ROLE_ROOT=".evomesh/roles/${ROLE_NAME}"
   LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/"
 
-  # Skip /loop injection if resuming (cron jobs persist in session)
-  if [ "$IS_RESUME" = "true" ]; then
-    echo "[evomesh] Resumed session — /loop already active, skipping injection"
-    # Still save session ID
-    sleep 5
-    if [ -f "$HISTORY_FILE" ]; then
-      SID=$(grep "${ROLE_NAME}" "$HISTORY_FILE" 2>/dev/null | tail -1 | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
-      if [ -n "$SID" ]; then
-        mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
-        echo "$SID" > "$ROLE_SESSION_FILE"
-      fi
-    fi
-    exit 0
-  fi
+  # Always send /loop — cron jobs don't persist across session restarts
+  WAIT_TIME=15
+  if [ "$IS_RESUME" = "true" ]; then WAIT_TIME=25; fi
 
   echo "[evomesh] Waiting for Claude to be ready..."
   for i in $(seq 1 60); do
     if pgrep -f "claude" > /dev/null 2>&1; then
-      echo "[evomesh] Claude process found. Waiting 15s for UI to be ready..."
-      sleep 15
+      echo "[evomesh] Claude process found. Waiting ${WAIT_TIME}s for UI to be ready..."
+      sleep $WAIT_TIME
       echo "[evomesh] Claude is ready. Sending /loop command..."
       python3 << 'PYEOF' 2>&1
 import asyncio, websockets
