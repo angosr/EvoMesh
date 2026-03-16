@@ -1,7 +1,7 @@
-# Reviewer — Short-Term Memory (Loop #036, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #037, 2026-03-17)
 
 ## Done this loop
-- 1 new commit — no code changes (chore sync)
+- 1 new commit — no code changes (bootstrap gap analysis)
 - No inbox items
 - Metrics logged
 
