@@ -301,7 +301,21 @@
     #metrics { display: none !important; }
     #dashboard { padding: 10px; }
     .card { padding: 10px; }
-    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .card h3 { font-size: 14px; margin-bottom: 10px; }
+
+    /* Dashboard table → stacked card layout on mobile */
+    #dash-content table { display: block; overflow-x: visible; }
+    #dash-content thead { display: none; }
+    #dash-content tbody { display: flex; flex-direction: column; gap: 8px; }
+    #dash-content tr { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 6px; border-bottom: none; }
+    #dash-content td { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; font-size: 12px; }
+    #dash-content td:first-child { width: 100%; font-size: 13px; }
+    #dash-content .res-input { width: 60px; font-size: 11px; padding: 5px 6px; }
+    #dash-content .dash-action { padding: 6px 10px; font-size: 11px; }
+    #dash-content .acct-select { max-width: 160px; font-size: 11px; padding: 4px 6px; }
+
+    /* Non-dashboard tables keep horizontal scroll */
+    table:not(#dash-content table) { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .panel iframe { -webkit-overflow-scrolling: touch; }
     #panels.grid, #panels.grid.grid-2, #panels.grid.grid-3, #panels.grid.grid-4 {
       grid-template-columns: 1fr !important;
@@ -309,6 +323,16 @@
     }
     #panels.grid .panel:last-child { grid-column: auto; }
     #role-modal { width: 92vw; max-width: 340px; padding: 16px; }
+
+    /* Settings page mobile adjustments */
+    #settings { padding: 14px; }
+    .settings-form { max-width: 100%; }
+    .settings-info { grid-template-columns: 100px 1fr; font-size: 12px; }
+    .user-table td { padding: 6px; font-size: 11px; }
+    .user-table .actions { flex-wrap: wrap; }
+    .add-user-form { flex-direction: column; align-items: stretch; }
+    .add-user-form .field { width: 100%; }
+    .members-panel { padding: 8px; }
   }
 
   /* Touch-friendly */
