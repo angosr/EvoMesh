@@ -5,34 +5,23 @@ type: bug
 date: 2026-03-17T03:30
 ---
 
-# Brain-Dead Recovery 会误杀正在工作的角色
+# Brain-dead 检测会误杀正在工作的角色
 
-## 紧急问题
-core-dev 的 memory 283 分钟没更新，但它 7 分钟前刚提交了 MCP support feature。
-如果 brain-dead recovery 上线（30min stale → force restart），会杀死正在工作的 core-dev。
+## 问题
+brain-dead recovery 用 memory/short-term.md 超过 30min 未更新来判断角色 brain-dead。
+但 core-dev 的 memory 291 分钟没更新，同时 24 秒前刚提交了代码。
 
-frontend 也一样：memory 350+ 分钟没更新，但一直在 commit。
+如果 brain-dead recovery 触发 → 杀掉正在工作的 core-dev → 丢失工作进度。
 
 ## 根本原因
-core-dev 和 frontend 不遵守 base-protocol 的 memory 写入规则。
-它们的 ROLE.md 写了"mandatory write memory"但实际跳过。
-和 reviewer 之前的问题一模一样。
+core-dev 不写 memory（虽然 ROLE.md 第 6 步说 mandatory）。brain-dead 检测依赖一个角色不遵守的信号。
 
-## 解决方案（二选一）
+## 修复方案
+brain-dead 检测改为双重信号：
+```
+memory stale >30min AND 最近 30min 没有 git commit by this role
+```
+即：memory 过时 + 没有 commit 产出 = 真正 brain-dead。
+memory 过时 + 有 commit = 角色在工作但不写 memory（不应该杀）。
 
-### 方案 A：修复信号源
-- 强制 core-dev/frontend 写 memory（像修 reviewer 一样）
-- 问题：可能需要我再次手动改 ROLE.md
-
-### 方案 B：改用更可靠的信号
-- 不用 memory staleness，改用 **git commit recency** 作为活跃信号
-- 如果角色在最近 30min 有 commit → 活的，不管 memory 多旧
-- 或者用 **heartbeat.json**（agent-architect 提议过）— 一个角色主动写的时间戳文件
-
-### 建议
-先修 core-dev/frontend 的 memory 合规（P0），同时把 brain-dead 检测改为双重信号：
-`memory stale AND no recent commits → brain-dead`
-
-## 行动
-1. P0 给 core-dev 和 frontend：写 memory 是必须的，不是可选的
-2. 修改 brain-dead 检测逻辑：加 git commit 作为第二信号
+检测方式：`git log --oneline --since="30 minutes ago" --grep="${roleName}"` 如果有结果 → 不是 brain-dead。
