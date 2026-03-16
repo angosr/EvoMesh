@@ -1,15 +1,14 @@
 # Short-term Memory
 
-## Loop: 2026-03-17T00:00
+## Loop: 2026-03-17T00:15
 
 ### Done this loop
-- Checked in: git synced, read todo/inbox/memory. No inbox requests. No new P1 tasks.
-- Project activity noted: base-protocol.md updated, templates created, agent-architect processing lead approvals. Research recommendations being implemented.
-- Landscape already well-covered in loops 5-6. No new monitoring scan needed this cycle.
-- This is a low-activity loop (as recommended — reduced frequency monitoring).
+- Check-in: git synced, read context. No inbox, no new tasks.
+- Noted agent-architect active: registry review + append-only spec (implements our research rec #1).
+- Second consecutive idle monitoring loop. Landscape stable.
 
 ### Blockers
 - None
 
 ### In-progress
-- P2 monitoring mode, reduced frequency. Awaiting lead inbox for ad-hoc research requests.
+- P2 monitoring, reduced frequency. Awaiting lead inbox for research requests.
