@@ -2,47 +2,34 @@
 
 ## P0 — Immediate
 
-ALL P0 COMPLETE ✅
-
-**User action needed** (cannot be done by lead role):
-- Restart all role containers from Web UI (loop intervals changed in project.yaml)
-- Start security role container from Web UI
+ALL P0 COMPLETE ✅. All security P0s fixed. All user P0 directives dispatched and executed.
 
 ## P1 — Active
 
-- ⬜ Monitor core-dev: `/api/mission-control` API (frontend is waiting on this)
-- ⬜ Track agent-architect response on: closed-loop review, append-only pattern, Agent Cards, MCP configs
-- ⬜ Reviewer P0-2 (HOME mount) — needs architecture decision: what dirs to mount for Central AI?
-- ⬜ Evaluate role count: 6/7 roles now active or have completed loops. Security needs to start
-- ⬜ Research deep-dive results pending (A-Mem, CrewAI Flows, Claude hooks)
-- ⬜ **Await agent-architect proposal**: Central AI project creation flow (user P1 heads-up). Review criteria: minimal role set (lead+executor), reusable templates, self-closing loop
+- ⬜ Await agent-architect proposals: append-only logs, role-card.json, Claude hooks, project creation flow
+- ⬜ Monitor mission-control API enrichment (activity feed, task aggregation)
+- ⬜ Evaluate bottleneck: added reviewer→core-dev direct channel for bug fixes in base-protocol.md
+- ⬜ Research deep-dive follow-ups routed to agent-architect
 
 ## P2 — Later
 
-- ⬜ SSH keys in containers — architectural decision needed
-- ⬜ Port allocation race condition
-- ⬜ Reviewer P2 findings (~~catch any~~ ✅ fixed, config reload, build pipeline)
-- ⬜ Concurrency risk on shared files — waiting on agent-architect append-only proposal
+- ⬜ routes.ts approaching 500 lines — core-dev aware, will split when needed
+- ⬜ Mobile terminal scrolling — frontend P1
+- ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-16T22:50)
+## Completed This Loop (2026-03-16T23:00)
 
-- Noted decisions.md revert — user controls that file directly
-- Received user heads-up: agent-architect designing Central AI project creation flow, will need lead approval
-- core-dev completed P2-1 refactor: catch(e: any) → catch(e: unknown) across all routes
-- No new blockers, system progressing well
-
-## Previous: Loop 5 (2026-03-16T22:40)
-
-- Processed 2 new inbox messages: user bootstrap-blockers (P0), research landscape survey (P1)
-- Noted 5 new commits: registry.json ✅, Mission Control panel ✅, terminal auth ✅, smoke tests, research loop
-- Routed 3 research findings to agent-architect (append-only, Agent Cards, MCP configs)
-- Identified user action items: container restarts + security role start
-- Updated status.md with major progress across all roles
-- Research validated EvoMesh's file-based approach as genuine differentiator
+- Processed 3 new inbox: user bootstrap-attack analysis, research deep-dives, security audit P0s
+- ALL 3 security P0 findings already FIXED (commit 0ca1afc): mount scoping, SSH agent forwarding, admin auth
+- core-dev is P0/P1 clear — registry.json + mission-control API + security fixes all done
+- Routed 3 research deep-dive recommendations to agent-architect
+- Added bug-fix direct channel to base-protocol.md (reviewer/security → core-dev/frontend, CC lead)
+- ALL 7 ROLES NOW OPERATIONAL — system is fully bootstrapped
 
 ## Previous Loops
-
-### Loop 4 — Dispatched registry + mission control tasks, recorded 2 architectural decisions
-### Loop 3 — Created base-protocol.md, fixed template path references
-### Loop 2 — Added Project-Specific Rules to all 7 ROLE.md files
-### Loop 1 — Approved agent-architect proposals, initial strategic doc updates
+### Loop 6 — Project creation heads-up, core-dev P2 refactor noted
+### Loop 5 — Routed research landscape findings, container restart identified
+### Loop 4 — Dispatched registry + mission control, recorded architectural decisions
+### Loop 3 — Created base-protocol.md, fixed template paths
+### Loop 2 — Added Project-Specific Rules to all 7 ROLE.md
+### Loop 1 — Approved agent-architect proposals, initial strategic docs

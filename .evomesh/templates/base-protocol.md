@@ -177,6 +177,7 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 **Hub-and-spoke**: Lead is the coordinator. All cross-role communication goes through lead's inbox, except:
 
 - **P0 direct channel**: P0 security/stability issues go directly to the relevant role AND lead
+- **Bug fix direct channel**: reviewer/security → core-dev/frontend for specific, actionable bug fixes (CC lead)
 - **Acknowledgments**: `type: ack` messages can go directly to the sender
 
 ---

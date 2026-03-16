@@ -1,45 +1,40 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-16T22:40
+> Last updated: 2026-03-16T23:00
 
 ## Current Progress
 - Docker container backend: operational
-- Web UI: functional (dashboard, terminals, settings, auth)
+- Web UI: functional + Mission Control panel scaffolded ✅
 - Central AI: Phase 1 implemented
-- Role templates: base-protocol.md ✅
+- Role templates: base-protocol.md ✅ (updated with direct-channel rules)
 - Auth: password-based login + terminal proxy cookie auth ✅
-- Security fixes: XSS ✅, shell injection ✅, terminal proxy auth ✅
-- registry.json: Server-side implementation committed ✅ (awaiting container restart to activate)
-- Mission Control panel: Frontend scaffolded with 4 tabs ✅ (awaiting `/api/mission-control` API for full data)
-- Research: Initial landscape survey complete ✅
+- Security: All P0 findings FIXED ✅ (container mount scoping, SSH agent forwarding, admin auth)
+- registry.json: Implementation committed ✅
+- Mission Control: API + frontend scaffolding done ✅
+- Research: 2 loops complete (landscape survey + deep dives) ✅
 
-## Active Roles (EvoMesh project)
-- **lead**: Operational — dispatching tasks, routing research findings
-- **core-dev**: ACTIVE — registry.json done, `/api/mission-control` API next (P1)
-- **frontend**: ACTIVE — Mission Control panel scaffolded (4 tabs), smoke tests added
-- **reviewer**: ACTIVE — first review cycle complete, findings being addressed
-- **research**: ACTIVE — first loop COMPLETE, landscape survey done, 3 findings routed to agent-architect
-- **security**: Terminal proxy auth fix committed. Container not yet started from Web UI
-- **agent-architect**: Assessment done, new tasks dispatched (closed-loop review + research follow-ups)
+## Active Roles — ALL 7 OPERATIONAL
+- **lead**: Operational — dispatching, routing, monitoring
+- **core-dev**: ACTIVE — P0/P1 all clear. registry.json ✅, mission-control API ✅, security fixes ✅
+- **frontend**: ACTIVE — Mission Control panel ✅, responsive dashboard ✅, smoke tests ✅, Add Project form restored
+- **reviewer**: ACTIVE — 3 review cycles complete, findings being addressed
+- **security**: ACTIVE — first audit complete, all 3 P0 findings fixed
+- **research**: ACTIVE — 2 loops complete, 6 actionable recommendations delivered
+- **agent-architect**: Tasks queued (closed-loop review, research recs, project creation flow)
 
 ## Current Work Items
-1. **`/api/mission-control` API** → core-dev (P1 — frontend scaffolding already done, waiting on this)
-2. **Container restarts needed** — loop intervals updated in project.yaml but containers running old config
-3. **Security role** needs to be started from Web UI
-4. **Research follow-ups** routed to agent-architect: append-only shared docs, Agent Cards, MCP configs
-
-## Blockers
-- ~~base-protocol.md~~ ✅ RESOLVED
-- ~~registry.json implementation~~ ✅ COMMITTED (needs container restart to activate)
-- Containers running old loop intervals — need restart from Web UI
+1. `/api/mission-control` data enrichment — core-dev (basic API done, needs activity feed + task aggregation)
+2. Agent-architect: 3 pending design tasks (append-only logs, role-card.json, Claude hooks)
+3. Agent-architect: Central AI project creation flow design
+4. Frontend: Mission Control panel consuming full API data
 
 ## Known Issues
-- Reviewer P0-2: Central AI mounts entire HOME directory read-write
-- Reviewer P0-3: SSH keys in containers (accepted risk for git)
-- Port allocation race condition (P1)
+- Containers running old loop intervals — need restart from Web UI (user decision)
 - Mobile terminal scrolling still choppy
-- Concurrency risk on shared files (research finding — being evaluated)
+- routes.ts at 474 lines — approaching 500 limit
 
-## Key Research Insight
-EvoMesh's file-based communication is validated as a genuine differentiator — no other framework has git-native audit trails. IBM's ACP uses similar YAML patterns. Stay the course.
+## Architecture Validated
+- Research confirms file-based communication is a genuine differentiator
+- CrewAI Flows is NOT a direct threat (different niche)
+- Append-only pattern for shared docs recommended to prevent merge conflicts
