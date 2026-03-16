@@ -15,15 +15,23 @@ ALL P0 COMPLETE ✅
 - ⬜ Reviewer P0-2 (HOME mount) — needs architecture decision: what dirs to mount for Central AI?
 - ⬜ Evaluate role count: 6/7 roles now active or have completed loops. Security needs to start
 - ⬜ Research deep-dive results pending (A-Mem, CrewAI Flows, Claude hooks)
+- ⬜ **Await agent-architect proposal**: Central AI project creation flow (user P1 heads-up). Review criteria: minimal role set (lead+executor), reusable templates, self-closing loop
 
 ## P2 — Later
 
 - ⬜ SSH keys in containers — architectural decision needed
 - ⬜ Port allocation race condition
-- ⬜ Reviewer P2 findings (catch any, config reload, build pipeline)
+- ⬜ Reviewer P2 findings (~~catch any~~ ✅ fixed, config reload, build pipeline)
 - ⬜ Concurrency risk on shared files — waiting on agent-architect append-only proposal
 
-## Completed This Loop (2026-03-16T22:40)
+## Completed This Loop (2026-03-16T22:50)
+
+- Noted decisions.md revert — user controls that file directly
+- Received user heads-up: agent-architect designing Central AI project creation flow, will need lead approval
+- core-dev completed P2-1 refactor: catch(e: any) → catch(e: unknown) across all routes
+- No new blockers, system progressing well
+
+## Previous: Loop 5 (2026-03-16T22:40)
 
 - Processed 2 new inbox messages: user bootstrap-blockers (P0), research landscape survey (P1)
 - Noted 5 new commits: registry.json ✅, Mission Control panel ✅, terminal auth ✅, smoke tests, research loop
