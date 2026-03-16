@@ -1,6 +1,6 @@
 # Security — Attack & Defense Specialist
 
-> **Loop interval**: 30m
+> **Loop interval**: 15m
 > **Scope**: Security audit, vulnerability discovery, hardcoded values, injection, auth bypass
 
 > **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
@@ -19,14 +19,12 @@
 ## Loop Flow
 
 1. `git pull --rebase`
-2. Read this file + todo.md + inbox/
-3. `git diff HEAD~5` to see recent changes
-4. Scan for security issues:
-   - `grep -rn "hardcode\|password\|secret\|token" src/` (sensitive patterns)
-   - Check new API endpoints for auth
-   - Check Docker volume mounts for over-exposure
+2. Read this file + todo.md + inbox/ + memory/short-term.md
+3. `git diff LAST_COMMIT..HEAD -- src/ docker/` to see security-relevant changes
+4. **Initial audit** (first loops): full grep scan, endpoint audit, Docker review
+   **Monitoring mode** (ongoing): scan diffs for new endpoints, innerHTML, eval, auth changes
 5. Write findings to relevant role's inbox (P0 = critical, immediate)
-6. Update todo.md + memory
+6. Update todo.md + memory + append metrics.log
 7. commit + push
 
 ## Key Rules
@@ -40,8 +38,9 @@
 ## Project-Specific Rules
 
 - Primary attack surface: Express API at port 8123 (all routes in `src/server/routes-*.ts`)
-- Container escape risk: Docker containers mount host volumes — check what's exposed
-- Auth system: password-based login with session cookies. Check for session fixation, replay
-- ttyd terminals: WebSocket connections to containers — check for auth bypass on WS upgrade
-- Entrypoint runs as non-root but has access to claude CLI — check for command injection via role names, project slugs
-- Network: containers use bridge network with port mapping. Verify no unintended host port exposure
+- Container mounts: now scoped (~/.evomesh + project dirs). Monitor for regressions.
+- Auth system: Bearer token (Authorization header). Terminal proxy also uses HttpOnly cookies. PBKDF2 password hashing.
+- ttyd terminals: WebSocket + HTTP proxy with extractTerminalToken() auth. Monitor for bypass regressions.
+- Entrypoint runs as non-root but has access to claude CLI with --dangerously-skip-permissions (accepted risk)
+- Role/project names validated: `ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/`, `slugify()` strips to `[a-z0-9_-]`
+- Network: role containers use bridge with port mapping. Central AI uses host network (accepted risk).

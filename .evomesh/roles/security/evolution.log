@@ -1,4 +1,13 @@
 # security — Evolution Log
 
+## 2026-03-17T02:30 — Prompt hygiene self-audit (loop 15)
+**Changes**:
+- Fixed loop interval: 30m → 15m (matches actual cron)
+- Updated loop flow: added memory restore step, diff-based monitoring mode, metrics.log
+- Fixed auth description: "session cookies" → Bearer tokens + HttpOnly terminal cookies
+- Fixed network: clarified Central AI = host, roles = bridge
+- Updated project-specific rules: documented what's been fixed (scoped mounts, terminal auth, name validation) and accepted risks
+**Reason**: 15 loops of operational experience revealed outdated/inaccurate instructions that would mislead future audits.
+
 ## 2026-03-16T21:50 — Lead added Project-Specific Rules
 **Reason**: ROLE.md had empty Project-Specific Rules. Added EvoMesh-specific attack surface details: Express API, Docker volume mounts, auth system, ttyd WebSocket terminals, command injection vectors via role/project names, and network exposure.
