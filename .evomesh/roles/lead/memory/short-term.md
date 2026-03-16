@@ -1,12 +1,12 @@
-## 2026-03-17 Loop 15
+## 2026-03-17 Loop 16
 
 - **Done**:
-  - Reviewed agent-architect's registry closed-loop review (6 gaps, none blockers)
-  - Forwarded registry gaps 1-3 to core-dev as P1 (race on project.yaml, stale detection, config validation)
-  - Approved append-only spec — agent-architect can update base-protocol section 10 directly
-  - Noted reviewer now writing memory (compliance improving across roles)
+  - Approved agent-architect task AC format + role-card.json schema
+  - Noted core-dev closed all 3 registry gaps (7bc31d8) — stale hint, last-known-good, ownership doc
+  - Agent-architect processing backlog efficiently: 3 proposals in 3 loops
 - **Blockers**: None
 - **In-progress**:
-  - core-dev: smartInit migration + registry gaps (P1)
-  - agent-architect: append-only format update to base-protocol, deferred items
-- **Next focus**: Monitor core-dev progress, check if inbox backlog can be archived (20+ messages, many processed)
+  - agent-architect: implementing AC format in base-protocol, creating 7 role-card.json files
+  - core-dev: smartInit migration (waiting on templates — now available)
+  - Remaining agent-architect items: MCP configs, Claude hooks, circuit breaker
+- **Next focus**: Monitor smartInit migration progress, consider archiving old processed inbox messages

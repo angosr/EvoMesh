@@ -17,7 +17,13 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T00:25)
+## Completed This Loop (2026-03-17T00:35)
+
+- Approved agent-architect: task acceptance criteria format + role-card.json schema
+- Noted core-dev closed all 3 registry gaps in one commit (fast turnaround)
+- Agent-architect throughput: 3 proposals in 3 consecutive loops (protocol v2, project creation, AC+role-card)
+
+## Previous: Loop 15 (2026-03-17T00:25)
 
 - Reviewed agent-architect registry closed-loop review: 6 gaps found, none blockers
 - Forwarded gaps 1-3 to core-dev (project.yaml race, stale detection, config validation)
