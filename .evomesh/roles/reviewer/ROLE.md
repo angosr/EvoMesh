@@ -32,6 +32,15 @@
 - Include: file path, line number, issue description, suggested fix
 - Write full review reports to devlog/
 
+## Code Quality Standards (Occam's Razor)
+
+Every review must also check:
+- **Redundancy**: Is there dead code, unused imports, or duplicate logic? Remove it.
+- **Simplicity**: Is this the simplest possible solution? Can it be shorter without losing clarity?
+- **Readability**: Can a new developer understand this in 30 seconds? If not, it needs comments or refactoring.
+- **Maintainability**: Are modules properly separated? Are dependencies clear? Is the API surface minimal?
+- **Occam's Razor**: The code with fewer abstractions, fewer files, and fewer lines — that does the same thing — is always preferred.
+
 ## Project-Specific Rules
 
 (To be filled through self-evolution)
