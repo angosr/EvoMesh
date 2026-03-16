@@ -43,11 +43,64 @@ trap cleanup SIGTERM SIGINT
 
 echo "[evomesh] Starting as $TARGET_USER (uid=$TARGET_UID)..."
 
-# ttyd wraps claude directly — supports multiple browser tabs sharing same session
-# From terminal: open http://localhost:<port> in browser, or use the EvoMesh web UI
-exec gosu "$TARGET_USER" ttyd \
+# Start ttyd in background
+gosu "$TARGET_USER" ttyd \
   --writable \
   -t fontSize=14 \
   -t scrollback=10000 \
   --port 7681 \
-  -- /usr/local/bin/claude $CLAUDE_ARGS
+  -- /usr/local/bin/claude $CLAUDE_ARGS &
+TTYD_PID=$!
+
+# Wait for ttyd to be ready, then send /loop command via WebSocket
+(
+  ROLE_ROOT=".evomesh/roles/${ROLE_NAME}"
+  LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/"
+
+  # Wait for claude to be ready (check for "bypass permissions" in WS output)
+  echo "[evomesh] Waiting for Claude to be ready..."
+  for i in $(seq 1 60); do
+    # Check if ttyd has spawned a process
+    if pgrep -f "claude" > /dev/null 2>&1; then
+      sleep 5  # Give claude time to fully render
+      echo "[evomesh] Claude is ready. Sending /loop command..."
+      # Send /loop via ttyd's WebSocket using Python
+      python3 -c "
+import asyncio, websockets, struct
+
+async def send_loop():
+    uri = 'ws://127.0.0.1:7681/ws'
+    async with websockets.connect(uri, subprotocols=['tty']) as ws:
+        # Wait for initial output
+        await asyncio.sleep(3)
+        # ttyd input: first byte 0x00 (stdin), then the text
+        cmd = '''$LOOP_CMD'''
+        msg = b'\x00' + cmd.encode('utf-8')
+        await ws.send(msg)
+        await asyncio.sleep(0.5)
+        # Send Enter
+        await ws.send(b'\x00\r')
+        await asyncio.sleep(1)
+        print('[evomesh] /loop command sent')
+
+asyncio.run(send_loop())
+" 2>&1
+      break
+    fi
+    sleep 1
+  done
+
+  # Save session ID after loop starts
+  sleep 10
+  HISTORY="${CONFIG_DIR}/history.jsonl"
+  if [ -f "$HISTORY" ]; then
+    SID=$(tail -1 "$HISTORY" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | head -1 | cut -d'"' -f4)
+    if [ -n "$SID" ]; then
+      echo "$SID" > "$SESSION_FILE"
+      echo "[evomesh] Saved session: $SID"
+    fi
+  fi
+) &
+
+# Wait for ttyd
+wait $TTYD_PID
