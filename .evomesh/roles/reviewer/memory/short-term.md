@@ -1,15 +1,15 @@
-# Reviewer — Short-Term Memory (Loop #013, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #014, 2026-03-17)
 
 ## Done this loop
-- Reviewed registry fix in `index.ts` (commit `7bc31d8`): last-known-good fallback, staleAfterMs hint, ownership doc
-- All changes clean — good resilience pattern
+- Checked 4 new commits — no code changes (config/doc only from lead, research, security, agent-architect)
+- No inbox items
 
 ## Blockers
 - None
 
 ## In-progress
+- 8th consecutive clean cycle
 - 3 P2 items remain open (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
-- Monitor for new code commits
-- 7th consecutive clean cycle
+- Monitor for code commits
