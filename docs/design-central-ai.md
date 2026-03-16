@@ -210,6 +210,20 @@ docker run ...
 - 中枢 AI 生成的状态摘要（读 `central-status.md`）
 - 角色管理操作（启动/停止/资源配置）
 
+### 实时同步机制
+中枢 AI 操作文件系统（创建项目、增删角色、修改配置）后，Web UI 必须自动反映变化。
+
+**实现方式**：前端 `fetchAll()` 每 8 秒轮询 `/api/projects` 和 `/api/projects/:slug/status`，这些 API 直接读取文件系统（`workspace.yaml`、`project.yaml`），所以中枢 AI 对文件的任何修改在下次轮询时自动体现：
+
+- 中枢 AI 编辑 `workspace.yaml` 添加项目 → 8 秒内左侧项目树更新
+- 中枢 AI 创建 `.evomesh/roles/trader/` → 8 秒内角色出现在 Dashboard
+- 中枢 AI `docker rm` 停止容器 → 8 秒内状态变为 stopped，tab 自动关闭
+- 中枢 AI 修改 `project.yaml` 里的资源配置 → Dashboard 立即反映
+
+**无需额外 API 或 WebSocket 通知**——因为 API 直接读文件，中枢 AI 修改文件 = API 返回新数据 = 前端更新。这是 file-based architecture 的天然优势。
+
+如果需要更快的响应（<1 秒），可以后续加 `fs.watch` 监听配置文件变化 → 主动推送 WebSocket 事件。但 8 秒轮询对当前场景足够。
+
 ### 移除的功能
 - ~~发消息给 Lead~~（通过中枢 AI 代替）
 - ~~SSE 状态流~~（中枢 AI 的 `central-status.md` 代替）
