@@ -80,7 +80,7 @@ export function ensureImage(): void {
 export function getContainerState(name: string): "running" | "stopped" | "not-found" {
   try {
     const out = execFileSync("docker", ["inspect", "--format", "{{.State.Running}}", name], {
-      encoding: "utf-8",
+      encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"],
     }).trim();
     return out === "true" ? "running" : "stopped";
   } catch {
@@ -95,7 +95,7 @@ export function getContainerPort(name: string): number | null {
   try {
     const out = execFileSync("docker", [
       "inspect", "--format", "{{(index (index .NetworkSettings.Ports \"7681/tcp\") 0).HostPort}}", name,
-    ], { encoding: "utf-8" }).trim();
+    ], { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] }).trim();
     return parseInt(out, 10) || null;
   } catch {
     return null;

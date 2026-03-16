@@ -55,14 +55,18 @@ export function setupTerminalProxy(
   app: import("express").Express,
   ctx: ServerContext,
 ): void {
-  // HTTP proxy: /terminal/{slug}/{role}/*
+  // HTTP proxy: /terminal/{slug}/{role}/* → strip prefix, forward to container's ttyd at /
   app.use((req, res, next) => {
     const match = req.url.match(/^\/terminal\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)(\/.*)?$/);
     if (!match) return next();
     const key = `${match[1]}/${match[2]}`;
     const ttyd = ctx.ttydProcesses.get(key);
     if (!ttyd) { res.status(404).send("Terminal not available. Is the role running?"); return; }
+    // Strip the /terminal/{slug}/{role} prefix — container's ttyd serves at /
+    const originalUrl = req.url;
+    req.url = match[3] || "/";
     proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port);
+    req.url = originalUrl; // restore for downstream middleware
   });
 
   // WebSocket proxy (no auth needed — ttyd binds localhost only)
@@ -74,8 +78,10 @@ export function setupTerminalProxy(
     const ttyd = ctx.ttydProcesses.get(key);
     if (!ttyd) { socket.destroy(); return; }
 
+    // Strip /terminal/{slug}/{role} prefix for container's ttyd
+    const wsPath = url.replace(/^\/terminal\/[a-z0-9_-]+\/[a-zA-Z0-9_-]+/, "") || "/";
     const proxyReq = http.request({
-      hostname: "127.0.0.1", port: ttyd.port, path: req.url, method: "GET", headers: req.headers,
+      hostname: "127.0.0.1", port: ttyd.port, path: wsPath, method: "GET", headers: req.headers,
     });
     proxyReq.on("upgrade", (proxyRes, proxySocket, proxyHead) => {
       let responseHead = `HTTP/1.1 101 Switching Protocols\r\n`;
