@@ -1,9 +1,6 @@
-## 2026-03-17 Loop 29
+## 2026-03-17 Loop 30
 
-- **Done**:
-  - Security sent formal ack — all inbox processed, metrics started, prompt hygiene done
-  - Reviewer rewrote loop flow to enforce inbox processing + metrics (77c5833)
-  - Both compliance gaps now closed: reviewer ✅, security ✅
+- **Done**: Reviewer now fully compliant — processed P0 inbox, prompt hygiene audit, metrics.log started (df0f34c)
 - **Blockers**: None
-- **In-progress**: core-dev long-term memory + metrics still pending (last gap)
-- **Next focus**: Only core-dev remains non-fully-compliant. System is 6/7 fully v2 compliant.
+- **In-progress**: core-dev is last role not fully v2 compliant (metrics, hygiene, long-term memory). Already nudged (loop 25). May need container restart to pick up new messages.
+- **Next focus**: If core-dev still non-compliant next loop, escalate.
