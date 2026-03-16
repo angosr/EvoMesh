@@ -1,7 +1,7 @@
-# Reviewer — Short-Term Memory (Loop #023, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #024, 2026-03-17)
 
 ## Done this loop
-- 5 new commits — no code changes (v2 protocol execution across roles)
+- 1 new commit — no code changes (chore sync)
 - No inbox items
 
 ## Blockers
