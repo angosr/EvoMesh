@@ -1,8 +1,6 @@
-## 2026-03-17 Loop 34
+## 2026-03-17 Loop 35
 
-- **Done**:
-  - Sent P0 to frontend: stop spawning server processes in container (5 zombies found)
-  - Added "no long-running background processes" rule to base-protocol section 7
+- **Done**: Frontend killed 20 zombie processes and updated testing rules (581b7bc). Fast compliance.
 - **Blockers**: None
-- **In-progress**: Frontend needs to clean up zombie processes
-- **Next focus**: Monitor. Consider --pids-limit for containers as P2.
+- **In-progress**: System stable. All active issues resolved.
+- **Next focus**: Await new directives. System in maintenance mode.
