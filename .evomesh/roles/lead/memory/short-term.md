@@ -1,7 +1,7 @@
-## 2026-03-17 Loop 40
+## 2026-03-17 Loop 41
 
-- **Done**: Exited light mode (new inbox). Dispatched first-run bootstrap task to core-dev (P1): server must create ~/.evomesh/ skeleton on first startup for new users.
+- **Done**: Noted first-run bootstrap shipped by core-dev (0194543). Fast turnaround — dispatched last loop, done this loop.
 - **Blockers**: None
-- **In-progress**: core-dev: first-run bootstrap implementation
-- **Idle count**: Reset to 0
-- **Next focus**: Monitor core-dev progress on bootstrap.
+- **In-progress**: Nothing active.
+- **Idle count**: 1
+- **Next focus**: Light mode if idle continues.
