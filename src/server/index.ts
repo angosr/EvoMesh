@@ -24,7 +24,6 @@ export interface ServerContext {
   ttydProcesses: Map<string, TtydProcess>;
   getProjects: () => ProjectEntry[];
   getProject: (slug: string) => ProjectEntry | undefined;
-  tmuxSession: (slug: string, roleName: string) => string;
   checkNeedsLogin: (accountDir: string) => boolean;
   extractToken: (req: { headers: { authorization?: string }; query?: any; url?: string }) => string | undefined;
 }
@@ -130,10 +129,6 @@ export function startServer(port: number, initialRoot?: string) {
     return getProjects().find(p => p.slug === slug);
   }
 
-  function tmuxSession(slug: string, roleName: string): string {
-    return `evomesh-${slug}-${roleName}`;
-  }
-
   function checkNeedsLogin(accountDir: string): boolean {
     try {
       const dotCreds = path.join(accountDir, ".credentials.json");
@@ -147,7 +142,7 @@ export function startServer(port: number, initialRoot?: string) {
 
   const ctx: ServerContext = {
     port, sessions, ttydProcesses,
-    getProjects, getProject, tmuxSession, checkNeedsLogin, extractToken,
+    getProjects, getProject, checkNeedsLogin, extractToken,
   };
 
   // --- Register terminal proxy and API routes ---
@@ -248,7 +243,7 @@ export function startServer(port: number, initialRoot?: string) {
   setInterval(() => ensureTtydRunning(ctx), 10000);
 
   const cleanup = () => {
-    for (const [, t] of ttydProcesses) { try { t.process.kill(); } catch {} }
+    // Containers keep running independently — no need to stop them on server exit
     process.exit(0);
   };
   process.on("SIGINT", cleanup);

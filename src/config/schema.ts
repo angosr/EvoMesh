@@ -5,6 +5,8 @@ export interface RoleConfig {
   evolution_upgrade_every: number;
   scope: string[];
   description: string;
+  memory?: string;  // e.g. "2g" → docker --memory
+  cpus?: string;    // e.g. "1.5" → docker --cpus
 }
 
 export interface GitConfig {

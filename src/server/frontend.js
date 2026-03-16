@@ -604,58 +604,6 @@ const origInitResize = initResize;
 });
 
 
-// ==================== Mobile touch scroll for terminals ====================
-// Uses server API to send tmux copy-mode scroll commands.
-// Works with tmux mouse OFF (preserves desktop text selection).
-(function() {
-  const panels = document.getElementById('panels');
-  if (!panels) return;
-  let touchStartY = 0, lastY = 0, scrolling = false, lastScrollTime = 0;
-  const THRESHOLD = 15, STEP_PX = 25, THROTTLE_MS = 100;
-
-  panels.addEventListener('touchstart', e => {
-    if (state.activePanel === 'dashboard' || state.activePanel === 'settings') return;
-    if (e.touches.length !== 1) return;
-    touchStartY = e.touches[0].clientY;
-    lastY = touchStartY;
-    scrolling = false;
-  }, { passive: true });
-
-  panels.addEventListener('touchmove', e => {
-    if (!state.openPanels[state.activePanel]) return;
-    if (e.touches.length !== 1) return;
-    const now = Date.now();
-    const currentY = e.touches[0].clientY;
-    const totalDy = Math.abs(currentY - touchStartY);
-
-    if (!scrolling && totalDy > THRESHOLD) {
-      scrolling = true;
-      lastY = currentY;
-      return;
-    }
-    if (!scrolling || now - lastScrollTime < THROTTLE_MS) return;
-
-    const dy = lastY - currentY;
-    const lines = Math.floor(Math.abs(dy) / STEP_PX);
-    if (lines < 1) return;
-
-    lastScrollTime = now;
-    lastY = currentY;
-
-    const parts = state.activePanel.split('/');
-    if (parts.length !== 2) return;
-    const direction = dy > 0 ? 'Up' : 'Down';
-
-    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction }),
-    }).catch(() => {});
-  }, { passive: true });
-
-  panels.addEventListener('touchend', () => { scrolling = false; });
-  panels.addEventListener('touchcancel', () => { scrolling = false; });
-})();
 
 
 // ==================== Init ====================

@@ -1,63 +1,38 @@
 import http from "node:http";
-import { execFileSync, spawn } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
-import { readPid } from "../process/registry.js";
+import { isRoleRunning, getContainerPort, startRole, ensureImage } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 
 export interface TtydProcess {
   port: number;
-  process: ReturnType<typeof spawn>;
   roleName: string;
   projectSlug: string;
 }
 
-export function startTtyd(
-  ctx: ServerContext,
-  projectSlug: string,
-  projectRoot: string,
-  roleName: string,
-  ttydPort: number,
-): TtydProcess | null {
-  const session = ctx.tmuxSession(projectSlug, roleName);
-  try {
-    execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
-  } catch { return null; }
-
-  try { execFileSync("fuser", ["-k", `${ttydPort}/tcp`], { stdio: "ignore" }); } catch {}
-
-  const basePath = `/terminal/${projectSlug}/${roleName}`;
-  const proc = spawn("ttyd", [
-    "--port", String(ttydPort),
-    "--interface", "127.0.0.1",
-    "--writable",
-    "-t", "fontSize=14",
-    "-t", "scrollback=10000",
-    "-t", "allowProposedApi=true",
-    "--base-path", basePath,
-    "tmux", "attach-session", "-t", session,
-  ], { detached: true, stdio: "ignore", cwd: projectRoot });
-  proc.unref();
-
-  return { port: ttydPort, process: proc, roleName, projectSlug };
-}
-
 export function ensureTtydRunning(ctx: ServerContext): void {
   try {
+    ensureImage();
     const projects = ctx.getProjects();
     let portOffset = 0;
     for (const project of projects) {
       try {
         const config = loadConfig(project.root);
-        for (const roleName of Object.keys(config.roles)) {
+        for (const [roleName, roleConfig] of Object.entries(config.roles)) {
           const key = `${project.slug}/${roleName}`;
-          if (ctx.ttydProcesses.has(key)) { portOffset++; continue; }
-          const info = readPid(project.root, roleName);
-          if (!info?.alive) { portOffset++; continue; }
-
-          const ttydPort = ctx.port + 1 + portOffset;
-          const proc = startTtyd(ctx, project.slug, project.root, roleName, ttydPort);
-          if (proc) ctx.ttydProcesses.set(key, proc);
           portOffset++;
+          if (ctx.ttydProcesses.has(key)) continue;
+
+          // Check if container is running
+          if (isRoleRunning(project.root, roleName)) {
+            const port = getContainerPort(`evomesh-${project.slug}-${roleName}`);
+            if (port) {
+              ctx.ttydProcesses.set(key, { port, roleName, projectSlug: project.slug });
+            }
+            continue;
+          }
+
+          // Start container for roles that should be running
+          // (only start if explicitly requested via API, not auto-start all)
         }
       } catch {}
     }
@@ -71,7 +46,7 @@ function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, targe
     res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
     proxyRes.pipe(res);
   });
-  proxyReq.on("error", () => { res.writeHead(502); res.end("ttyd not ready"); });
+  proxyReq.on("error", () => { res.writeHead(502); res.end("Terminal not ready"); });
   req.pipe(proxyReq);
 }
 
@@ -86,14 +61,11 @@ export function setupTerminalProxy(
     if (!match) return next();
     const key = `${match[1]}/${match[2]}`;
     const ttyd = ctx.ttydProcesses.get(key);
-    if (!ttyd) { res.status(404).send("Terminal not available"); return; }
+    if (!ttyd) { res.status(404).send("Terminal not available. Is the role running?"); return; }
     proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port);
   });
 
-  // WebSocket proxy for terminal connections
-  // Auth note: ttyd binds localhost only, accessible only through our proxy.
-  // The iframe URL has a token param but ttyd's WS doesn't inherit it,
-  // so we skip token validation here — the HTTP proxy already loaded the page.
+  // WebSocket proxy (no auth needed — ttyd binds localhost only)
   server.on("upgrade", (req, socket, head) => {
     const url = req.url || "";
     const match = url.match(/^\/terminal\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)\//);
