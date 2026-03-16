@@ -126,11 +126,17 @@ export function startRole(
   const name = containerName(projectSlug, roleName);
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
 
+  // If container is already running, just return its info
+  if (getContainerState(name) === "running") {
+    const port = getContainerPort(name);
+    if (port) return { role: roleName, containerName: name, ttydPort: port };
+  }
+
   // Ensure role config directory with credentials
   const configDir = ensureRoleConfig(projectSlug, roleName, accountPath);
 
-  // Stop/remove existing container
-  try { execFileSync("docker", ["rm", "-f", name], { stdio: "ignore" }); } catch {}
+  // Remove stopped/dead container before creating new one
+  try { execFileSync("docker", ["rm", "-f", name], { stdio: ["pipe", "pipe", "ignore"] }); } catch {}
 
   const homeDir = os.homedir();
 
