@@ -127,20 +127,21 @@ function renderDashboard() {
     const rows = p.roles.map(r => {
       const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
-      const resInfo = r.memory || r.cpus ? `<span style="color:#666;font-size:10px">${r.memory||'-'}/${r.cpus||'-'}cpu</span>` : '';
-      const actions = `
-        <button class="dash-action" onclick="restartRole('${esc(p.slug)}','${esc(r.name)}')" title="Restart">${r.running ? '↻ Restart' : '▶ Start'}</button>
-        <button class="dash-action" onclick="configRole('${esc(p.slug)}','${esc(r.name)}','${esc(r.memory||'')}','${esc(r.cpus||'')}')" title="Resources">⚙︎ Resources</button>
-        <button class="dash-action danger" onclick="deleteRole('${esc(p.slug)}','${esc(r.name)}')" title="Delete">Delete</button>
-      `;
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span></td>
-        <td>${statusBadge}${loginBadge} ${resInfo}</td>
+        <td>${statusBadge}${loginBadge}</td>
         <td><select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" onchange="switchAccount('${esc(p.slug)}','${esc(r.name)}',this)">${ao}</select></td>
-        <td>${actions}</td>
+        <td>
+          <input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="mem" title="Memory (e.g. 2g, 512m)">
+          <input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="cpu" title="CPUs (e.g. 1.5, 2)">
+        </td>
+        <td>
+          <button class="dash-action" onclick="saveAndRestart('${esc(p.slug)}','${esc(r.name)}')">${r.running ? '↻ Restart' : '▶ Start'}</button>
+          <button class="dash-action danger" onclick="deleteRole('${esc(p.slug)}','${esc(r.name)}')">Delete</button>
+        </td>
       </tr>`;
     }).join('');
-    html += `<div class="card"><h3>${esc(p.name)}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Actions</th></tr>${rows}</table></div>`;
+    html += `<div class="card"><h3>${esc(p.name)}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table></div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
   el.innerHTML = html;
@@ -552,26 +553,23 @@ async function switchAccount(slug, roleName, sel) {
   if (!confirm(`Switch ${roleName} to "${an}"?`)) { fetchAll(); return; }
   try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${esc(roleName)}</strong> -> ${esc(an)}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
-async function configRole(slug, roleName, curMemory, curCpus) {
-  const memory = prompt(`Memory limit for ${roleName} (e.g. 2g, 512m, empty=unlimited):`, curMemory);
-  if (memory === null) return; // cancelled
-  const cpus = prompt(`CPU limit for ${roleName} (e.g. 1.5, 2, empty=unlimited):`, curCpus);
-  if (cpus === null) return;
+async function saveAndRestart(slug, roleName) {
+  const memInput = document.querySelector(`.res-input[data-slug="${slug}"][data-role="${roleName}"][data-field="memory"]`);
+  const cpuInput = document.querySelector(`.res-input[data-slug="${slug}"][data-role="${roleName}"][data-field="cpus"]`);
+  const memory = memInput?.value?.trim() || null;
+  const cpus = cpuInput?.value?.trim() || null;
 
+  // Save config first
   try {
-    const res = await authFetch(`${API}/projects/${slug}/roles/${roleName}/config`, {
+    await authFetch(`${API}/projects/${slug}/roles/${roleName}/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memory: memory || null, cpus: cpus || null }),
+      body: JSON.stringify({ memory, cpus }),
     });
-    const data = await res.json();
-    if (data.ok) {
-      addFeedMessage(`<strong>${esc(roleName)}</strong> resources: ${memory||'unlimited'} mem, ${cpus||'unlimited'} cpu${data.restarted ? ' (restarting...)' : ''}`, 'system');
-      setTimeout(fetchAll, 3000);
-    } else {
-      alert(data.error || 'Failed');
-    }
-  } catch { alert('Failed'); }
+  } catch {}
+
+  // Then restart
+  restartRole(slug, roleName);
 }
 
 async function restartRole(slug, roleName) {

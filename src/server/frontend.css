@@ -154,6 +154,9 @@
   .badge.login-needed { background: #3b1010; color: #ef4444; }
 
   /* Dashboard action buttons */
+  .res-input { width: 50px; padding: 3px 5px; background: #0a0a0a; border: 1px solid #333; color: #ccc; border-radius: 3px; font-size: 10px; margin-right: 3px; }
+  .res-input:focus { outline: none; border-color: #e94560; }
+  .res-input::placeholder { color: #555; }
   .dash-action { padding: 3px 8px; border: 1px solid #333; background: transparent; color: #aaa; border-radius: 3px; cursor: pointer; font-size: 10px; margin-right: 4px; }
   .dash-action:hover { background: #222; color: #fff; border-color: #555; }
   .dash-action.danger { color: #ef4444; border-color: #3b1010; }
