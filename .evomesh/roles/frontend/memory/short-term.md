@@ -1,21 +1,20 @@
 # Frontend — Short-Term Memory
 
-## Last Loop (Loop 11 — 2026-03-16)
+## Last Loop (Loop 12 — 2026-03-16)
 
 ### Done
-- Mobile terminal scrolling improvement (P1):
-  - Batched scroll: accumulates lines and flushes every 100ms (max 10 req/s vs unlimited before)
-  - Momentum/inertia: velocity tracking during touchmove, rAF-based deceleration after touchend
-  - Net direction calculation (cancels opposing scroll in same batch)
-  - Capped at 30 lines per batch to prevent over-scroll
+- Swipe-to-close for mobile panels (P2):
+  - Sidebar: swipe left (60px threshold) to dismiss
+  - Mission Control: swipe right to dismiss
+  - Ignores vertical-dominant swipes (won't conflict with scrolling)
+  - Uses closeMobileOverlay() for consistent cleanup
 
 ### Blockers
 - `/api/mission-control` endpoint still pending core-dev
 
 ### In Progress
-- Nothing — all original P0/P1/P2 items complete
+- Nothing — all original tasks complete
 
 ### Next Loop Focus
-- P2: Swipe-to-close for mobile overlays
-- P2: Dark/light theme toggle
+- P2: Dark/light theme toggle (last remaining item)
 - Any new inbox items

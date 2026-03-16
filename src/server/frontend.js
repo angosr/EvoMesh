@@ -329,6 +329,37 @@ function closeMobileOverlay() {
   document.getElementById('mobile-overlay').classList.remove('show');
 }
 
+// ==================== Swipe-to-close for mobile panels ====================
+(function() {
+  const SWIPE_THRESHOLD = 60;
+  function addSwipeClose(el, direction) {
+    let startX = 0, startY = 0, tracking = false;
+    el.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+    el.addEventListener('touchmove', e => {
+      if (!tracking || e.touches.length !== 1) return;
+      // Cancel if vertical scroll dominates
+      if (Math.abs(e.touches[0].clientY - startY) > Math.abs(e.touches[0].clientX - startX)) { tracking = false; }
+    }, { passive: true });
+    el.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const endX = e.changedTouches[0].clientX;
+      const dx = endX - startX;
+      // direction: 'left' = swipe left to close, 'right' = swipe right to close
+      if (direction === 'left' && dx < -SWIPE_THRESHOLD) closeMobileOverlay();
+      if (direction === 'right' && dx > SWIPE_THRESHOLD) closeMobileOverlay();
+    });
+  }
+  const sidebar = document.getElementById('sidebar');
+  const chat = document.getElementById('chat-sidebar');
+  if (sidebar) addSwipeClose(sidebar, 'left');
+  if (chat) addSwipeClose(chat, 'right');
+})();
 
 // ==================== Resize handles ====================
 function initResize(handleId, target, side) {

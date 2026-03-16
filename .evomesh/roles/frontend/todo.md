@@ -16,5 +16,5 @@
 - [ ] `/api/mission-control` endpoint pending core-dev — Tasks tab uses placeholder
 
 ## P2 — Improvements
-- [ ] Add swipe-to-close for mobile sidebar/chat overlays
+- [x] Swipe-to-close for mobile sidebar (swipe left) and Mission Control (swipe right)
 - [ ] Consider dark/light theme toggle using existing CSS variables
