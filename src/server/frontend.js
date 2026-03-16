@@ -65,8 +65,7 @@ function renderSidebar() {
       const btn = document.createElement('button'); const key = `${p.slug}/${r.name}`;
       btn.className = `role-btn ${state.activePanel===key?'active':''}`;
       const lw = r.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
-      const resInfo = r.memory || r.cpus ? `${r.memory||'?'}/${r.cpus||'?'}cpu` : '';
-      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${esc(r.name)}</span>${lw}<span class="info">${esc(r.account)}${resInfo?' '+resInfo:''}</span><span class="role-actions"><span class="act-cfg" onclick="event.stopPropagation();configRole('${esc(p.slug)}','${esc(r.name)}','${esc(r.memory||'')}','${esc(r.cpus||'')}')" title="Resources">&#9881;</span><span class="act-restart" onclick="event.stopPropagation();restartRole('${esc(p.slug)}','${esc(r.name)}')" title="Restart">&#8635;</span><span class="act-del" onclick="event.stopPropagation();deleteRole('${esc(p.slug)}','${esc(r.name)}')" title="Delete">&times;</span></span>`;
+      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${esc(r.name)}</span>${lw}`;
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
       rd.appendChild(btn);
     }
@@ -125,8 +124,23 @@ function renderDashboard() {
   const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
   let html = '';
   for (const p of state.projects) {
-    const rows = p.roles.map(r => `<tr><td><strong>${esc(r.name)}</strong></td><td><span class="badge ${esc(r.type)}">${esc(r.type)}</span></td><td>${esc(r.loop_interval||'')}</td><td><span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>${r.needsLogin?' <span class="badge login-needed">login</span>':''}</td><td><select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" onchange="switchAccount('${esc(p.slug)}','${esc(r.name)}',this)">${ao}</select></td><td>${r.terminal?`<a href="${esc(r.terminal)}" target="_blank" style="color:#818cf8">Open</a>`:'-'}</td></tr>`).join('');
-    html += `<div class="card"><h3>${esc(p.name)}</h3><table><tr><th>Role</th><th>Type</th><th>Interval</th><th>Status</th><th>Account</th><th>Terminal</th></tr>${rows}</table></div>`;
+    const rows = p.roles.map(r => {
+      const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
+      const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
+      const resInfo = r.memory || r.cpus ? `<span style="color:#666;font-size:10px">${r.memory||'-'}/${r.cpus||'-'}cpu</span>` : '';
+      const actions = `
+        <button class="dash-action" onclick="restartRole('${esc(p.slug)}','${esc(r.name)}')" title="Restart">${r.running ? '↻ Restart' : '▶ Start'}</button>
+        <button class="dash-action" onclick="configRole('${esc(p.slug)}','${esc(r.name)}','${esc(r.memory||'')}','${esc(r.cpus||'')}')" title="Resources">⚙︎ Resources</button>
+        <button class="dash-action danger" onclick="deleteRole('${esc(p.slug)}','${esc(r.name)}')" title="Delete">Delete</button>
+      `;
+      return `<tr>
+        <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span></td>
+        <td>${statusBadge}${loginBadge} ${resInfo}</td>
+        <td><select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" onchange="switchAccount('${esc(p.slug)}','${esc(r.name)}',this)">${ao}</select></td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+    html += `<div class="card"><h3>${esc(p.name)}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Actions</th></tr>${rows}</table></div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
   el.innerHTML = html;

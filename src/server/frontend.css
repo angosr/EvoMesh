@@ -152,6 +152,12 @@
   .badge.lead { background: #422006; color: #fbbf24; }
   .badge.worker { background: #1e1b4b; color: #818cf8; }
   .badge.login-needed { background: #3b1010; color: #ef4444; }
+
+  /* Dashboard action buttons */
+  .dash-action { padding: 3px 8px; border: 1px solid #333; background: transparent; color: #aaa; border-radius: 3px; cursor: pointer; font-size: 10px; margin-right: 4px; }
+  .dash-action:hover { background: #222; color: #fff; border-color: #555; }
+  .dash-action.danger { color: #ef4444; border-color: #3b1010; }
+  .dash-action.danger:hover { background: #3b1010; color: #fff; }
   .acct-select { background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; padding: 2px 4px; border-radius: 4px; font-size: 10px; cursor: pointer; max-width: 100px; }
 
   /* Grid — adaptive layout based on panel count */
