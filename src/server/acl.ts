@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import YAML from "yaml";
+import { readYaml, writeYaml } from "../utils/fs.js";
 import type { UserRole } from "./auth.js";
 
 const ACL_FILE = path.join(os.homedir(), ".evomesh", "acl.yaml");
@@ -33,7 +33,7 @@ const PROJECT_ROLE_HIERARCHY: Record<ProjectRole, number> = {
 export function loadAcl(): AclConfig {
   try {
     if (fs.existsSync(ACL_FILE)) {
-      const raw = YAML.parse(fs.readFileSync(ACL_FILE, "utf-8"));
+      const raw = readYaml<any>(ACL_FILE);
       if (raw?.projects && typeof raw.projects === "object") return raw as AclConfig;
     }
   } catch {}
@@ -41,8 +41,7 @@ export function loadAcl(): AclConfig {
 }
 
 export function saveAcl(config: AclConfig): void {
-  fs.mkdirSync(path.dirname(ACL_FILE), { recursive: true });
-  fs.writeFileSync(ACL_FILE, YAML.stringify(config), "utf-8");
+  writeYaml(ACL_FILE, config);
 }
 
 // --- Query ---

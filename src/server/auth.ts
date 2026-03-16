@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import YAML from "yaml";
+import { readYaml, writeYaml } from "../utils/fs.js";
 
 const AUTH_DIR = path.join(os.homedir(), ".evomesh");
 const USERS_FILE = path.join(AUTH_DIR, "users.yaml");
@@ -47,7 +47,7 @@ function createUser(username: string, password: string, role: UserRole): User {
 function loadUsers(): UsersConfig {
   try {
     if (fs.existsSync(USERS_FILE)) {
-      const raw = YAML.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+      const raw = readYaml<any>(USERS_FILE);
       if (raw?.users && Array.isArray(raw.users)) {
         // Migrate legacy "viewer" role to "user"
         let migrated = false;
@@ -55,8 +55,7 @@ function loadUsers(): UsersConfig {
           if (u.role === "viewer") { u.role = "user"; migrated = true; }
         }
         if (migrated) {
-          fs.mkdirSync(AUTH_DIR, { recursive: true });
-          fs.writeFileSync(USERS_FILE, YAML.stringify(raw), "utf-8");
+          writeYaml(USERS_FILE, raw);
         }
         return raw as UsersConfig;
       }
@@ -66,8 +65,7 @@ function loadUsers(): UsersConfig {
 }
 
 function saveUsers(config: UsersConfig): void {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-  fs.writeFileSync(USERS_FILE, YAML.stringify(config), "utf-8");
+  writeYaml(USERS_FILE, config);
 }
 
 // --- Migration from legacy auth.yaml ---
@@ -77,7 +75,7 @@ export function migrateIfNeeded(): void {
   if (!fs.existsSync(LEGACY_AUTH_FILE)) return;
 
   try {
-    const raw = YAML.parse(fs.readFileSync(LEGACY_AUTH_FILE, "utf-8"));
+    const raw = readYaml<any>(LEGACY_AUTH_FILE);
     if (!raw?.passwordHash || !raw?.salt) return;
 
     const config: UsersConfig = {

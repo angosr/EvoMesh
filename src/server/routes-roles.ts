@@ -1,9 +1,7 @@
 import path from "node:path";
-import fs from "node:fs";
-import YAML from "yaml";
 import { loadConfig } from "../config/loader.js";
-import { evomeshDir } from "../utils/paths.js";
-import { expandHome } from "../utils/paths.js";
+import { evomeshDir, expandHome } from "../utils/paths.js";
+import { writeYaml } from "../utils/fs.js";
 import { createRole, deleteRole } from "../roles/manager.js";
 import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
 import {
@@ -132,7 +130,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const { memory, cpus } = req.body;
       rc.memory = memory || undefined;
       rc.cpus = cpus || undefined;
-      fs.writeFileSync(path.join(evomeshDir(project.root), "project.yaml"), YAML.stringify(config), "utf-8");
+      writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
       // Restart container with new limits if running
       const wasRunning = isRoleRunning(project.root, roleName);
@@ -167,7 +165,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
 
       const oldAccount = rc.account;
       rc.account = accountName;
-      fs.writeFileSync(path.join(evomeshDir(project.root), "project.yaml"), YAML.stringify(config), "utf-8");
+      writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
       // Swap credentials in container config (preserves session)
       const newAccountPath = expandHome(config.accounts[accountName]);

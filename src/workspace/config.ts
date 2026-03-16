@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import YAML from "yaml";
-import { exists, ensureDir } from "../utils/fs.js";
+import { exists, readYaml, writeYaml } from "../utils/fs.js";
 import type { WorkspaceConfig, WorkspaceProject, Lang } from "../config/schema.js";
 
 const WORKSPACE_DIR = path.join(os.homedir(), ".evomesh");
@@ -16,13 +15,12 @@ export function loadWorkspace(): WorkspaceConfig {
   if (!exists(WORKSPACE_FILE)) {
     return { projects: [] };
   }
-  const raw = YAML.parse(fs.readFileSync(WORKSPACE_FILE, "utf-8"));
+  const raw = readYaml<any>(WORKSPACE_FILE);
   return { projects: raw?.projects || [] };
 }
 
 export function saveWorkspace(config: WorkspaceConfig): void {
-  ensureDir(WORKSPACE_DIR);
-  fs.writeFileSync(WORKSPACE_FILE, YAML.stringify(config), "utf-8");
+  writeYaml(WORKSPACE_FILE, config);
 }
 
 export function slugify(name: string): string {
