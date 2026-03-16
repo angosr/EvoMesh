@@ -750,13 +750,13 @@ function renderMCFromState() {
     });
   }
 
-  // Tasks: show placeholder until API exists
+  // Tasks: show empty state in fallback mode
   const tasksList = document.getElementById('mc-tasks-list');
   const tasksEmpty = document.getElementById('mc-tasks-empty');
   if (tasksList && tasksEmpty) {
     tasksList.innerHTML = '';
     tasksEmpty.style.display = '';
-    tasksEmpty.textContent = 'Waiting for /api/mission-control endpoint...';
+    tasksEmpty.textContent = 'No open tasks';
   }
 }
 

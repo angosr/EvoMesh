@@ -13,7 +13,7 @@
 
 ## P1 — Current Issues
 - [x] Mobile terminal scrolling — improved with batched requests + momentum inertia
-- [ ] `/api/mission-control` endpoint pending core-dev — Tasks tab uses placeholder
+- [x] `/api/mission-control` endpoint done — Tasks tab now renders from API, placeholder updated
 
 ## P2 — Improvements
 - [x] Swipe-to-close for mobile sidebar (swipe left) and Mission Control (swipe right)
