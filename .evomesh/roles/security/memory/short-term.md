@@ -1,22 +1,17 @@
-## 2026-03-16 Loop 1
+## 2026-03-16 Loop 2
 
 - **Done**:
-  - Full initial security audit of server, Docker, auth, frontend
-  - Validated reviewer's 2 P0 inbox messages (5 findings + terminal auth)
-  - Confirmed 3 findings still open (SEC-001, SEC-002, SEC-003)
-  - Confirmed 4 findings already fixed (terminal auth, XSS, sendInput injection, SSE auth)
-  - Corrected 1 false positive from reviewer (SSE refresh IS protected by middleware)
-  - Identified 1 new finding not in reviewer report (SEC-003: admin endpoint authz)
-  - Hardcoded secrets scan: PASS
-  - Wrote devlog/20260316_audit-001.md with full findings
-  - Sent P0 report to lead inbox
-  - Sent P0 fix tasks to core-dev inbox
-  - Acknowledged reviewer inbox messages
+  - Verified SEC-001/002/003 fixes in git diff — all FIXED by core-dev ✅
+  - Deep audit: ACL system (acl.ts) — PASS, no privilege escalation
+  - Deep audit: auth.ts — PASS, found SEC-010 timing side-channel (P2)
+  - Deep audit: entrypoint.sh — PASS, role names validated at API layer
+  - Deep audit: Dockerfile — found SEC-011 unpinned @latest (P2)
+  - Documented SEC-012 (--dangerously-skip-permissions) as accepted risk
+  - Wrote devlog/20260316_audit-002.md
 - **Blockers**: Cannot git pull (unstaged changes from other roles)
 - **In-progress**: None
 - **Next focus**:
-  - Monitor SEC-001/002/003 fix status
-  - Audit auth.ts password hashing parameters in detail
-  - Review ACL system (src/server/acl.ts) for privilege escalation
-  - Check for CSRF, rate limiting, session management hardening
-  - Dependency audit (package.json CVEs)
+  - Monitor for new code changes introducing vulnerabilities
+  - CSRF audit (no tokens seen in forms)
+  - Test for path traversal in /api/complete-path and file-serving routes
+  - Rate limiting advocacy (SEC-008)
