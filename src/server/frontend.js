@@ -206,7 +206,7 @@ function renderDashboard() {
     sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
   });
   el.querySelectorAll('.dash-action[data-action="restart"]').forEach(btn => {
-    btn.addEventListener('click', () => saveAndRestart(btn.dataset.slug, btn.dataset.role));
+    btn.addEventListener('click', () => withLoading(btn, () => saveAndRestart(btn.dataset.slug, btn.dataset.role)));
   });
   el.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
@@ -374,6 +374,20 @@ function initResize(handleId, target, side) {
 initResize('rh-left', 'sidebar', 'left');
 initResize('rh-right', 'chat-sidebar', 'right');
 
+// ==================== Button loading state ====================
+function withLoading(btn, asyncFn) {
+  if (btn.disabled) return;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '...';
+  btn.classList.add('loading');
+  asyncFn().finally(() => {
+    btn.disabled = false;
+    btn.textContent = orig;
+    btn.classList.remove('loading');
+  });
+}
+
 // ==================== Account / Role management ====================
 async function switchAccount(slug, roleName, sel) {
   const an = sel.value, opt = sel.selectedOptions[0];
@@ -396,7 +410,7 @@ async function saveAndRestart(slug, roleName) {
   } catch {}
 
   // Then restart
-  restartRole(slug, roleName);
+  await restartRole(slug, roleName);
 }
 
 async function restartRole(slug, roleName) {
@@ -671,7 +685,7 @@ function renderMCFromState() {
       </div>
     </div>`).join('');
     issuesList.querySelectorAll('[data-action="mc-restart"]').forEach(btn => {
-      btn.addEventListener('click', () => restartRole(btn.dataset.slug, btn.dataset.role));
+      btn.addEventListener('click', () => withLoading(btn, () => restartRole(btn.dataset.slug, btn.dataset.role)));
     });
     issuesList.querySelectorAll('[data-action="mc-open"]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -721,29 +735,16 @@ function renderMCIssues(issues) {
   if (empty) empty.style.display = 'none';
   // Map issue type to CSS class: stopped→p0 (red), stale→p1 (yellow), p0-pending→p0
   const typeToClass = { stopped: 'p0', stale: 'p1', 'p0-pending': 'p0' };
+  const typeLabel = { stopped: 'STOPPED', stale: 'STALE', 'p0-pending': 'P0' };
   list.innerHTML = issues.map(is => {
     const cls = typeToClass[is.type] || is.priority || 'p2';
+    const badge = typeLabel[is.type] || is.type || '';
     return `<div class="mc-issue ${esc(cls)}">
+      <span class="mc-issue-badge">${esc(badge)}</span>
       <div class="mc-issue-title">${esc(is.title || '')}</div>
       <div class="mc-issue-meta">${esc(is.meta || '')}</div>
-      <div class="mc-issue-actions">
-        ${is.slug && is.role ? `<button data-action="mc-restart" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Restart</button>
-        <button data-action="mc-open" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">View Log</button>` : ''}
-      </div>
     </div>`;
   }).join('');
-  list.querySelectorAll('[data-action="mc-restart"]').forEach(btn => {
-    btn.addEventListener('click', () => restartRole(btn.dataset.slug, btn.dataset.role));
-  });
-  list.querySelectorAll('[data-action="mc-open"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const p = state.projects.find(proj => proj.slug === btn.dataset.slug);
-      if (p) {
-        const r = p.roles.find(role => role.name === btn.dataset.role);
-        openTerminal(btn.dataset.slug, p.name, btn.dataset.role, r?.terminal);
-      }
-    });
-  });
 }
 
 function renderMCTasks(tasks) {

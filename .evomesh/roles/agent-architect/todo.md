@@ -1,15 +1,33 @@
 # agent-architect — Tasks
 
-## P0 — Assess Current State
+## P0 — Assess Current State ✅ (2026-03-16)
+1. ✅ Read all roles' ROLE.md
+2. ✅ base-protocol.md assessed (was missing → now created by lead)
+3. ✅ Inbox format analyzed → threading proposal adopted
+4. ✅ Memory system evaluated → lifecycle protocol adopted
+5. ✅ Assessment report: devlog/20260316_assessment-current-state.md
+6. ✅ 3 proposals sent and approved by lead
 
-1. Read all roles' ROLE.md — understand current collaboration design
-2. Read base-protocol.md — assess if it covers all needed protocols
-3. Analyze inbox/ message format — is frontmatter the best approach?
-4. Evaluate memory system — is short-term/long-term split effective?
-5. Write assessment report to devlog/
-6. Send top 3 improvement suggestions to lead via inbox
+## P0 — Active
+
+- [ ] Design project creation flow for Central AI (user task: scaffolding, role templates, project analysis, account distribution)
+- [x] Research multi-agent frameworks + optimize base-protocol (devlog written, v2 proposal sent to lead)
+- [ ] Implement base-protocol.md v2 changes (awaiting lead approval: sections 8-10)
 
 ## P1
 
-- Research: how do AutoGen, CrewAI, and similar tools handle inter-agent communication?
-- Propose improved message format or communication protocol
+- [x] Heartbeat/liveness detection proposal → accepted as Phase 2 (after registry.json)
+- [x] Memory storage strategy research → hybrid B+D recommended, sent to lead
+- [ ] Review registry closed-loop design for gaps (lead request)
+- [ ] Prompt hygiene rule — fold into base-protocol v2 (user request)
+- [ ] Append-only shared docs format spec (lead/research request)
+- [ ] Self-evolution protocol detailed design (EvoMAC-inspired)
+- [ ] metrics.log format spec (lead/research request)
+
+## P2
+
+- [ ] role-card.json schema (A2A Agent Card inspired, lead request)
+- [ ] MCP server configs per role (lead/research request)
+- [ ] Claude Code hooks for role scope enforcement (lead/research request)
+- [ ] Circuit breaker design (N consecutive failures → auto-pause + P0 alert)
+- [ ] Research: deeper dive into LangGraph reducer pattern for shared state

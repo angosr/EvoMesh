@@ -65,10 +65,6 @@ roles:
       - src/
       - docker/
     description: Security audit — vulnerabilities, hardcodes, injection
-git:
-  branch: main
-  conflict_resolution: auto
-  auto_push: true
   research:
     type: worker
     loop_interval: 30m
@@ -78,3 +74,7 @@ git:
       - devlog/
       - docs/
     description: Frontier research — papers, open source, trends, roadmap advice
+git:
+  branch: main
+  conflict_resolution: auto
+  auto_push: true

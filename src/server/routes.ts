@@ -390,7 +390,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       };
       const projects = ctx.getProjects();
       const activity: Array<{ project: string; role: string; time: string; text: string; mtime: number }> = [];
-      const issues: Array<{ project: string; role: string; type: string; text: string }> = [];
+      const issues: Array<{ project: string; slug: string; role: string; type: string; title: string; meta: string }> = [];
       const tasks: Array<{ priority: string; text: string; project: string; role: string; done: boolean }> = [];
 
       for (const p of projects) {
@@ -409,18 +409,18 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
             const ageMs = now - stat.mtimeMs;
             const bullets = stm.match(/^- .+$/gm);
             if (bullets) {
-              for (const b of bullets.slice(-3)) {
-                activity.push({ project: p.name, role: name, time: relTime(ageMs), text: b.replace(/^- /, ""), mtime: stat.mtimeMs });
-              }
+              // One entry per role — the most recent meaningful bullet
+              const latest = bullets.filter(b => !b.match(/^- (下一|Next|check inbox|idle)/i)).pop() || bullets[bullets.length - 1];
+              activity.push({ project: p.name, role: name, time: relTime(ageMs), text: latest.replace(/^- /, ""), mtime: stat.mtimeMs });
             }
             if (ageMs > 3600000) {
-              issues.push({ project: p.name, role: name, type: "stale", text: `Memory ${relTime(ageMs)} outdated` });
+              issues.push({ project: p.name, slug: p.slug, role: name, type: "stale", title: `${name} memory stale`, meta: `${p.name} — ${relTime(ageMs)} outdated` });
             }
           } catch {}
 
           // Issues: role not running
           if (!running) {
-            issues.push({ project: p.name, role: name, type: "stopped", text: "Container not running" });
+            issues.push({ project: p.name, slug: p.slug, role: name, type: "stopped", title: `${name} stopped`, meta: p.name });
           }
 
           // Tasks: parse todo.md
@@ -435,7 +435,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
               const text = taskMatch[1];
               const done = text.startsWith("~~") || text.includes("✅");
               if (currentPriority === "P0" && !done) {
-                issues.push({ project: p.name, role: name, type: "p0-pending", text: text.slice(0, 80) });
+                issues.push({ project: p.name, slug: p.slug, role: name, type: "p0-pending", title: `${name} has P0 task`, meta: text.slice(0, 80) });
               }
               if (!done) tasks.push({ priority: currentPriority, text: text.slice(0, 120), project: p.name, role: name, done });
             }
