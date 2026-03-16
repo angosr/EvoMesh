@@ -81,7 +81,7 @@ describe("frontend static files", () => {
         for (const m of code.matchAll(/(?:const|let|var)\s+(\w+)\s*=/g)) defined.add(m[1]);
       }
 
-      const builtins = new Set(["event", "this", "if", "confirm", "alert", "prompt", "console"]);
+      const builtins = new Set(["event", "this", "if", "confirm", "alert", "prompt", "console", "toggle", "classList"]);
       const missing: string[] = [];
 
       for (const m of html.matchAll(/onclick="([^"]+)"/g)) {
