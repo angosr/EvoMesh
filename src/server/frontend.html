@@ -31,6 +31,21 @@
     <div id="open-tabs-list"></div>
   </div>
   <div id="project-tree"></div>
+  <div id="add-project-area">
+    <button id="add-project-btn" onclick="showAddForm()">+ Add Project</button>
+    <div id="add-form">
+      <div id="autocomplete"></div>
+      <input id="add-input" placeholder="GitHub URL or local path..." autocomplete="off" />
+      <select id="add-lang" style="width:100%;padding:5px 7px;background:#0a0a0a;border:1px solid #222;color:#e0e0e0;border-radius:4px;font-size:11px;margin-bottom:4px;">
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+      </select>
+      <div class="btns">
+        <button class="btn-ok" onclick="doAddProject()">Add</button>
+        <button class="btn-cancel" onclick="hideAddForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="status-bar">Loading...</div>
 </div>
 <div class="resize-handle" id="rh-left"></div>
@@ -163,6 +178,24 @@
   <div id="mc-command">
     <textarea id="central-input" rows="2" placeholder="Send command to Central AI..."></textarea>
     <button id="central-send" onclick="sendToCentral()">Send</button>
+  </div>
+</div>
+
+<!-- Role Modal -->
+<div id="role-modal-overlay" onclick="if(event.target===this)closeRoleModal()">
+  <div id="role-modal">
+    <h3>Add Role</h3>
+    <input type="hidden" id="rm-slug" />
+    <label>Role Name</label>
+    <input id="rm-name" placeholder="e.g. designer, tester" />
+    <label>Template</label>
+    <select id="rm-template"><option value="executor">executor</option><option value="lead">lead</option><option value="reviewer">reviewer</option></select>
+    <label>Account</label>
+    <select id="rm-account"></select>
+    <div class="modal-btns">
+      <button class="btn-create" onclick="doCreateRole()">Create</button>
+      <button class="btn-close" onclick="closeRoleModal()">Cancel</button>
+    </div>
   </div>
 </div>
 

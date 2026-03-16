@@ -403,7 +403,33 @@ async function restartRole(slug, roleName) {
   if (!confirm(`Restart "${roleName}"? Session will reconnect automatically.`)) return;
   try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
+function showRoleModal(slug) { document.getElementById('rm-slug').value = slug; document.getElementById('rm-name').value = ''; const s = document.getElementById('rm-account'); s.innerHTML = state.accounts.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join(''); document.getElementById('role-modal-overlay').classList.add('show'); document.getElementById('rm-name').focus(); }
+function closeRoleModal() { document.getElementById('role-modal-overlay').classList.remove('show'); }
+async function doCreateRole() { const slug = document.getElementById('rm-slug').value, name = document.getElementById('rm-name').value.trim(), template = document.getElementById('rm-template').value, account = document.getElementById('rm-account').value; if (!name) return; try { const r = await authFetch(`${API}/projects/${slug}/roles`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,template,account})}); const d = await r.json(); if (d.ok) { addFeedMessage(`Role <strong>${esc(name)}</strong> created`, 'system'); closeRoleModal(); fetchAll(); } else alert(d.error); } catch { alert('Failed'); } }
+document.getElementById('rm-name')?.addEventListener('keydown', e => { if (e.key==='Enter') doCreateRole(); if (e.key==='Escape') closeRoleModal(); });
 
+// ==================== Add project ====================
+function showAddForm() { document.getElementById('add-project-btn').style.display = 'none'; document.getElementById('add-form').style.display = 'block'; document.getElementById('add-input').focus(); }
+function hideAddForm() { document.getElementById('add-project-btn').style.display = 'block'; document.getElementById('add-form').style.display = 'none'; document.getElementById('add-input').value = ''; }
+async function doAddProject() { const input = document.getElementById('add-input').value.trim(); if (!input) return; const lang = document.getElementById('add-lang').value; const body = input.startsWith('http')||input.startsWith('git@') ? {url:input,lang} : {path:input,lang}; try { addFeedMessage(`Adding: ${esc(input)} (${lang})...`, 'system'); const r = await authFetch(`${API}/projects/add`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(d.project.name)}</strong> added`, 'system'); hideAddForm(); setTimeout(fetchAll, 3000); } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } }
+
+// Path autocomplete
+let acTimer = null, acIndex = -1;
+const addInput = document.getElementById('add-input'), acBox = document.getElementById('autocomplete');
+if (addInput && acBox) {
+addInput.addEventListener('input', () => { clearTimeout(acTimer); const v = addInput.value.trim(); if (!v||v.startsWith('http')||v.startsWith('git@')) { acBox.classList.remove('show'); return; } acTimer = setTimeout(() => fetchCompletions(v), 150); });
+addInput.addEventListener('keydown', e => {
+  const items = acBox.querySelectorAll('.ac-item');
+  if (e.key==='ArrowDown' && acBox.classList.contains('show')) { e.preventDefault(); acIndex = Math.min(acIndex+1, items.length-1); items.forEach((el,i) => el.classList.toggle('selected', i===acIndex)); }
+  else if (e.key==='ArrowUp' && acBox.classList.contains('show')) { e.preventDefault(); acIndex = Math.max(acIndex-1, 0); items.forEach((el,i) => el.classList.toggle('selected', i===acIndex)); }
+  else if ((e.key==='Tab'||e.key==='Enter') && acBox.classList.contains('show') && items.length>0) { e.preventDefault(); const sel = acIndex>=0?items[acIndex]:items[0]; addInput.value = sel.dataset.path; acBox.classList.remove('show'); acIndex=-1; clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(addInput.value), 150); }
+  else if (e.key==='Enter') { acBox.classList.remove('show'); doAddProject(); }
+  else if (e.key==='Escape') { if (acBox.classList.contains('show')) acBox.classList.remove('show'); else hideAddForm(); }
+});
+addInput.addEventListener('blur', () => setTimeout(() => acBox.classList.remove('show'), 200));
+}
+async function fetchCompletions(q) { try { const r = await authFetch(`${API}/complete-path?q=${encodeURIComponent(q)}`); const d = await r.json(); if (!d.suggestions.length) { acBox.classList.remove('show'); return; } acBox.innerHTML = d.suggestions.map(s => `<div class="ac-item" data-path="${esc(s.path)}"><span>${esc(s.path)}</span>${s.hasEvomesh?'<span class="ac-badge">evomesh</span>':''}</div>`).join(''); acBox.querySelectorAll('.ac-item').forEach(item => { item.addEventListener('mousedown', e => { e.preventDefault(); selectCompletion(item.dataset.path); }); }); acBox.classList.add('show'); acIndex=-1; } catch { acBox.classList.remove('show'); } }
+function selectCompletion(p) { addInput.value = p; acBox.classList.remove('show'); acIndex=-1; addInput.focus(); clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(p), 150); }
 
 // ==================== Chat / Feed ====================
 let lastRoleStates = {}, serverConnected = true;
