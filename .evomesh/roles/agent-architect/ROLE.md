@@ -33,4 +33,4 @@
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- All collaboration improvements must be **reusable**: optimize real agent collaboration AND reflect improvements back into EvoMesh templates and design (base-protocol.md, role templates, docs). The goal is not just to make this project work — it's to make the framework itself better for all future projects.

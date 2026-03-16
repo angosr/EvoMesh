@@ -1,33 +1,33 @@
 #!/bin/bash
 set -e
 
-# Run as root initially to set up user, then drop privileges
+# Create user matching host (runs as root, then drops to user)
 TARGET_UID=${HOST_UID:-1000}
 TARGET_GID=${HOST_GID:-1000}
 TARGET_USER=${HOST_USER:-user}
 TARGET_HOME=${HOST_HOME:-/home/$TARGET_USER}
 
-# Create group and user matching host
 groupadd -g "$TARGET_GID" "$TARGET_USER" 2>/dev/null || true
 useradd -u "$TARGET_UID" -g "$TARGET_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER" 2>/dev/null || true
 
-export HOME="$TARGET_HOME"
+# Everything below runs as the target user via exec gosu
+exec gosu "$TARGET_USER" bash << 'USEREOF'
+set -e
 
-# Session resume logic
-# Session ID stored in project's role directory (unique per role, not shared)
+export HOME="${HOST_HOME:-$HOME}"
+
+# Session resume
 WORK_DIR="${PWD:-/project}"
 ROLE_SESSION_FILE="${WORK_DIR}/.evomesh/roles/${ROLE_NAME:-role}/.session-id"
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$TARGET_HOME/.claude}"
+CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 HISTORY_FILE="${CONFIG_DIR}/history.jsonl"
 CLAUDE_ARGS="--dangerously-skip-permissions"
 
-# Try to find session ID for this role
 SESSION_ID=""
 if [ -f "$ROLE_SESSION_FILE" ] && [ -s "$ROLE_SESSION_FILE" ]; then
   SESSION_ID=$(cat "$ROLE_SESSION_FILE")
   echo "[evomesh] Found saved session: $SESSION_ID"
 fi
-# Note: history.jsonl grep removed — too unreliable (matches user messages containing role name)
 
 IS_RESUME=false
 if [ -n "$SESSION_ID" ]; then
@@ -39,10 +39,9 @@ else
   echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
 fi
 
-# Graceful shutdown — save session ID
+# Graceful shutdown
 cleanup() {
   echo "[evomesh] Shutting down..."
-  # Extract this role's session ID from history (search by role name)
   if [ -f "$HISTORY_FILE" ]; then
     SID=$(tail -1 "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
     if [ -n "$SID" ]; then
@@ -51,25 +50,20 @@ cleanup() {
       echo "[evomesh] Saved session: $SID"
     fi
   fi
-  kill -TERM $(pgrep -f "claude" 2>/dev/null) 2>/dev/null || true
-  wait
+  tmux -f /dev/null kill-session -t claude 2>/dev/null || true
   exit 0
 }
 trap cleanup SIGTERM SIGINT
 
-echo "[evomesh] Starting as $TARGET_USER (uid=$TARGET_UID)..."
+echo "[evomesh] Starting as $(whoami) (uid=$(id -u))..."
 
-# Start claude inside tmux (persists when browser disconnects)
-# Use -f /dev/null to skip user's tmux config (oh-my-tmux causes issues)
-gosu "$TARGET_USER" tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
+# Start claude in tmux (persists when browser disconnects)
+tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
   "/usr/local/bin/claude $CLAUDE_ARGS; exec bash"
+tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
 
-# tmux mouse OFF: allows text selection + long-press copy on mobile
-# Scroll: desktop wheel via xterm.js, mobile touch via API scroll endpoint
-gosu "$TARGET_USER" tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
-
-# ttyd attaches to tmux session (browser disconnect won't kill claude)
-gosu "$TARGET_USER" ttyd \
+# ttyd attaches to tmux
+ttyd \
   --writable \
   -t fontSize=14 \
   -t scrollback=10000 \
@@ -78,21 +72,20 @@ gosu "$TARGET_USER" ttyd \
   -- tmux -f /dev/null attach-session -t claude &
 TTYD_PID=$!
 
-# Wait for claude to start, then send /loop command
+# Send /loop command for fresh sessions
 (
   ROLE_ROOT=".evomesh/roles/${ROLE_NAME}"
   LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/"
 
-  # Always send /loop — cron jobs don't persist across session restarts
   WAIT_TIME=15
   if [ "$IS_RESUME" = "true" ]; then WAIT_TIME=25; fi
 
   echo "[evomesh] Waiting for Claude to be ready..."
   for i in $(seq 1 60); do
     if pgrep -f "claude" > /dev/null 2>&1; then
-      echo "[evomesh] Claude process found. Waiting ${WAIT_TIME}s for UI to be ready..."
+      echo "[evomesh] Claude process found. Waiting ${WAIT_TIME}s..."
       sleep $WAIT_TIME
-      echo "[evomesh] Claude is ready. Sending /loop command..."
+      echo "[evomesh] Sending /loop command..."
       export EVOMESH_TTYD_PORT="${TTYD_PORT:-7681}"
       python3 << 'PYEOF' 2>&1
 import asyncio, websockets, os
@@ -102,13 +95,11 @@ async def send_loop():
     uri = f'ws://127.0.0.1:{port}/ws'
     try:
         async with websockets.connect(uri, subprotocols=['tty']) as ws:
-            # Drain initial output
             for _ in range(10):
                 try:
                     await asyncio.wait_for(ws.recv(), timeout=0.5)
                 except asyncio.TimeoutError:
                     break
-            # Type /loop command
             cmd = "$LOOP_CMD" + "\r"
             for ch in cmd:
                 await ws.send(bytes([0]) + ch.encode('utf-8'))
@@ -125,7 +116,7 @@ PYEOF
     sleep 1
   done
 
-  # Save session ID after loop starts
+  # Save session ID
   sleep 10
   if [ -f "$HISTORY_FILE" ]; then
     SID=$(tail -1 "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
@@ -137,5 +128,5 @@ PYEOF
   fi
 ) &
 
-# Wait for ttyd
 wait $TTYD_PID
+USEREOF
