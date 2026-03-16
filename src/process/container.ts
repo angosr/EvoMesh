@@ -122,7 +122,7 @@ export function startRole(
   roleConfig: RoleConfig,
   config: ProjectConfig,
   ttydPort: number,
-  opts: { centralAI?: boolean; containerNameOverride?: string } = {}
+  opts: { centralAI?: boolean; containerNameOverride?: string; projectRoots?: string[] } = {}
 ): ContainerRole {
   const projectSlug = projectSlugFromRoot(root);
   const name = opts.containerNameOverride || containerName(projectSlug, roleName);
@@ -156,9 +156,16 @@ export function startRole(
   }
 
   if (opts.centralAI) {
-    // Central AI: mount entire HOME, no port mapping (host network)
-    args.push("-v", `${homeDir}:${homeDir}:rw`);
+    // Central AI: scoped mounts — .evomesh config + each project dir
+    args.push("-v", `${path.join(homeDir, ".evomesh")}:${path.join(homeDir, ".evomesh")}:rw`);
+    args.push("-v", `${accountPath}:${accountPath}:rw`);
     args.push("-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`);
+    // Mount each project directory for file-based access
+    if (opts.projectRoots) {
+      for (const projRoot of opts.projectRoots) {
+        args.push("-v", `${projRoot}:${projRoot}:rw`);
+      }
+    }
   } else {
     // Normal role: mount project dir + claude config only
     args.push("-v", `${path.resolve(root)}:${path.resolve(root)}:rw`);
@@ -172,10 +179,14 @@ export function startRole(
     args.push("-v", `${gitconfig}:${gitconfig}:ro`);
   }
 
-  // SSH keys (RO)
-  const sshDir = path.join(homeDir, ".ssh");
-  if (fs.existsSync(sshDir)) {
-    args.push("-v", `${sshDir}:${sshDir}:ro`);
+  // SSH: known_hosts only (no private keys), use agent forwarding
+  const knownHosts = path.join(homeDir, ".ssh", "known_hosts");
+  if (fs.existsSync(knownHosts)) {
+    args.push("-v", `${knownHosts}:${knownHosts}:ro`);
+  }
+  if (process.env.SSH_AUTH_SOCK) {
+    args.push("-v", `${process.env.SSH_AUTH_SOCK}:/tmp/ssh-agent.sock`);
+    args.push("-e", "SSH_AUTH_SOCK=/tmp/ssh-agent.sock");
   }
 
   // Environment — preserve host paths

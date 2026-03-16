@@ -43,12 +43,16 @@ function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string }
     } catch {}
     const mainClaudeJson = path.join(homeDir, ".claude.json");
 
+    // Scoped mounts — .evomesh config + account + each project dir
+    const projectRoots = ctx.getProjects().map(p => path.resolve(p.root));
     const args = [
       "run", "-d",
       "--name", containerName,
       "-p", `127.0.0.1:${adminPort}:7681`,
-      "-v", `${homeDir}:${homeDir}:rw`,
+      "-v", `${path.join(homeDir, ".evomesh")}:${path.join(homeDir, ".evomesh")}:rw`,
+      "-v", `${accountPath}:${accountPath}:rw`,
       "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
+      ...projectRoots.flatMap(r => ["-v", `${r}:${r}:rw`]),
       "-e", `HOST_UID=${process.getuid?.() || 1000}`,
       "-e", `HOST_GID=${process.getgid?.() || 1000}`,
       "-e", `HOST_USER=${process.env.USER || "user"}`,
@@ -105,7 +109,9 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
   });
 
   // Central AI status (read central-status.md)
-  app.get("/api/admin/central-status", (_req, res) => {
+  app.get("/api/admin/central-status", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     const statusFile = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
     try {
       if (fs.existsSync(statusFile)) {
@@ -118,6 +124,8 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
 
   // Send message to central AI inbox
   app.post("/api/admin/message", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     const { message } = req.body;
     if (!message || typeof message !== "string" || !message.trim()) { res.status(400).json({ error: "Empty" }); return; }
     try {

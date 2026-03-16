@@ -397,7 +397,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   // --- Mission Control ---
 
   app.get("/api/mission-control", (req, res) => {
-    if (!requireProjectRole(req, res, ctx.getProjects()[0]?.root || "/", "viewer")) return;
+    const firstProject = ctx.getProjects()[0];
+    if (!firstProject) { res.json({ activity: [], alerts: [], tasks: [], ts: new Date().toISOString() }); return; }
+    if (!requireProjectRole(req, res, firstProject.root, "viewer")) return;
     try {
       const projects = ctx.getProjects();
       const activity: Array<{ project: string; role: string; text: string; ts?: string }> = [];
