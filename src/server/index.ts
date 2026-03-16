@@ -332,7 +332,8 @@ export function startServer(port: number, initialRoot?: string) {
 
             console.log(`[auto-restart] ${name} crashed in ${p.name}, restarting...`);
             try {
-              const ttydPort = port + 1 + Math.floor(Math.random() * 200);
+              let ttydPort = port + 1;
+              for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
               startRole(p.root, name, rc, config, ttydPort);
               ctx.ttydProcesses.set(key, { port: ttydPort, roleName: name, projectSlug: p.slug });
               lastRestart.set(key, Date.now());
