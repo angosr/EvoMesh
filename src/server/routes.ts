@@ -393,6 +393,71 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch (e: any) { res.status(400).json({ error: e.message }); }
   });
 
+  // --- Mission Control ---
+
+  app.get("/api/mission-control", (req, res) => {
+    if (!requireProjectRole(req, res, ctx.getProjects()[0]?.root || "/", "viewer")) return;
+    try {
+      const projects = ctx.getProjects();
+      const activity: Array<{ project: string; role: string; text: string; ts?: string }> = [];
+      const alerts: Array<{ level: "error" | "warning"; message: string; project?: string; role?: string }> = [];
+      const tasks: Array<{ priority: string; text: string; project: string; role: string; done: boolean }> = [];
+
+      for (const p of projects) {
+        let config;
+        try { config = loadConfig(p.root); } catch { continue; }
+
+        for (const [name, rc] of Object.entries(config.roles)) {
+          const rDir = roleDir(p.root, name);
+          const running = isRoleRunning(p.root, name);
+
+          // Activity: read short-term memory
+          try {
+            const stm = fs.readFileSync(path.join(rDir, "memory", "short-term.md"), "utf-8");
+            const bullets = stm.match(/^- .+$/gm);
+            if (bullets) {
+              for (const b of bullets.slice(-3)) {
+                activity.push({ project: p.name, role: name, text: b.replace(/^- /, "") });
+              }
+            }
+          } catch {}
+
+          // Alerts: role not running
+          if (!running) {
+            alerts.push({ level: "error", message: `Role "${name}" is not running`, project: p.name, role: name });
+          }
+
+          // Tasks: parse todo.md
+          try {
+            const todo = fs.readFileSync(path.join(rDir, "todo.md"), "utf-8");
+            let currentPriority = "P?";
+            for (const line of todo.split("\n")) {
+              const headerMatch = line.match(/^## (P\d)/);
+              if (headerMatch) { currentPriority = headerMatch[1]; continue; }
+              const taskMatch = line.match(/^[-*]\s+(.+)/);
+              if (!taskMatch) continue;
+              const text = taskMatch[1];
+              const done = text.startsWith("~~") || text.includes("✅");
+              // Alert: unprocessed P0
+              if (currentPriority === "P0" && !done) {
+                alerts.push({ level: "warning", message: `P0 pending: ${text.slice(0, 60)}`, project: p.name, role: name });
+              }
+              tasks.push({ priority: currentPriority, text: text.slice(0, 120), project: p.name, role: name, done });
+            }
+          } catch {}
+        }
+      }
+
+      // Sort tasks: P0 first, undone first
+      tasks.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return a.priority.localeCompare(b.priority);
+      });
+
+      res.json({ activity, alerts, tasks, ts: new Date().toISOString() });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // --- Backward compat ---
 
   app.get("/api/status", (_req, res) => {

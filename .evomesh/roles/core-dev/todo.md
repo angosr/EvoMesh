@@ -6,7 +6,7 @@
 
 ## P1
 
-- Implement /api/mission-control API (activity feed, alerts, task overview) — from lead task 2
+(All clear)
 
 ## P2
 
