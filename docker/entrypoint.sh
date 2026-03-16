@@ -39,17 +39,9 @@ else
   echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
 fi
 
-# Graceful shutdown
+# Graceful shutdown (session ID saved by background task, not here)
 cleanup() {
   echo "[evomesh] Shutting down..."
-  if [ -f "$HISTORY_FILE" ]; then
-    SID=$(tail -1 "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
-    if [ -n "$SID" ]; then
-      mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
-      echo "$SID" > "$ROLE_SESSION_FILE"
-      echo "[evomesh] Saved session: $SID"
-    fi
-  fi
   tmux -f /dev/null kill-session -t claude 2>/dev/null || true
   exit 0
 }
