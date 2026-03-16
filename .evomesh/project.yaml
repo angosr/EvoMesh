@@ -1,31 +1,70 @@
+name: EvoMesh
+created: "2026-03-15"
+repo: ""
+lang: en
 accounts:
-  '2': ~/.claude2
   main: ~/.claude
-created: 2026-03-15
+  "2": ~/.claude2
+roles:
+  lead:
+    type: lead
+    loop_interval: 20m
+    account: "2"
+    evolution_upgrade_every: 30
+    scope:
+      - .evomesh/blueprint.md
+      - .evomesh/status.md
+      - .evomesh/roles/*/inbox/
+      - docs/
+    description: "Project director — strategy, docs, role coordination"
+  agent-architect:
+    type: worker
+    loop_interval: 30m
+    account: "2"
+    evolution_upgrade_every: 25
+    scope:
+      - .evomesh/
+      - docs/
+    description: "Multi-agent collaboration specialist"
+  frontend:
+    type: worker
+    loop_interval: 15m
+    account: "2"
+    evolution_upgrade_every: 20
+    scope:
+      - src/server/frontend*
+      - src/server/*.html
+    description: "UI/UX developer — web, mobile, interaction"
+  core-dev:
+    type: worker
+    loop_interval: 10m
+    account: "2"
+    evolution_upgrade_every: 20
+    scope:
+      - src/
+      - docker/
+      - test/
+    description: "Main feature development — backend, Docker, API"
+  reviewer:
+    type: worker
+    loop_interval: 20m
+    account: "2"
+    evolution_upgrade_every: 25
+    scope:
+      - src/
+      - test/
+      - docs/
+    description: "Code review — quality, correctness, best practices"
+  security:
+    type: worker
+    loop_interval: 30m
+    account: "2"
+    evolution_upgrade_every: 25
+    scope:
+      - src/
+      - docker/
+    description: "Security audit — vulnerabilities, hardcodes, injection"
 git:
-  auto_push: true
   branch: main
   conflict_resolution: auto
-name: EvoMesh
-repo: ''
-roles:
-  executor:
-    account: '2'
-    description: 代码实现，测试，提交
-    evolution_upgrade_every: 20
-    loop_interval: 10m
-    scope:
-    - src/
-    - tests/
-    type: worker
-  lead:
-    account: '2'
-    description: 项目总控，审查所有角色，维护战略蓝图
-    evolution_upgrade_every: 30
-    loop_interval: 20m
-    scope:
-    - .evomesh/blueprint.md
-    - .evomesh/status.md
-    - .evomesh/roles/*/inbox/
-    - docs/
-    type: lead
+  auto_push: true

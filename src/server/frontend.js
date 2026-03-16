@@ -581,7 +581,6 @@ async function sendToCentral() {
 document.getElementById('central-input')?.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendToCentral(); }
 });
-}
 
 // ==================== Init ====================
 (async () => {
