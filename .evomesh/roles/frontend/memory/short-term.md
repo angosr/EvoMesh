@@ -1,20 +1,20 @@
 # Frontend — Short-Term Memory
 
-## Last Loop (Loop 5 — 2026-03-16)
+## Last Loop (Loop 6 — 2026-03-16)
 
 ### Done
-- Removed Add Project form, Role Modal, and all associated JS functions per user P0 directive
-- These were intentionally removed — projects/roles are created via Central AI only
-- Accepted user's modifications: simpleMarkdown(), terminal auth token, cache bust v=1773677776
+- Refined Mission Control rendering for API consumption:
+  - Activity: sorts by time descending (newest first)
+  - Issues: maps `type` field (stopped→red, stale→yellow, p0-pending→red) + "View Log" button
+  - Tasks: sorts by priority P0→P1→P2
+- Accepted user upstream changes: simpleMarkdown, Central AI chat-style input, quickSendToCentral, terminal auth token, send button loading state
 
 ### Blockers
-- `/api/mission-control` endpoint not yet implemented — Tasks tab placeholder
-- No browser in environment — curl + Node.js testing only
+- `/api/mission-control` endpoint still pending core-dev — fallback rendering active
 
 ### In Progress
-- Nothing — this loop was corrective
+- Nothing — refinement loop
 
 ### Next Loop Focus
-- P2: Add loading spinners/disabled state to async action buttons (restart, delete)
+- P2: Loading spinners for dashboard action buttons (restart, delete)
 - P1: Settings page polish
-- P2: Copy dialog improvement for mobile

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EvoMesh</title>
-<link rel="stylesheet" href="/app.css?v=1773677776">
+<link rel="stylesheet" href="/app.css?v=1773678270">
 </head>
 <body>
 
@@ -154,20 +154,24 @@
     <div id="mc-tasks-list"></div>
     <div id="mc-tasks-empty" class="mc-empty">No tasks found.</div>
   </div>
-  <!-- Central AI (compact) -->
+  <!-- Central AI — chat style -->
   <div class="mc-panel" id="mc-central">
     <div id="central-status" class="mc-central-status"></div>
     <div id="central-feed" class="mc-central-feed"></div>
+    <div class="mc-chat-input">
+      <textarea id="central-input" rows="2" placeholder="Send command to Central AI..."></textarea>
+      <button id="central-send" onclick="sendToCentral()">Send</button>
+    </div>
   </div>
-  <!-- Command input (always visible) -->
+  <!-- Command input for non-central tabs (always visible) -->
   <div id="mc-command">
-    <textarea id="central-input" rows="2" placeholder="Send command to Central AI..."></textarea>
-    <button id="central-send" onclick="sendToCentral()">Send</button>
+    <textarea id="mc-quick-input" rows="1" placeholder="Quick command to Central AI..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();quickSendToCentral()}"></textarea>
+    <button onclick="quickSendToCentral()">Send</button>
   </div>
 </div>
 
-<script src="/app.js?v=1773677776"></script>
-<script src="/app-panels.js?v=1773677776"></script>
-<script src="/app-settings.js?v=1773677776"></script>
+<script src="/app.js?v=1773678270"></script>
+<script src="/app-panels.js?v=1773678270"></script>
+<script src="/app-settings.js?v=1773678270"></script>
 </body>
 </html>

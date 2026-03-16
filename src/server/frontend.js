@@ -560,6 +560,9 @@ function initMissionControl() {
       tab.classList.add('active');
       const panel = document.getElementById(`mc-${tab.dataset.mcTab}`);
       if (panel) panel.classList.add('active');
+      // Hide bottom quick-input when Central AI tab is active (it has its own input)
+      const mcCmd = document.getElementById('mc-command');
+      if (mcCmd) mcCmd.style.display = tab.dataset.mcTab === 'central' ? 'none' : '';
     });
   });
 
@@ -602,8 +605,12 @@ function renderMCFromState() {
   if (!feed) return;
 
   const items = [];
+  const seen = new Set();
   for (const p of state.projects) {
     for (const r of p.roles) {
+      const key = `${p.slug}/${r.name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       items.push({
         project: p.name,
         role: r.name,
@@ -693,7 +700,9 @@ function renderMCActivity(activity) {
   if (!feed) return;
   if (!activity.length) { feed.innerHTML = ''; if (empty) empty.style.display = ''; return; }
   if (empty) empty.style.display = 'none';
-  feed.innerHTML = activity.map(a => {
+  // Sort by time descending (newest first)
+  const sorted = [...activity].sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+  feed.innerHTML = sorted.map(a => {
     const roleClass = a.type === 'lead' ? ' lead' : '';
     return `<div class="mc-activity-item">
       <span class="mc-time">${esc(a.time || '')}</span>
@@ -710,15 +719,30 @@ function renderMCIssues(issues) {
   if (!list) return;
   if (!issues.length) { list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
   if (empty) empty.style.display = 'none';
-  list.innerHTML = issues.map(is => `<div class="mc-issue ${esc(is.priority || 'p2')}">
-    <div class="mc-issue-title">${esc(is.title || '')}</div>
-    <div class="mc-issue-meta">${esc(is.meta || '')}</div>
-    <div class="mc-issue-actions">
-      ${is.slug && is.role ? `<button data-action="mc-restart" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Restart</button>` : ''}
-    </div>
-  </div>`).join('');
+  // Map issue type to CSS class: stopped→p0 (red), stale→p1 (yellow), p0-pending→p0
+  const typeToClass = { stopped: 'p0', stale: 'p1', 'p0-pending': 'p0' };
+  list.innerHTML = issues.map(is => {
+    const cls = typeToClass[is.type] || is.priority || 'p2';
+    return `<div class="mc-issue ${esc(cls)}">
+      <div class="mc-issue-title">${esc(is.title || '')}</div>
+      <div class="mc-issue-meta">${esc(is.meta || '')}</div>
+      <div class="mc-issue-actions">
+        ${is.slug && is.role ? `<button data-action="mc-restart" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Restart</button>
+        <button data-action="mc-open" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">View Log</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
   list.querySelectorAll('[data-action="mc-restart"]').forEach(btn => {
     btn.addEventListener('click', () => restartRole(btn.dataset.slug, btn.dataset.role));
+  });
+  list.querySelectorAll('[data-action="mc-open"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = state.projects.find(proj => proj.slug === btn.dataset.slug);
+      if (p) {
+        const r = p.roles.find(role => role.name === btn.dataset.role);
+        openTerminal(btn.dataset.slug, p.name, btn.dataset.role, r?.terminal);
+      }
+    });
   });
 }
 
@@ -728,7 +752,10 @@ function renderMCTasks(tasks) {
   if (!list) return;
   if (!tasks.length) { list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
   if (empty) empty.style.display = 'none';
-  list.innerHTML = tasks.map(t => `<div class="mc-task">
+  // Sort by priority: P0 → P1 → P2
+  const prioOrder = { p0: 0, p1: 1, p2: 2 };
+  const sorted = [...tasks].sort((a, b) => (prioOrder[a.priority] ?? 9) - (prioOrder[b.priority] ?? 9));
+  list.innerHTML = sorted.map(t => `<div class="mc-task">
     <span class="mc-task-priority ${esc(t.priority || 'p2')}">${esc((t.priority || 'P2').toUpperCase())}</span>
     <div>
       <div class="mc-task-text">${esc(t.text || '')}</div>
@@ -782,7 +809,9 @@ async function sendToCentral() {
   const input = document.getElementById('central-input');
   const text = input?.value?.trim();
   if (!text) return;
-  addCentralMessage(`<span style="color:var(--accent);font-weight:600">You</span> ${esc(text)}`, 'user');
+  const btn = document.getElementById('central-send');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  addCentralMessage(`<strong style="color:var(--accent)">You</strong> ${esc(text)}`, 'user');
   input.value = '';
   try {
     const res = await authFetch(`${API}/admin/message`, {
@@ -791,9 +820,27 @@ async function sendToCentral() {
       body: JSON.stringify({ message: text }),
     });
     const data = await res.json();
-    if (data.ok) addCentralMessage(`<span style="color:var(--green)">Delivered to Central AI</span>`, 'system');
-    else addCentralMessage(`<span style="color:var(--red)">Error: ${esc(data.error)}</span>`, 'system');
+    if (data.ok) {
+      addCentralMessage(`<span style="color:var(--green)">&#10003; Sent to Central AI inbox. It will process on next loop.</span>`, 'system');
+    } else {
+      addCentralMessage(`<span style="color:var(--red)">Error: ${esc(data.error)}</span>`, 'system');
+    }
   } catch { addCentralMessage(`<span style="color:var(--red)">Failed to send</span>`, 'system'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+  input.focus();
+}
+
+function quickSendToCentral() {
+  const input = document.getElementById('mc-quick-input');
+  const text = input?.value?.trim();
+  if (!text) return;
+  input.value = '';
+  // Switch to Central AI tab and send from there
+  document.querySelectorAll('.mc-tab').forEach(t => t.classList.toggle('active', t.dataset.mcTab === 'central'));
+  document.querySelectorAll('.mc-panel').forEach(p => p.classList.toggle('active', p.id === 'mc-central'));
+  document.getElementById('mc-command').style.display = 'none';
+  const centralInput = document.getElementById('central-input');
+  if (centralInput) { centralInput.value = text; sendToCentral(); }
 }
 
 // Enter to send
