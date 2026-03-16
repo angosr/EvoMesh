@@ -4,6 +4,7 @@ import { execFileSync, spawn as cpSpawn } from "node:child_process";
 import { spawn as ptySpawn } from "node-pty";
 import { roleDir, expandHome, runtimeDir } from "../utils/paths.js";
 import { ensureDir } from "../utils/fs.js";
+import { slugify } from "../workspace/config.js";
 import { writePid, removePid, readPid } from "./registry.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
 
@@ -16,7 +17,7 @@ export interface SpawnedRole {
 function tmuxSessionName(roleName: string, projectSlug?: string): string {
   if (projectSlug) return `evomesh-${projectSlug}-${roleName}`;
   // Fallback: derive slug from cwd basename
-  const slug = path.basename(process.cwd()).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+  const slug = slugify(path.basename(process.cwd()));
   return `evomesh-${slug}-${roleName}`;
 }
 
@@ -45,7 +46,7 @@ export function spawnRole(
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
   const interval = roleConfig.loop_interval || "10m";
   const roleRoot = `.evomesh/roles/${roleName}`;
-  const projectSlug = path.basename(root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+  const projectSlug = slugify(path.basename(root));
   const loopPrompt = `你是 ${roleName} 角色。执行 ${roleRoot}/ROLE.md 工作目录: ${roleRoot}/`;
 
   // Check for saved session ID to resume
@@ -147,7 +148,7 @@ function spawnTmux(
   loopPrompt: string,
   claudeArgs: string[] = ["--name", roleName, "--dangerously-skip-permissions"]
 ): SpawnedRole {
-  const projectSlug = path.basename(root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+  const projectSlug = slugify(path.basename(root));
   const session = tmuxSessionName(roleName, projectSlug);
   const logPath = path.join(runtimeDir(root), `${roleName}.log`);
 
@@ -246,7 +247,7 @@ echo "[evomesh] Timed out waiting for Claude readiness" >> "$EVOMESH_LOG"
 }
 
 export function stopRole(root: string, roleName: string): boolean {
-  const projectSlug = path.basename(root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+  const projectSlug = slugify(path.basename(root));
   const session = tmuxSessionName(roleName, projectSlug);
   const info = readPid(root, roleName);
   if (!info) {

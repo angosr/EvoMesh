@@ -4,6 +4,7 @@ import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { expandHome } from "../utils/paths.js";
 import { ensureDir } from "../utils/fs.js";
+import { slugify } from "../workspace/config.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
 
 export interface ContainerRole {
@@ -23,8 +24,8 @@ function roleConfigDir(projectSlug: string, roleName: string): string {
   return path.join(ROLE_CONFIGS_DIR, `${projectSlug}-${roleName}`);
 }
 
-function slugify(root: string): string {
-  return path.basename(root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+function projectSlugFromRoot(root: string): string {
+  return slugify(path.basename(root));
 }
 
 /**
@@ -122,7 +123,7 @@ export function startRole(
   config: ProjectConfig,
   ttydPort: number
 ): ContainerRole {
-  const projectSlug = slugify(root);
+  const projectSlug = projectSlugFromRoot(root);
   const name = containerName(projectSlug, roleName);
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
 
@@ -204,7 +205,7 @@ export function startRole(
  * Stop a role's container.
  */
 export function stopRole(root: string, roleName: string): boolean {
-  const name = containerName(slugify(root), roleName);
+  const name = containerName(projectSlugFromRoot(root), roleName);
   try {
     execFileSync("docker", ["stop", "-t", "15", name], { stdio: "ignore" });
     execFileSync("docker", ["rm", name], { stdio: "ignore" });
@@ -218,7 +219,7 @@ export function stopRole(root: string, roleName: string): boolean {
  * Restart a role's container.
  */
 export function restartRole(root: string, roleName: string): boolean {
-  const name = containerName(slugify(root), roleName);
+  const name = containerName(projectSlugFromRoot(root), roleName);
   try {
     execFileSync("docker", ["restart", "-t", "15", name], { stdio: "ignore" });
     return true;
@@ -231,14 +232,14 @@ export function restartRole(root: string, roleName: string): boolean {
  * Check if a role is running.
  */
 export function isRoleRunning(root: string, roleName: string): boolean {
-  return getContainerState(containerName(slugify(root), roleName)) === "running";
+  return getContainerState(containerName(projectSlugFromRoot(root), roleName)) === "running";
 }
 
 /**
  * Get container logs.
  */
 export function getRoleLogs(root: string, roleName: string, tail: number = 500): string {
-  const name = containerName(slugify(root), roleName);
+  const name = containerName(projectSlugFromRoot(root), roleName);
   try {
     return execFileSync("docker", ["logs", "--tail", String(tail), name], {
       encoding: "utf-8", maxBuffer: 1024 * 1024,
@@ -252,7 +253,7 @@ export function getRoleLogs(root: string, roleName: string, tail: number = 500):
  * Send input to the running claude process via docker exec.
  */
 export function sendInput(root: string, roleName: string, input: string): boolean {
-  const name = containerName(slugify(root), roleName);
+  const name = containerName(projectSlugFromRoot(root), roleName);
   try {
     // Write to ttyd's stdin via the container's PID 1 fd
     execFileSync("docker", ["exec", name, "sh", "-c", `printf '%s\n' "${input.replace(/"/g, '\\"')}" > /proc/1/fd/0`], {
@@ -272,7 +273,7 @@ export function switchAccount(
   roleName: string,
   newAccountPath: string
 ): void {
-  const projectSlug = slugify(root);
+  const projectSlug = projectSlugFromRoot(root);
   const configDir = roleConfigDir(projectSlug, roleName);
 
   // Only copy credentials — session history stays

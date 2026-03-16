@@ -600,8 +600,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
     if (!["up", "down", "esc"].includes(direction)) { res.status(400).send("Bad direction"); return; }
-    const slug = path.basename(project.root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-    const cname = `evomesh-${slug}-${req.params.name}`;
+    const cname = `evomesh-${slugify(path.basename(project.root))}-${req.params.name}`;
     const user = process.env.USER || "claudeuser";
     try {
       if (direction === "esc") {
