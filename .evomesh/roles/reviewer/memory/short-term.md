@@ -1,7 +1,7 @@
-# Reviewer — Short-Term Memory (Loop #028, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #029, 2026-03-17)
 
 ## Done this loop
-- 1 new commit — no code changes (chore sync)
+- 2 new commits — no code changes (security scan, account risk alert)
 - No inbox items
 - Metrics logged
 
