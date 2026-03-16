@@ -73,10 +73,31 @@ function allocatePort(ctx: ServerContext): number {
   return port;
 }
 
+// Refresh subscribers (SSE connections waiting for push)
+const refreshSubscribers: Set<import("express").Response> = new Set();
+
 export function registerRoutes(app: import("express").Express, ctx: ServerContext): void {
 
   // Run ACL migration on startup
   try { ensureAclMigration(ctx); } catch {}
+
+  // --- Refresh: central AI calls this after operations, Web UI subscribes ---
+  app.post("/api/refresh", (_req, res) => {
+    // Notify all subscribed clients to refresh
+    for (const sub of refreshSubscribers) {
+      try { sub.write(`data: {"type":"refresh"}\n\n`); } catch {}
+    }
+    res.json({ ok: true, subscribers: refreshSubscribers.size });
+  });
+
+  app.get("/api/refresh/subscribe", (_req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    refreshSubscribers.add(res);
+    _req.on("close", () => refreshSubscribers.delete(res));
+  });
 
   // --- Projects ---
 
@@ -565,40 +586,44 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       // Remove old container
       try { execFileSync("docker", ["rm", "-f", "evomesh-admin"], { stdio: ["pipe","pipe","ignore"] }); } catch {}
 
-      // Start admin container with access to ALL projects + evomesh source
+      // Ensure central AI has its own claude config dir
+      const centralConfigDir = path.join(homeDir, ".claude-central");
+      if (!fs.existsSync(centralConfigDir)) {
+        fs.mkdirSync(centralConfigDir, { recursive: true });
+        // Copy essential files from main claude config
+        const mainConfig = path.join(homeDir, ".claude");
+        for (const f of [".credentials.json", ".claude.json", "settings.json"]) {
+          const src = path.join(mainConfig, f);
+          if (fs.existsSync(src)) fs.copyFileSync(src, path.join(centralConfigDir, f));
+        }
+      }
+      // Copy .claude.json (onboarding flags) to central config
+      const mainClaudeJson = path.join(homeDir, ".claude.json");
+      const centralClaudeJson = path.join(centralConfigDir, ".claude.json");
+      if (fs.existsSync(mainClaudeJson)) fs.copyFileSync(mainClaudeJson, centralClaudeJson);
+
+      // Start central AI container — mount entire HOME, host network
       const args = [
         "run", "-d",
         "--name", "evomesh-admin",
-        "-p", `127.0.0.1:${adminPort}:7681`,
-        // Mount all of user's work directory
-        "-v", `${homeDir}/work:${homeDir}/work:rw`,
-        // Mount evomesh config
-        "-v", `${homeDir}/.evomesh:${homeDir}/.evomesh:rw`,
-        // Claude config
-        "-v", `${homeDir}/.claude:${homeDir}/.claude:rw`,
-        "-v", `${homeDir}/.claude.json:${homeDir}/.claude.json:rw`,
-        // Git + SSH
-        "-v", `${homeDir}/.gitconfig:${homeDir}/.gitconfig:ro`,
-        "-v", `${homeDir}/.ssh:${homeDir}/.ssh:ro`,
-        // Docker socket for managing other containers
-        "-v", "/var/run/docker.sock:/var/run/docker.sock:rw",
-        // User identity
+        "--network", "host",
+        "-v", `${homeDir}:${homeDir}:rw`,
+        "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
         "-e", `HOST_UID=${process.getuid?.() || 1000}`,
         "-e", `HOST_GID=${process.getgid?.() || 1000}`,
         "-e", `HOST_USER=${process.env.USER || "user"}`,
         "-e", `HOST_HOME=${homeDir}`,
         "-e", `HOME=${homeDir}`,
-        "-e", `CLAUDE_CONFIG_DIR=${homeDir}/.claude`,
-        "-e", "ROLE_NAME=admin",
-        "-w", `${homeDir}/work/EvoMesh`,
+        "-e", `CLAUDE_CONFIG_DIR=${centralConfigDir}`,
+        "-e", "ROLE_NAME=central",
+        "-e", `TTYD_PORT=${adminPort}`,
+        "-w", `${homeDir}`,
         "--log-opt", "max-size=10m",
         "evomesh-role",
       ];
       execFileSync("docker", args, { stdio: "inherit" });
 
-      // Register in ttyd processes
       ctx.ttydProcesses.set("admin/admin", { port: adminPort, roleName: "admin", projectSlug: "admin" });
-
       res.json({ ok: true, port: adminPort, terminal: "/terminal/admin/admin/" });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });

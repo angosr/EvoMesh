@@ -8,6 +8,47 @@ function authFetch(url, opts = {}) {
   opts.headers = { ...opts.headers, 'Authorization': `Bearer ${AUTH_TOKEN}` };
   return fetch(url, opts);
 }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function injectTouchScroll(iframe) {
+  const POLL_INTERVAL = 500, MAX_ATTEMPTS = 20;
+  let attempts = 0;
+  function tryInject() {
+    attempts++;
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      const xtermScreen = iframeDoc.querySelector('.xterm-screen');
+      const xtermViewport = iframeDoc.querySelector('.xterm-viewport');
+      if (!xtermScreen || !xtermViewport) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (xtermScreen.dataset.touchScrollInjected) return;
+      xtermScreen.dataset.touchScrollInjected = 'true';
+      let startY = 0, lastY = 0, scrolling = false;
+      const THRESHOLD = 8, WHEEL_DELTA = 80;
+      xtermScreen.addEventListener('touchstart', e => {
+        if (e.touches.length !== 1) return;
+        startY = e.touches[0].clientY; lastY = startY; scrolling = false;
+      }, { passive: true });
+      xtermScreen.addEventListener('touchmove', e => {
+        if (e.touches.length !== 1) return;
+        const currentY = e.touches[0].clientY, totalDy = Math.abs(currentY - startY);
+        if (!scrolling && totalDy > THRESHOLD) { scrolling = true; lastY = currentY; return; }
+        if (!scrolling) return;
+        const dy = lastY - currentY;
+        if (Math.abs(dy) < 4) return;
+        xtermViewport.dispatchEvent(new WheelEvent('wheel', {
+          deltaY: dy > 0 ? WHEEL_DELTA : -WHEEL_DELTA, deltaX: 0, deltaMode: 0,
+          bubbles: true, cancelable: true, clientX: e.touches[0].clientX, clientY: e.touches[0].clientY,
+        }));
+        lastY = currentY;
+        e.preventDefault();
+      }, { passive: false });
+      xtermScreen.addEventListener('touchend', () => { scrolling = false; });
+      xtermScreen.addEventListener('touchcancel', () => { scrolling = false; });
+    } catch { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); }
+  }
+  iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
+  tryInject();
+}
 const state = {
   projects: [], accounts: [], openPanels: {}, activePanel: 'dashboard',
   layout: 'tabs', collapsed: {}, chatProject: null, tabOrder: ['dashboard'],
@@ -472,8 +513,6 @@ const origInitResize = initResize;
 
 // Terminal scroll + copy moved to frontend-panels.js
 
-}
-
 // ==================== Admin AI Terminal ====================
 async function initAdminTerminal() {
   const iframe = document.getElementById('admin-terminal');
@@ -504,6 +543,11 @@ async function initAdminTerminal() {
   } catch { location.href = '/login'; return; }
   restoreLayout();
   fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();
+  // Subscribe to refresh events from central AI operations
+  try {
+    const refreshEs = new EventSource(`${API}/refresh/subscribe`);
+    refreshEs.onmessage = () => { fetchAll(); };
+  } catch {}
   initAdminTerminal();
 })();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });

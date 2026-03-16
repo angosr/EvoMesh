@@ -80,7 +80,7 @@ gosu "$TARGET_USER" ttyd \
   -t fontSize=14 \
   -t scrollback=10000 \
   -t scrollOnOutput=true \
-  --port 7681 \
+  --port ${TTYD_PORT:-7681} \
   -- tmux attach-session -t claude &
 TTYD_PID=$!
 
@@ -103,7 +103,7 @@ TTYD_PID=$!
 import asyncio, websockets
 
 async def send_loop():
-    uri = 'ws://127.0.0.1:7681/ws'
+    uri = 'ws://127.0.0.1:${TTYD_PORT:-7681}/ws'
     try:
         async with websockets.connect(uri, subprotocols=['tty']) as ws:
             # Drain initial output
