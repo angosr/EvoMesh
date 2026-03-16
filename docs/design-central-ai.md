@@ -224,12 +224,38 @@ docker run ...
   -w /home/{user}
 ```
 
-### 多用户隔离
-- 每个 Linux 用户有自己的中枢 AI 容器：`evomesh-central-{username}`
-- 中枢 AI 只挂载自己用户的 HOME → 文件隔离
-- Docker 容器命名含用户名前缀 → 不同用户的角色容器互不干扰
-- 只有启动 Web 服务的用户（管理员）的中枢 AI 有 host 网络权限
-- 权限通过 Linux user UID/GID 机制自然隔离（容器内 `--user` 匹配宿主机用户）
+### 多用户容器隔离
+
+**问题**：Docker 是全局的，任何能访问 docker socket 的用户都能操作所有容器。
+
+**方案**：不直接暴露 docker socket，而是通过 **EvoMesh Server 的 API** 间接管理容器。
+
+```
+中枢 AI → curl EvoMesh API → Server 验证权限 → docker 操作
+       （不直接访问 docker socket）
+```
+
+#### 容器命名规则
+```
+evomesh-{username}-{projectSlug}-{roleName}
+```
+例：`evomesh-alice-myapp-lead`、`evomesh-bob-trading-executor`
+
+#### 权限控制
+- Server API 层做权限校验：用户只能操作 `evomesh-{自己username}-*` 的容器
+- 管理员可操作所有 `evomesh-*` 容器
+- 中枢 AI 容器**不挂载 docker socket**，只通过 API 管理容器
+- 只有 EvoMesh Server 进程持有 docker socket 访问权
+
+#### 管理员特权
+- 管理员的中枢 AI 用 `--network host`，可以操作 Web 服务
+- 管理员通过 API 可管理所有用户的容器
+- 普通用户的中枢 AI 看不到别人的容器
+
+#### 文件隔离
+- 每个用户的中枢 AI 只挂载自己的 HOME：`-v /home/{user}:/home/{user}:rw`
+- Linux UID/GID 保证即使挂载了也无法读写其他用户的文件
+- 项目目录权限跟随 Linux 文件权限（owner 可读写，被授权的 member 通过 group 机制访问）
 
 中枢 AI 的提示词和规则存储在：
 
