@@ -607,12 +607,39 @@ async function fetchCompletions(q) { try { const r = await authFetch(`${API}/com
 function selectCompletion(p) { addInput.value = p; acBox.classList.remove('show'); acIndex=-1; addInput.focus(); clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(p), 150); }
 
 // ==================== Chat / Feed ====================
-let lastStatusContent = '', serverConnected = true;
+let lastRoleStates = {}, serverConnected = true;
 function addFeedMessage(html, cls='status') { const feed = document.getElementById('chat-feed'), div = document.createElement('div'); div.className = `feed-msg ${cls}`; div.innerHTML = html; feed.appendChild(div); feed.scrollTop = feed.scrollHeight; while (feed.children.length > 100) feed.removeChild(feed.firstChild); }
 function renderChatProjectSelect() { const sel = document.getElementById('chat-project-select'); sel.innerHTML = state.projects.map(p => `<option value="${p.slug}" ${p.slug===state.chatProject?'selected':''}>${esc(p.name)}</option>`).join(''); }
 function chatProjectChanged() { state.chatProject = document.getElementById('chat-project-select').value; }
-function renderStatusBlock(entries) { const bp = {}; entries.forEach(e => { if (!bp[e.slug]) bp[e.slug]={name:e.project,entries:[]}; bp[e.slug].entries.push(e); }); return Object.entries(bp).map(([,g]) => { const l = g.entries.map(r => `<span class="feed-dot ${r.running?'running':'stopped'}"></span><span class="${r.type==='lead'?'role-name lead':'role-name'}">${esc(r.role)}</span><span class="role-status">${esc(r.status)}</span>`).join('<br>'); return `<span class="proj-label">${esc(g.name)}</span><br>${l}`; }).join('<br>'); }
-function startSSEFeed() { const es = new EventSource(`${API}/feed?token=${encodeURIComponent(AUTH_TOKEN)}`); es.onmessage = e => { try { const d = JSON.parse(e.data); if (d.type==='status') { const ts = new Date(d.ts).toLocaleTimeString(), c = renderStatusBlock(d.entries); if (c===lastStatusContent) return; lastStatusContent=c; addFeedMessage(`<span class="ts">${ts}</span>${c}`, 'status'); } } catch {} }; es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); }; }
+function startSSEFeed() {
+  const es = new EventSource(`${API}/feed?token=${encodeURIComponent(AUTH_TOKEN)}`);
+  es.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d.type === 'status') {
+        const ts = new Date(d.ts).toLocaleTimeString();
+        const changes = [];
+        for (const entry of d.entries) {
+          const key = `${entry.slug}/${entry.role}`;
+          const prev = lastRoleStates[key];
+          const curr = `${entry.running}|${entry.status}`;
+          if (prev !== curr) {
+            lastRoleStates[key] = curr;
+            if (prev !== undefined) {
+              const dot = `<span class="feed-dot ${entry.running?'running':'stopped'}"></span>`;
+              const nc = entry.type === 'lead' ? 'role-name lead' : 'role-name';
+              changes.push(`<span class="proj-label">${esc(entry.project)}</span> ${dot}<span class="${nc}">${entry.role}</span> <span class="role-status">${entry.status}</span>`);
+            }
+          }
+        }
+        if (changes.length > 0) {
+          addFeedMessage(`<span class="ts">${ts}</span>${changes.join('<br>')}`, 'status');
+        }
+      }
+    } catch {}
+  };
+  es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); };
+}
 async function sendChat() { const input = document.getElementById('chat-input'), text = input.value.trim(); if (!text||!state.chatProject) return; document.getElementById('chat-send').disabled = true; try { const r = await authFetch(`${API}/projects/${state.chatProject}/chat`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d = await r.json(); if (d.ok) { addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user'); addFeedMessage(`Delivered to <strong>${esc(d.delivered_to)}</strong>`, 'system'); input.value = ''; } else addFeedMessage(`Error: ${esc(d.error)}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } document.getElementById('chat-send').disabled = false; input.focus(); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); } });
