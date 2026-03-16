@@ -24,11 +24,13 @@ import type { ProjectRole } from "./acl.js";
 import type { SessionInfo } from "./auth.js";
 import { listUsers } from "./auth.js";
 import type { ServerContext } from "./index.js";
+import { registerRoleRoutes } from "./routes-roles.js";
+import { registerAdminRoutes } from "./routes-admin.js";
 
-const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
+export const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
   if (bytes < 1024 ** 3) return (bytes / (1024 ** 2)).toFixed(1) + " MB";
   return (bytes / (1024 ** 3)).toFixed(1) + " GB";
@@ -38,7 +40,7 @@ function formatBytes(bytes: number): string {
  * Check if the request has a session with at least the given project role.
  * Returns true if authorized, sends 403 and returns false otherwise.
  */
-function requireProjectRole(req: any, res: any, projectPath: string, minRole: ProjectRole): boolean {
+export function requireProjectRole(req: any, res: any, projectPath: string, minRole: ProjectRole): boolean {
   const session = req._session as SessionInfo | undefined;
   if (!session) { res.status(401).json({ error: "Not authenticated" }); return false; }
   if (hasMinProjectRole(session.username, session.role, projectPath, minRole)) return true;
@@ -67,7 +69,7 @@ function ensureAclMigration(ctx: ServerContext): void {
   if (changed) saveAcl(acl);
 }
 
-function allocatePort(ctx: ServerContext): number {
+export function allocatePort(ctx: ServerContext): number {
   let port = ctx.port + 1;
   for (const [, t] of ctx.ttydProcesses) { if (t.port >= port) port = t.port + 1; }
   return port;
@@ -210,171 +212,6 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const session = (req as any)._session as SessionInfo | undefined;
       const myRole = session ? getProjectRole(session.username, session.role, project.root) : null;
       res.json({ project: project.name, slug: project.slug, roles, accounts: config.accounts, myRole });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // --- Role lifecycle ---
-
-  app.post("/api/projects/:slug/roles/:name/start", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const roleName = req.params.name;
-    try {
-      const config = loadConfig(project.root);
-      const rc = config.roles[roleName];
-      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
-
-      // Allocate port
-      const ttydPort = allocatePort(ctx);
-
-      const result = startRole(project.root, roleName, rc, config, ttydPort);
-      ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
-      res.json({ ok: true, ...result });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.post("/api/projects/:slug/roles/:name/stop", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    stopRole(project.root, req.params.name);
-    ctx.ttydProcesses.delete(`${project.slug}/${req.params.name}`);
-    res.json({ ok: true });
-  });
-
-  app.post("/api/projects/:slug/roles/:name/restart", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const roleName = req.params.name;
-    try {
-      const config = loadConfig(project.root);
-      const rc = config.roles[roleName];
-      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
-
-      // If container exists, restart it. Otherwise start fresh.
-      if (isRoleRunning(project.root, roleName)) {
-        restartRole(project.root, roleName);
-      } else {
-        // Stop any dead container first
-        stopRole(project.root, roleName);
-        // Allocate port
-        const ttydPort = allocatePort(ctx);
-        startRole(project.root, roleName, rc, config, ttydPort);
-        ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
-      }
-      res.json({ ok: true, role: roleName });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // --- Role logs ---
-
-  app.get("/api/projects/:slug/roles/:name/log", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "viewer")) return;
-    const logs = getRoleLogs(project.root, req.params.name);
-    res.type("text").send(logs);
-  });
-
-  // --- Role CRUD ---
-
-  app.get("/api/templates", (_req, res) => {
-    res.json({ templates: TEMPLATE_NAMES });
-  });
-
-  app.post("/api/projects/:slug/roles", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const { name, template, account } = req.body;
-    if (!name || !ROLE_NAME_RE.test(name)) { res.status(400).json({ error: "Invalid role name" }); return; }
-    if (!template || !TEMPLATES[template]) { res.status(400).json({ error: `Invalid template` }); return; }
-    try {
-      const config = loadConfig(project.root);
-      if (config.roles[name]) { res.status(409).json({ error: `Role "${name}" already exists` }); return; }
-      createRole(project.root, name, template, config, account || "main");
-      res.json({ ok: true, role: name, template });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.delete("/api/projects/:slug/roles/:name", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const roleName = req.params.name;
-    try {
-      const config = loadConfig(project.root);
-      if (!config.roles[roleName]) { res.status(404).json({ error: "Role not found" }); return; }
-      stopRole(project.root, roleName);
-      ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
-      deleteRole(project.root, roleName, config);
-      res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // --- Resource config ---
-
-  app.post("/api/projects/:slug/roles/:name/config", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const roleName = req.params.name;
-    try {
-      const config = loadConfig(project.root);
-      const rc = config.roles[roleName];
-      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
-
-      const { memory, cpus } = req.body;
-      rc.memory = memory || undefined;
-      rc.cpus = cpus || undefined;
-      fs.writeFileSync(path.join(evomeshDir(project.root), "project.yaml"), YAML.stringify(config), "utf-8");
-
-      // Restart container with new limits if running
-      const wasRunning = isRoleRunning(project.root, roleName);
-      if (wasRunning) {
-        stopRole(project.root, roleName);
-        ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
-        const ttydPort = allocatePort(ctx);
-        const fresh = loadConfig(project.root);
-        startRole(project.root, roleName, fresh.roles[roleName], fresh, ttydPort);
-        ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
-      }
-
-      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, restarted: wasRunning });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // --- Account switching ---
-
-  app.post("/api/projects/:slug/roles/:name/account", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const roleName = req.params.name;
-    try {
-      const { accountName, accountPath: rawPath } = req.body;
-      if (!accountName) { res.status(400).json({ error: "Missing accountName" }); return; }
-      const config = loadConfig(project.root);
-      const rc = config.roles[roleName];
-      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
-      if (rawPath && !config.accounts[accountName]) config.accounts[accountName] = rawPath;
-      if (!config.accounts[accountName]) { res.status(400).json({ error: "Account not found" }); return; }
-
-      const oldAccount = rc.account;
-      rc.account = accountName;
-      fs.writeFileSync(path.join(evomeshDir(project.root), "project.yaml"), YAML.stringify(config), "utf-8");
-
-      // Swap credentials in container config (preserves session)
-      const newAccountPath = expandHome(config.accounts[accountName]);
-      switchContainerAccount(project.root, roleName, newAccountPath);
-
-      // Restart container to pick up new credentials
-      const wasRunning = isRoleRunning(project.root, roleName);
-      if (wasRunning) restartRole(project.root, roleName);
-
-      res.json({ ok: true, oldAccount, newAccount: accountName, restarted: wasRunning });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -566,114 +403,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });
 
-  // --- Admin AI terminal ---
-  app.get("/api/admin/status", (req, res) => {
-    const session = (req as any)._session as SessionInfo | undefined;
-    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
-    try {
-      const state = getContainerState(`evomesh-${process.env.USER || "user"}-central`);
-      const port = state === "running" ? getContainerPort(`evomesh-${process.env.USER || "user"}-central`) : null;
-      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/central/ai/" : null });
-    } catch { res.json({ running: false, port: null, terminal: null }); }
-  });
-
-  app.post("/api/admin/start", (req, res) => {
-    const session = (req as any)._session as SessionInfo | undefined;
-    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
-    try {
-      const homeDir = os.homedir();
-      const adminPort = ctx.port + 100; // Use high offset to avoid collision
-      // Remove old container
-      try { execFileSync("docker", ["rm", "-f", `evomesh-${process.env.USER || "user"}-central`], { stdio: ["pipe","pipe","ignore"] }); } catch {}
-
-      // Central AI uses same account as configured (default: main ~/.claude)
-      const accountPath = path.join(homeDir, ".claude");
-      const mainClaudeJson = path.join(homeDir, ".claude.json");
-
-      // Start central AI container — bridge network like normal roles
-      const args = [
-        "run", "-d",
-        "--name", `evomesh-${process.env.USER || "user"}-central`,
-        "-p", `127.0.0.1:${adminPort}:7681`,
-        "-v", `${homeDir}:${homeDir}:rw`,
-        "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
-        "-e", `HOST_UID=${process.getuid?.() || 1000}`,
-        "-e", `HOST_GID=${process.getgid?.() || 1000}`,
-        "-e", `HOST_USER=${process.env.USER || "user"}`,
-        "-e", `HOST_HOME=${homeDir}`,
-        "-e", `HOME=${homeDir}`,
-        "-e", `CLAUDE_CONFIG_DIR=${accountPath}`,
-        "-e", "ROLE_NAME=central",
-        "-w", `${homeDir}`,
-        "--log-opt", "max-size=10m",
-        "evomesh-role",
-      ];
-      execFileSync("docker", args, { stdio: "inherit" });
-
-      ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
-      res.json({ ok: true, port: adminPort, terminal: "/terminal/central/ai/" });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // Central AI status (read central-status.md)
-  app.get("/api/admin/central-status", (_req, res) => {
-    const statusFile = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
-    try {
-      if (fs.existsSync(statusFile)) {
-        res.type("text").send(fs.readFileSync(statusFile, "utf-8"));
-      } else {
-        res.type("text").send("Central AI starting...");
-      }
-    } catch { res.type("text").send("Unable to read status"); }
-  });
-
-  // Send message to central AI inbox
-  app.post("/api/admin/message", (req, res) => {
-    const { message } = req.body;
-    if (!message || typeof message !== "string" || !message.trim()) { res.status(400).json({ error: "Empty" }); return; }
-    try {
-      const inboxDir = path.join(os.homedir(), ".evomesh", "central", "inbox");
-      fs.mkdirSync(inboxDir, { recursive: true });
-      const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
-      const filename = `${ts}_user_command.md`;
-      fs.writeFileSync(path.join(inboxDir, filename),
-        `---\nfrom: user\npriority: high\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
-
-      // Also try to send directly to central AI's tmux if running
-      const cname = `evomesh-${process.env.USER || "user"}-central`;
-      const user = process.env.USER || "user";
-      try {
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "-l",
-          `[User Command] ${message.trim()}`], { stdio: "ignore" });
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "Enter"], { stdio: "ignore" });
-      } catch {}
-
-      res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // --- Scroll: tmux copy-mode scroll via docker exec ---
-  app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
-    if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
-    if (!requireProjectRole(req, res, project.root, "owner")) return;
-    const { direction, lines } = req.body;
-    if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
-    const cname = `evomesh-${slugify(path.basename(project.root))}-${req.params.name}`;
-    const user = process.env.USER || "user";
-    try {
-      if (direction === "esc") {
-        // Exit copy-mode: send 'q'
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "q"], { stdio: "ignore" });
-      } else {
-        const n = Math.min(Math.max(parseInt(lines) || 3, 1), 20);
-        const cmd = direction === "up" ? "scroll-up" : "scroll-down";
-        // Batch: enter copy-mode + scroll N times in a single shell command
-        const tmuxCmds = direction === "up" ? `tmux copy-mode -t claude 2>/dev/null; ` : "";
-        const scrollCmds = Array(n).fill(`tmux send-keys -t claude -X ${cmd}`).join("; ");
-        execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c", tmuxCmds + scrollCmds], { stdio: "ignore" });
-      }
-      res.json({ ok: true });
-    } catch { res.status(500).json({ error: "Failed" }); }
-  });
+  // --- Register extracted route groups ---
+  registerRoleRoutes(app, ctx);
+  registerAdminRoutes(app, ctx);
 }
