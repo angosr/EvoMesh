@@ -33,14 +33,13 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       try { execFileSync("docker", ["rm", "-f", `evomesh-${process.env.USER || "user"}-central`], { stdio: ["pipe","pipe","ignore"] }); } catch {}
 
       // Central AI uses the first available account from workspace projects
-      const expandHomePath = (p: string) => p.startsWith("~/") ? path.join(homeDir, p.slice(2)) : p;
       let accountPath = path.join(homeDir, ".claude"); // fallback
       try {
         const projects = ctx.getProjects();
         if (projects.length > 0) {
           const config = loadConfig(projects[0].root);
           const firstAccount = Object.values(config.accounts)[0];
-          if (firstAccount) accountPath = expandHomePath(firstAccount);
+          if (firstAccount) accountPath = expandHome(firstAccount);
         }
       } catch {}
       const mainClaudeJson = path.join(homeDir, ".claude.json");
