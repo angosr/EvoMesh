@@ -81,11 +81,16 @@ Append-only. Contains:
 - When short-term > 50 lines → summarize key items to long-term, then clear
 - When long-term > 200 lines → move oldest entries to `memory/archive.md`
 
-### Required Per Loop
+### Required Per Loop (ENFORCED)
 
-Every role MUST write at minimum:
-1. What was done this loop (short-term)
-2. Any blockers encountered (short-term)
+Every role MUST write `memory/short-term.md` every loop. No exceptions.
+A role with empty short-term memory is considered non-functional.
+
+Required content:
+1. What was done this loop
+2. Any blockers encountered
+3. In-progress work state
+4. Next loop focus
 
 ---
 
@@ -122,16 +127,26 @@ The area affected: `server`, `docker`, `frontend`, `roles`, `templates`, etc.
 
 ---
 
-## 4. Loop Flow (Universal)
+## 4. Loop Flow (Universal — MANDATORY)
 
-Every role follows this loop:
+Every role MUST follow this exact loop. Skipping any step is a protocol violation.
 
 1. `git pull --rebase` (stash if needed)
-2. Read own ROLE.md + todo.md + inbox/
-3. Execute role-specific work
-4. Update memory (short-term at minimum)
-5. Update todo.md
-6. `git add` + `git commit` + `git push`
+2. Read own ROLE.md + todo.md + inbox/ + **memory/short-term.md** (restore previous loop context)
+3. Process inbox: acknowledge P0 messages, read tasks/feedback
+4. Execute role-specific work
+5. **Write `memory/short-term.md`** (MANDATORY, overwrite each loop):
+   ```
+   ## YYYY-MM-DD Loop N
+   - **Done**: [bullet list of what was accomplished]
+   - **Blockers**: [any issues encountered, or "None"]
+   - **In-progress**: [work started but not finished]
+   - **Next focus**: [what to do next loop]
+   ```
+6. Update todo.md (mark completed ✅, add new tasks from inbox)
+7. `git add` + `git commit` + `git push`
+
+**If you have nothing to do**: write that in short-term memory ("No pending tasks, idle"). Do NOT leave memory empty.
 
 ---
 
