@@ -19,16 +19,14 @@
 
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/ + memory/short-term.md
-3. Execute highest-priority task (follow Task Implementation Flow from base-protocol)
-4. Run `npm test` if tests exist
-5. Update todo.md (mark completed, add new tasks)
-6. **Mandatory**: Write `memory/short-term.md` with:
-   - What was done this loop (bullet points)
-   - Current blockers
-   - In-progress work
-   - Next loop focus
-   Format: follow `.evomesh/templates/base-protocol.md` Section 2
-7. commit + push
+3. **Process inbox FIRST** — execute P0/P1 directives before any coding. Move processed to inbox/processed/
+4. Execute highest-priority task from todo.md
+5. Run `npm test` if tests exist
+6. Update todo.md (mark completed, add new tasks)
+7. **Write memory/short-term.md** (MANDATORY — done/blockers/in-progress/next)
+8. **Append to metrics.log** (MANDATORY): `timestamp,loop_duration_s,tasks_completed,errors,inbox_processed`
+9. Send `type: ack, status: done` to task sender for P0/P1 completions
+10. git add own files + commit + pull --rebase + push
 
 ## Key Rules
 

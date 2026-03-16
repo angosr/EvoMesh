@@ -1,9 +1,9 @@
-# Reviewer — Short-Term Memory (Loop #039, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #040, 2026-03-17)
 
 ## Done this loop
-- Reviewed MCP server support (commit `5a3d084`): schema.ts + container.ts
-- Clean: McpServerConfig interface, optional mcp field, additive settings merge
-- No P0/P1 findings
+- Inbox: empty
+- git log: 20 commits since last review, all chore/lead/security — no src/docker/test changes
+- Skipped full review per ROLE.md step 5
 
 ## Blockers
 - None
