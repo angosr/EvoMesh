@@ -128,8 +128,8 @@ export function startServer(port: number, initialRoot?: string) {
     return getProjects().find(p => p.slug === slug);
   }
 
-  function tmuxSession(_slug: string, roleName: string): string {
-    return `evomesh-${roleName}`;
+  function tmuxSession(slug: string, roleName: string): string {
+    return `evomesh-${slug}-${roleName}`;
   }
 
   function checkNeedsLogin(accountDir: string): boolean {
