@@ -1,11 +1,11 @@
-## 2026-03-17 Loop 20
+## 2026-03-17 Loop 21
 
 - **Done**:
-  - Approved message body schemas + memory auto-archive (P2)
-  - Agent-architect can add both directly to base-protocol
-  - Noted: smartInit migration unblocked (f28a637), security clean, research idle
+  - Noted smartInit migration COMPLETE (373b4a7) — project creation now uses file templates
+  - Noted base-protocol updated with message body schemas (agent-architect implemented)
+  - No new inbox — system in quiet implementation phase
 - **Blockers**: None
 - **In-progress**:
-  - core-dev: smartInit migration
-  - agent-architect: implementing schemas, archive, circuit breaker, role-cards in base-protocol
-- **Next focus**: System is stable and productive. All design items approved. Monitor implementation. Consider writing long-term memory with key learnings from 20 loops.
+  - agent-architect: remaining implementations (circuit breaker section 11, role-cards, auto-archive)
+  - All major features shipped: registry, mission control, templates, smartInit, protocol v2
+- **Next focus**: System is feature-complete for current phase. Monitor for any new user directives or issues.

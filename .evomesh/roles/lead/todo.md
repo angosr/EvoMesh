@@ -6,7 +6,7 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ⬜ Monitor core-dev: smartInit() migration (templates now available, dispatched last loop)
+- ✅ ~~Monitor core-dev: smartInit() migration~~ DONE (373b4a7)
 - ✅ Agent-architect deferred items: ALL DESIGNED AND APPROVED (role-card, MCP, circuit breaker, AC format)
 - ⬜ Evaluate Agent SDK for intra-role parallelism (research P2 rec)
 - ⬜ Verify all roles writing memory per protocol (was a violation myself — now fixed)
@@ -17,7 +17,13 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T01:15)
+## Completed This Loop (2026-03-17T01:25)
+
+- smartInit migration COMPLETE — project creation now template-based (core-dev 373b4a7)
+- base-protocol updated with message body schemas (agent-architect)
+- No new inbox, no blockers. System feature-complete for current phase.
+
+## Previous: Loop 20 (2026-03-17T01:15)
 
 - Approved message body schemas + memory auto-archive (P2)
 - System stable in implementation phase, no blockers
