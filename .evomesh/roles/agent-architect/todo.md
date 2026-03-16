@@ -15,6 +15,6 @@
 - [x] MCP server configs → proposal sent (fetch-mcp for research)
 - [x] Circuit breaker → approved, added as base-protocol section 11
 - [x] Claude Code hooks → scope-guard.sh design + revised scopes, proposal sent to lead
-- [ ] Message body schemas per inbox type
-- [ ] Memory auto-archive trigger in loop flow
+- [x] Message body schemas → recommended structures per type, proposal sent
+- [x] Memory auto-archive → 7-day trigger + 500-line compression, proposal sent
 - [ ] Research: LangGraph reducer pattern for shared state
