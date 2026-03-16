@@ -34,7 +34,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           const config = loadConfig(p.root);
           hasConfig = true;
           roleCount = Object.keys(config.roles).length;
-        } catch {}
+        } catch (e: any) { console.warn(`[routes] failed to load config for ${p.root}:`, e.message); }
         return { slug: p.slug, name: p.name, path: p.root, hasConfig, roleCount };
       });
       res.json({ projects: result });
@@ -71,7 +71,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           : `# ${leadName} — 待办任务\n\n## P0 — 项目初始化\n\n1. **分析项目结构**: 阅读代码库（README、package.json、src/ 等），理解项目做什么\n2. **审查现有角色**: 如果项目有自定义角色定义或 CLAUDE.md，保留其领域特定提示词，同时确保 EvoMesh 结构合规\n3. **设计角色策略**: 判断是否需要 lead+executor 之外的额外角色（如 reviewer、designer）\n4. **更新 blueprint.md**: 撰写项目愿景、技术路线、架构概览\n5. **更新 status.md**: 记录当前项目状态\n6. **分派初始任务**: 向 executor 的 todo.md 写入具体任务\n`;
         fs.writeFileSync(todoPath, initTask, "utf-8");
         const rc = config.roles[leadName];
-        try { spawnRole(projectRoot, leadName, rc, config); } catch {}
+        try { spawnRole(projectRoot, leadName, rc, config); } catch (e: any) { console.error(`[routes] failed to spawn lead role ${leadName}:`, e.message); }
         setTimeout(() => ensureTtydRunning(ctx), 3000);
       }
       res.json({ ok: true, project: { slug, name: projectName, path: projectRoot } });
@@ -172,7 +172,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         execFileSync("tmux", ["has-session", "-t", session], { stdio: "ignore" });
         execFileSync("tmux", ["send-keys", "-t", session, "-l", `[用户消息] ${message.trim()}`], { stdio: "ignore" });
         execFileSync("tmux", ["send-keys", "-t", session, "Enter"], { stdio: "ignore" });
-      } catch {}
+      } catch (e: any) { console.warn(`[routes] tmux send to ${leadName} failed:`, e.message); }
       res.json({ ok: true, delivered_to: leadName });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -194,7 +194,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const inbox = path.join(roleDir(project.root, leadName), "inbox");
       const msgs = [...readMsgs(inbox, false), ...readMsgs(path.join(inbox, "processed"), true)].sort((a, b) => a.ts.localeCompare(b.ts));
       res.json({ messages: msgs });
-    } catch { res.json({ messages: [] }); }
+    } catch (e: any) { console.error("[routes] chat history fetch failed:", e.message); res.json({ messages: [] }); }
   });
 
   app.get("/api/accounts", (_req, res) => {
@@ -238,7 +238,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
             const fresh = loadConfig(project.root);
             const freshRc = fresh.roles[roleName];
             if (freshRc) { spawnRole(project.root, roleName, freshRc, fresh); setTimeout(() => ensureTtydRunning(ctx), 3000); }
-          } catch {}
+          } catch (e: any) { console.error(`[routes] failed to restart ${roleName} after account change:`, e.message); }
         }, 2000);
       }
       res.json({ ok: true, oldAccount, newAccount: accountName, restarted: wasRunning });
