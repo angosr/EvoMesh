@@ -2,6 +2,7 @@ import path from "node:path";
 import { loadConfig } from "../config/loader.js";
 import { evomeshDir, expandHome } from "../utils/paths.js";
 import { writeYaml } from "../utils/fs.js";
+import { errorMessage } from "../utils/error.js";
 import { createRole, deleteRole } from "../roles/manager.js";
 import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
 import {
@@ -32,7 +33,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const result = startRole(project.root, roleName, rc, config, ttydPort);
       ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
       res.json({ ok: true, ...result });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   app.post("/api/projects/:slug/roles/:name/stop", (req, res) => {
@@ -66,7 +67,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
       }
       res.json({ ok: true, role: roleName });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Role logs ---
@@ -97,7 +98,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       if (config.roles[name]) { res.status(409).json({ error: `Role "${name}" already exists` }); return; }
       createRole(project.root, name, template, config, account || "main");
       res.json({ ok: true, role: name, template });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   app.delete("/api/projects/:slug/roles/:name", (req, res) => {
@@ -112,7 +113,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
       deleteRole(project.root, roleName, config);
       res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Resource config ---
@@ -144,7 +145,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       }
 
       res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, restarted: wasRunning });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Account switching ---
@@ -176,6 +177,6 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       if (wasRunning) restartRole(project.root, roleName);
 
       res.json({ ok: true, oldAccount, newAccount: accountName, restarted: wasRunning });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 }

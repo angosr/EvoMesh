@@ -4,6 +4,7 @@ import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
+import { errorMessage } from "../utils/error.js";
 import { slugify } from "../workspace/config.js";
 import { getContainerState, getContainerPort } from "../process/container.js";
 import type { ServerContext } from "./index.js";
@@ -64,8 +65,8 @@ function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string }
 
     ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
     return { port: adminPort, terminal: "/terminal/central/ai/" };
-  } catch (e: any) {
-    console.error("[central-ai] Failed to start:", e.message);
+  } catch (e: unknown) {
+    console.error("[central-ai] Failed to start:", errorMessage(e));
     return null;
   }
 }
@@ -77,7 +78,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     const result = ensureCentralAI(ctx);
     if (result) console.log(`[central-ai] Running on port ${result.port}`);
     else console.error("[central-ai] Failed to start on boot");
-  } catch (e: any) { console.error("[central-ai] Boot error:", e.message); }
+  } catch (e: unknown) { console.error("[central-ai] Boot error:", errorMessage(e)); }
 
   // --- Admin AI terminal ---
   app.get("/api/admin/status", (req, res) => {
@@ -137,7 +138,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       } catch {}
 
       res.json({ ok: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Scroll: tmux copy-mode scroll via docker exec ---

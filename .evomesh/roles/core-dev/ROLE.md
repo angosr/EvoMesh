@@ -18,11 +18,17 @@
 ## Loop Flow
 
 1. `git pull --rebase`
-2. Read this file + todo.md + inbox/
+2. Read this file + todo.md + inbox/ + memory/short-term.md
 3. Execute highest-priority task (follow Task Implementation Flow from base-protocol)
 4. Run `npm test` if tests exist
-5. Update todo.md + memory
-6. commit + push
+5. Update todo.md (mark completed, add new tasks)
+6. **Mandatory**: Write `memory/short-term.md` with:
+   - What was done this loop (bullet points)
+   - Current blockers
+   - In-progress work
+   - Next loop focus
+   Format: follow `.evomesh/templates/base-protocol.md` Section 2
+7. commit + push
 
 ## Key Rules
 

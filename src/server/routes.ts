@@ -7,6 +7,7 @@ import { roleDir, expandHome } from "../utils/paths.js";
 import { loadWorkspace, saveWorkspace, addProject, slugify } from "../workspace/config.js";
 import { smartInit } from "../workspace/smartInit.js";
 import { exists } from "../utils/fs.js";
+import { errorMessage } from "../utils/error.js";
 import {
   startRole, stopRole, isRoleRunning, sendInput,
 } from "../process/container.js";
@@ -119,7 +120,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         return { slug: p.slug, name: p.name, path: p.root, hasConfig, roleCount, myRole };
       });
       res.json({ projects: result });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   app.post("/api/projects/add", async (req, res) => {
@@ -161,11 +162,11 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         try {
           startRole(projectRoot, leadName, rc, config, ttydPort);
           ctx.ttydProcesses.set(`${slug}/${leadName}`, { port: ttydPort, roleName: leadName, projectSlug: slug });
-        } catch (e: any) { console.error(`Failed to start lead:`, e.message); }
+        } catch (e: unknown) { console.error(`Failed to start lead:`, errorMessage(e)); }
       }
 
       res.json({ ok: true, project: { slug, name: projectName, path: projectRoot } });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   app.delete("/api/projects/:slug", (req, res) => {
@@ -210,7 +211,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const session = (req as any)._session as SessionInfo | undefined;
       const myRole = session ? getProjectRole(session.username, session.role, project.root) : null;
       res.json({ project: project.name, slug: project.slug, roles, accounts: config.accounts, myRole });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Chat ---
@@ -236,7 +237,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       sendInput(project.root, leadName, `[用户消息] ${message.trim()}`);
 
       res.json({ ok: true, delivered_to: leadName });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   app.get("/api/projects/:slug/chat/history", (req, res) => {
@@ -311,7 +312,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           needsLogin: ctx.checkNeedsLogin(path.join(homeDir, e.name)),
         }));
       res.json({ accounts: detected });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- System metrics ---
@@ -335,7 +336,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         memory: { percent: memPercent, used: formatBytes(totalMem - freeMem), total: formatBytes(totalMem) },
         disk: { percent: diskPercent, used: diskUsed, total: diskTotal },
       });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Path autocomplete ---
@@ -380,7 +381,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       grantAccess(project.root, username, role);
       res.json({ ok: true, username, role });
-    } catch (e: any) { res.status(400).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(400).json({ error: errorMessage(e) }); }
   });
 
   app.delete("/api/projects/:slug/members/:username", (req, res) => {
@@ -390,7 +391,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       revokeAccess(project.root, req.params.username);
       res.json({ ok: true });
-    } catch (e: any) { res.status(400).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(400).json({ error: errorMessage(e) }); }
   });
 
   // --- Mission Control ---
@@ -455,7 +456,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       });
 
       res.json({ activity, alerts, tasks, ts: new Date().toISOString() });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   // --- Backward compat ---

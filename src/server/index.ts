@@ -5,6 +5,7 @@ import os from "node:os";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
+import { errorMessage } from "../utils/error.js";
 import { loadConfig } from "../config/loader.js";
 import { isRoleRunning, getContainerPort, getContainerState } from "../process/container.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
@@ -71,7 +72,7 @@ export function startServer(port: number, initialRoot?: string) {
       const token = generateSessionToken();
       sessions.set(token, { username: name, role: "admin" });
       res.json({ ok: true, token, username: name, role: "admin" });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
   app.post("/auth/login", (req, res) => {
@@ -106,7 +107,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (req.path === "/login" || req.path === "/") return next();
     // Allow static assets (CSS, JS) without auth
     if (req.path.endsWith(".css") || req.path.endsWith(".js") || req.path.endsWith(".ico")) return next();
-    // Terminal proxy handles its own auth via token query param
+    // Terminal proxy handles its own auth via token query param (in terminal.ts)
     if (req.path.startsWith("/terminal/")) return next();
     const session = getSession(req);
     if (!session) { return res.status(401).json({ error: "Not authenticated" }); }
@@ -174,7 +175,7 @@ export function startServer(port: number, initialRoot?: string) {
     try {
       addUser(username.trim(), password, userRole);
       res.json({ ok: true, username: username.trim(), role: userRole });
-    } catch (e: any) { res.status(409).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(409).json({ error: errorMessage(e) }); }
   });
 
   app.delete("/api/users/:username", (req, res) => {
@@ -188,7 +189,7 @@ export function startServer(port: number, initialRoot?: string) {
       }
       deleteUser(target);
       res.json({ ok: true });
-    } catch (e: any) { res.status(404).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(404).json({ error: errorMessage(e) }); }
   });
 
   app.post("/api/users/:username/reset-password", (req, res) => {
@@ -201,7 +202,7 @@ export function startServer(port: number, initialRoot?: string) {
         if (info.username === req.params.username) sessions.delete(token);
       }
       res.json({ ok: true });
-    } catch (e: any) { res.status(404).json({ error: e.message }); }
+    } catch (e: unknown) { res.status(404).json({ error: errorMessage(e) }); }
   });
 
   // --- Static pages ---
