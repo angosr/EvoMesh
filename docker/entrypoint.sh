@@ -67,12 +67,13 @@ trap cleanup SIGTERM SIGINT
 echo "[evomesh] Starting as $TARGET_USER (uid=$TARGET_UID)..."
 
 # Start claude inside tmux (persists when browser disconnects)
-gosu "$TARGET_USER" tmux new-session -d -s claude -x 120 -y 40 \
+# Use -f /dev/null to skip user's tmux config (oh-my-tmux causes issues)
+gosu "$TARGET_USER" tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
   "/usr/local/bin/claude $CLAUDE_ARGS; exec bash"
 
 # tmux mouse OFF: allows text selection + long-press copy on mobile
 # Scroll: desktop wheel via xterm.js, mobile touch via API scroll endpoint
-gosu "$TARGET_USER" tmux set-option -t claude mouse off 2>/dev/null || true
+gosu "$TARGET_USER" tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
 
 # ttyd attaches to tmux session (browser disconnect won't kill claude)
 gosu "$TARGET_USER" ttyd \
@@ -81,7 +82,7 @@ gosu "$TARGET_USER" ttyd \
   -t scrollback=10000 \
   -t scrollOnOutput=true \
   --port ${TTYD_PORT:-7681} \
-  -- tmux attach-session -t claude &
+  -- tmux -f /dev/null attach-session -t claude &
 TTYD_PID=$!
 
 # Wait for claude to start, then send /loop command
