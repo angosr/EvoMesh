@@ -1,10 +1,11 @@
 name: EvoMesh
-created: "2026-03-15"
+created: 2026-03-15
 repo: ""
 lang: en
 accounts:
-  main: ~/.claude
   "2": ~/.claude2
+  main: ~/.claude
+  default: ~/.claude
 roles:
   lead:
     type: lead
@@ -16,7 +17,7 @@ roles:
       - .evomesh/status.md
       - .evomesh/roles/*/inbox/
       - docs/
-    description: "Project director — strategy, docs, role coordination"
+    description: Project director — strategy, docs, role coordination
   agent-architect:
     type: worker
     loop_interval: 30m
@@ -25,7 +26,7 @@ roles:
     scope:
       - .evomesh/
       - docs/
-    description: "Multi-agent collaboration specialist"
+    description: Multi-agent collaboration specialist
   frontend:
     type: worker
     loop_interval: 15m
@@ -34,27 +35,27 @@ roles:
     scope:
       - src/server/frontend*
       - src/server/*.html
-    description: "UI/UX developer — web, mobile, interaction"
+    description: UI/UX developer — web, mobile, interaction
   core-dev:
     type: worker
     loop_interval: 10m
-    account: "2"
+    account: default
     evolution_upgrade_every: 20
     scope:
       - src/
       - docker/
       - test/
-    description: "Main feature development — backend, Docker, API"
+    description: Main feature development — backend, Docker, API
   reviewer:
     type: worker
     loop_interval: 20m
-    account: "2"
+    account: default
     evolution_upgrade_every: 25
     scope:
       - src/
       - test/
       - docs/
-    description: "Code review — quality, correctness, best practices"
+    description: Code review — quality, correctness, best practices
   security:
     type: worker
     loop_interval: 30m
@@ -63,7 +64,7 @@ roles:
     scope:
       - src/
       - docker/
-    description: "Security audit — vulnerabilities, hardcodes, injection"
+    description: Security audit — vulnerabilities, hardcodes, injection
 git:
   branch: main
   conflict_resolution: auto
@@ -76,4 +77,4 @@ git:
     scope:
       - devlog/
       - docs/
-    description: "Frontier research — papers, open source, trends, roadmap advice"
+    description: Frontier research — papers, open source, trends, roadmap advice

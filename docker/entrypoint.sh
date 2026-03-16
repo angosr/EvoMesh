@@ -27,14 +27,7 @@ if [ -f "$ROLE_SESSION_FILE" ] && [ -s "$ROLE_SESSION_FILE" ]; then
   SESSION_ID=$(cat "$ROLE_SESSION_FILE")
   echo "[evomesh] Found saved session: $SESSION_ID"
 fi
-
-# If no saved ID, search history.jsonl for this role's last session
-if [ -z "$SESSION_ID" ] && [ -f "$HISTORY_FILE" ]; then
-  SESSION_ID=$(grep "${ROLE_NAME:-role}" "$HISTORY_FILE" 2>/dev/null | tail -1 | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
-  if [ -n "$SESSION_ID" ]; then
-    echo "[evomesh] Found session from history: $SESSION_ID"
-  fi
-fi
+# Note: history.jsonl grep removed — too unreliable (matches user messages containing role name)
 
 IS_RESUME=false
 if [ -n "$SESSION_ID" ]; then
@@ -51,7 +44,7 @@ cleanup() {
   echo "[evomesh] Shutting down..."
   # Extract this role's session ID from history (search by role name)
   if [ -f "$HISTORY_FILE" ]; then
-    SID=$(grep "${ROLE_NAME:-role}" "$HISTORY_FILE" 2>/dev/null | tail -1 | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
+    SID=$(tail -1 "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
     if [ -n "$SID" ]; then
       mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
       echo "$SID" > "$ROLE_SESSION_FILE"
@@ -100,11 +93,13 @@ TTYD_PID=$!
       echo "[evomesh] Claude process found. Waiting ${WAIT_TIME}s for UI to be ready..."
       sleep $WAIT_TIME
       echo "[evomesh] Claude is ready. Sending /loop command..."
+      export EVOMESH_TTYD_PORT="${TTYD_PORT:-7681}"
       python3 << 'PYEOF' 2>&1
-import asyncio, websockets
+import asyncio, websockets, os
 
 async def send_loop():
-    uri = 'ws://127.0.0.1:${TTYD_PORT:-7681}/ws'
+    port = os.environ.get('EVOMESH_TTYD_PORT', '7681')
+    uri = f'ws://127.0.0.1:{port}/ws'
     try:
         async with websockets.connect(uri, subprotocols=['tty']) as ws:
             # Drain initial output
@@ -133,7 +128,7 @@ PYEOF
   # Save session ID after loop starts
   sleep 10
   if [ -f "$HISTORY_FILE" ]; then
-    SID=$(grep "${ROLE_NAME}" "$HISTORY_FILE" 2>/dev/null | tail -1 | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
+    SID=$(tail -1 "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
     if [ -n "$SID" ]; then
       mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
       echo "$SID" > "$ROLE_SESSION_FILE"
