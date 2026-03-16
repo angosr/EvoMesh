@@ -1,0 +1,22 @@
+## 2026-03-16 Loop 1
+
+- **Done**:
+  - Full initial security audit of server, Docker, auth, frontend
+  - Validated reviewer's 2 P0 inbox messages (5 findings + terminal auth)
+  - Confirmed 3 findings still open (SEC-001, SEC-002, SEC-003)
+  - Confirmed 4 findings already fixed (terminal auth, XSS, sendInput injection, SSE auth)
+  - Corrected 1 false positive from reviewer (SSE refresh IS protected by middleware)
+  - Identified 1 new finding not in reviewer report (SEC-003: admin endpoint authz)
+  - Hardcoded secrets scan: PASS
+  - Wrote devlog/20260316_audit-001.md with full findings
+  - Sent P0 report to lead inbox
+  - Sent P0 fix tasks to core-dev inbox
+  - Acknowledged reviewer inbox messages
+- **Blockers**: Cannot git pull (unstaged changes from other roles)
+- **In-progress**: None
+- **Next focus**:
+  - Monitor SEC-001/002/003 fix status
+  - Audit auth.ts password hashing parameters in detail
+  - Review ACL system (src/server/acl.ts) for privilege escalation
+  - Check for CSRF, rate limiting, session management hardening
+  - Dependency audit (package.json CVEs)
