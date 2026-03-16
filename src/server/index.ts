@@ -254,6 +254,9 @@ export function startServer(port: number, initialRoot?: string) {
   });
 
   // --- Registry: write role running states to file for Central AI ---
+  // NOTE: project.yaml is owned by Server API + Central AI only.
+  // Roles must NOT modify project.yaml directly — use inbox messages to request changes.
+  let lastGoodProjects: Record<string, any> = {};
   function writeRegistry() {
     try {
       const projects = ctx.getProjects();
@@ -272,8 +275,13 @@ export function startServer(port: number, initialRoot?: string) {
             };
           }
           projectEntries[p.slug] = { path: p.root, roles };
-        } catch {}
+        } catch {
+          // YAML parse failed — keep last-known-good state for this project
+          if (lastGoodProjects[p.slug]) projectEntries[p.slug] = lastGoodProjects[p.slug];
+        }
       }
+      lastGoodProjects = { ...projectEntries };
+
       // Central AI status
       const centralName = `evomesh-${process.env.USER || "user"}-central`;
       const centralRunning = getContainerState(centralName) === "running";
@@ -281,6 +289,7 @@ export function startServer(port: number, initialRoot?: string) {
 
       const registry = {
         timestamp: new Date().toISOString(),
+        staleAfterMs: 30000,
         server: { port },
         projects: projectEntries,
         central: { running: centralRunning, port: centralPort },
