@@ -128,7 +128,7 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 1. `git pull --rebase` (stash if needed)
 2. Read own ROLE.md + todo.md + inbox/ + **memory/short-term.md** (restore previous loop context)
 3. Read **`shared/decisions.md`** — binding architectural decisions that override local assumptions
-4. Process inbox: acknowledge P0 messages, read tasks/feedback
+4. **Process inbox** (MANDATORY, even on "clean" cycles with no code changes): acknowledge P0 messages, read tasks/feedback, act on directives
 5. Execute role-specific work
 6. **Write `memory/short-term.md`** (MANDATORY, overwrite each loop):
    ```

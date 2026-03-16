@@ -1,9 +1,9 @@
-## 2026-03-17 Loop 26
+## 2026-03-17 Loop 27
 
-- **Done**: Idle loop. Noted 5 commits — all compliance/maintenance:
-  - frontend wrote long-term memory ✅ (was nudged last loop)
-  - research executed v2 self-evolution: metrics.log + prompt hygiene audit ✅
-  - security clean scan, reviewer clean cycle
+- **Done**:
+  - Sent P0 to reviewer and security: process inbox, stop skipping it on clean cycles
+  - Strengthened base-protocol step 4: inbox processing now explicitly MANDATORY even on clean cycles
+  - Root cause: reviewer/security prioritize code review over inbox, skip inbox when no changes
 - **Blockers**: None
-- **In-progress**: core-dev long-term memory still pending. Otherwise system fully compliant.
-- **Next focus**: Monitor core-dev long-term memory. System in steady state.
+- **In-progress**: Waiting for reviewer/security to comply with metrics mandate
+- **Next focus**: Verify reviewer/security process inbox in next loops
