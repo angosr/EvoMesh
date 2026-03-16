@@ -145,15 +145,13 @@
 </div>
 <div class="resize-handle" id="rh-right"></div>
 
-<!-- Chat Sidebar -->
+<!-- Right Panel: Mission Control -->
 <div id="chat-sidebar">
-  <h2>
-    <span class="pulse"></span> Mission Control
-    <select id="chat-project-select" onchange="chatProjectChanged()"></select>
-  </h2>
+  <h2><span class="pulse"></span> Mission Control</h2>
   <div id="chat-feed"></div>
   <div id="chat-input-area">
-    <textarea id="chat-input" rows="2" placeholder="Message to Lead..."></textarea>
+    <select id="chat-project-select" onchange="chatProjectChanged()" style="flex-shrink:0;width:auto;max-width:100px;"></select>
+    <textarea id="chat-input" rows="1" placeholder="Message to Lead..."></textarea>
     <button id="chat-send" onclick="sendChat()">Send</button>
   </div>
 </div>

@@ -62,6 +62,7 @@
   .role-btn:hover .role-actions { opacity: 0.6; }
   .role-btn .role-actions span { cursor: pointer; font-size: 10px; padding: 0 2px; }
   .role-btn .role-actions span:hover { opacity: 1; }
+  .role-btn .role-actions .act-cfg { color: #888; }
   .role-btn .role-actions .act-restart { color: #fbbf24; }
   .role-btn .role-actions .act-del { color: #ef4444; }
   .add-role-btn { padding: 4px 10px; cursor: pointer; border: none; background: none; color: #555; font-size: 10px; width: 100%; text-align: left; }
@@ -189,7 +190,7 @@
   .feed-dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; margin-right: 2px; vertical-align: middle; }
   .feed-dot.running { background: #4ade80; }
   .feed-dot.stopped { background: #666; }
-  #chat-input-area { border-top: 1px solid #222; padding: 5px; display: flex; gap: 4px; }
+  #chat-input-area { border-top: 1px solid #222; padding: 5px; display: flex; gap: 4px; align-items: flex-end; }
   #chat-input { flex: 1; background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; padding: 5px 7px; border-radius: 5px; font-size: 11px; font-family: inherit; resize: none; outline: none; }
   #chat-input:focus { border-color: #e94560; }
   #chat-input::placeholder { color: #555; }

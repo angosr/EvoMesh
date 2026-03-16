@@ -56,7 +56,8 @@ function renderSidebar() {
       const btn = document.createElement('button'); const key = `${p.slug}/${r.name}`;
       btn.className = `role-btn ${state.activePanel===key?'active':''}`;
       const lw = r.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
-      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${esc(r.name)}</span>${lw}<span class="info">${esc(r.account)}</span><span class="role-actions"><span class="act-restart" onclick="event.stopPropagation();restartRole('${esc(p.slug)}','${esc(r.name)}')" title="Restart">&#8635;</span><span class="act-del" onclick="event.stopPropagation();deleteRole('${esc(p.slug)}','${esc(r.name)}')" title="Delete">&times;</span></span>`;
+      const resInfo = r.memory || r.cpus ? `${r.memory||'?'}/${r.cpus||'?'}cpu` : '';
+      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${esc(r.name)}</span>${lw}<span class="info">${esc(r.account)}${resInfo?' '+resInfo:''}</span><span class="role-actions"><span class="act-cfg" onclick="event.stopPropagation();configRole('${esc(p.slug)}','${esc(r.name)}','${esc(r.memory||'')}','${esc(r.cpus||'')}')" title="Resources">&#9881;</span><span class="act-restart" onclick="event.stopPropagation();restartRole('${esc(p.slug)}','${esc(r.name)}')" title="Restart">&#8635;</span><span class="act-del" onclick="event.stopPropagation();deleteRole('${esc(p.slug)}','${esc(r.name)}')" title="Delete">&times;</span></span>`;
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
       rd.appendChild(btn);
     }
@@ -539,6 +540,28 @@ async function switchAccount(slug, roleName, sel) {
   if (!confirm(`Switch ${roleName} to "${an}"?`)) { fetchAll(); return; }
   try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/account`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({accountName:an,accountPath:opt?.dataset?.path}) }); const d = await r.json(); if (d.ok) { addFeedMessage(`Account: <strong>${esc(roleName)}</strong> -> ${esc(an)}${d.restarted?' (restarting)':''}`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
+async function configRole(slug, roleName, curMemory, curCpus) {
+  const memory = prompt(`Memory limit for ${roleName} (e.g. 2g, 512m, empty=unlimited):`, curMemory);
+  if (memory === null) return; // cancelled
+  const cpus = prompt(`CPU limit for ${roleName} (e.g. 1.5, 2, empty=unlimited):`, curCpus);
+  if (cpus === null) return;
+
+  try {
+    const res = await authFetch(`${API}/projects/${slug}/roles/${roleName}/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memory: memory || null, cpus: cpus || null }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addFeedMessage(`<strong>${esc(roleName)}</strong> resources: ${memory||'unlimited'} mem, ${cpus||'unlimited'} cpu${data.restarted ? ' (restarting...)' : ''}`, 'system');
+      setTimeout(fetchAll, 3000);
+    } else {
+      alert(data.error || 'Failed');
+    }
+  } catch { alert('Failed'); }
+}
+
 async function restartRole(slug, roleName) {
   if (!confirm(`Restart "${roleName}"? Session will reconnect automatically.`)) return;
   try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }

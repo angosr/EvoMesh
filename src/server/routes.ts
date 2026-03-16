@@ -220,6 +220,38 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // --- Resource config ---
+
+  app.post("/api/projects/:slug/roles/:name/config", (req, res) => {
+    const project = ctx.getProject(req.params.slug);
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    const roleName = req.params.name;
+    try {
+      const config = loadConfig(project.root);
+      const rc = config.roles[roleName];
+      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
+
+      const { memory, cpus } = req.body;
+      rc.memory = memory || undefined;
+      rc.cpus = cpus || undefined;
+      fs.writeFileSync(path.join(evomeshDir(project.root), "project.yaml"), YAML.stringify(config), "utf-8");
+
+      // Restart container with new limits if running
+      const wasRunning = isRoleRunning(project.root, roleName);
+      if (wasRunning) {
+        stopRole(project.root, roleName);
+        ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
+        let ttydPort = ctx.port + 1;
+        for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
+        const fresh = loadConfig(project.root);
+        startRole(project.root, roleName, fresh.roles[roleName], fresh, ttydPort);
+        ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
+      }
+
+      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, restarted: wasRunning });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // --- Account switching ---
 
   app.post("/api/projects/:slug/roles/:name/account", (req, res) => {
