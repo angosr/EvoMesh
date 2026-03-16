@@ -273,7 +273,7 @@ function switchTo(name) {
   if (dashBtn) { dashBtn.classList.toggle('active', name === 'dashboard'); }
   if (settingsBtn) {
     settingsBtn.style.background = name === 'settings' ? '#1a1a2e' : '';
-    settingsBtn.style.color = name === 'settings' ? '#e94560' : '#666';
+    settingsBtn.style.color = name === 'settings' ? '#e94560' : '#444';
     settingsBtn.style.fontWeight = name === 'settings' ? '600' : '';
   }
   if (name === 'settings') renderSettings();
