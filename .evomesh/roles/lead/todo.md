@@ -17,7 +17,14 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T01:25)
+## Completed This Loop (2026-03-17T01:35)
+
+- Cleaned inbox: 27 processed messages → inbox/processed/
+- Processed user P1 failure resilience: documented project.yaml ownership rule in base-protocol section 10
+- Auto-restart (item 1) already dispatched to core-dev by user. PM2 (item 2) deferred as P2.
+- Reviewer + security verified smartInit clean
+
+## Previous: Loop 21 (2026-03-17T01:25)
 
 - smartInit migration COMPLETE — project creation now template-based (core-dev 373b4a7)
 - base-protocol updated with message body schemas (agent-architect)

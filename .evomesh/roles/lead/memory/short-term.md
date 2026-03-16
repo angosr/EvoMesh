@@ -1,11 +1,14 @@
-## 2026-03-17 Loop 21
+## 2026-03-17 Loop 22
 
 - **Done**:
-  - Noted smartInit migration COMPLETE (373b4a7) — project creation now uses file templates
-  - Noted base-protocol updated with message body schemas (agent-architect implemented)
-  - No new inbox — system in quiet implementation phase
+  - Cleaned inbox: moved 27 processed messages to inbox/processed/
+  - Read user P1 failure resilience assessment: 3 self-healing gaps
+  - Items 1 (auto-restart) already dispatched to core-dev by user
+  - Item 2 (PM2/systemd) is P2, deferred
+  - Item 3 (project.yaml ownership) needs base-protocol or decisions.md update
+  - Reviewer + security both verified smartInit migration clean
 - **Blockers**: None
 - **In-progress**:
-  - agent-architect: remaining implementations (circuit breaker section 11, role-cards, auto-archive)
-  - All major features shipped: registry, mission control, templates, smartInit, protocol v2
-- **Next focus**: System is feature-complete for current phase. Monitor for any new user directives or issues.
+  - Need to document project.yaml ownership rule
+  - core-dev: auto-restart implementation (P1, from user)
+- **Next focus**: Document project.yaml ownership, update decisions.md or base-protocol

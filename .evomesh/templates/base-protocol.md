@@ -169,6 +169,13 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 - `shared/decisions.md`: lead writes decisions, any role can propose via inbox
 - `shared/blockers.md`: any role can write their own blockers
 
+### Config File Ownership
+
+- `project.yaml`: **only Server API writes** (via Web UI operations). Roles must NOT edit directly.
+- Central AI creating a **new** project: writes a new `project.yaml` in the new project directory (no conflict)
+- Central AI modifying an **existing** project's `project.yaml`: must send request to lead via inbox, not edit directly
+- `workspace.yaml`: only Server API and Central AI may write
+
 ---
 
 ## 6. Coordination Topology
