@@ -398,36 +398,51 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.get("/api/mission-control", (req, res) => {
     const firstProject = ctx.getProjects()[0];
-    if (!firstProject) { res.json({ activity: [], alerts: [], tasks: [], ts: new Date().toISOString() }); return; }
+    if (!firstProject) { res.json({ activity: [], issues: [], tasks: [], ts: new Date().toISOString() }); return; }
     if (!requireProjectRole(req, res, firstProject.root, "viewer")) return;
     try {
+      const now = Date.now();
+      const relTime = (ms: number) => {
+        const m = Math.floor(ms / 60000);
+        if (m < 1) return "just now";
+        if (m < 60) return `${m}min ago`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h ago`;
+        return `${Math.floor(h / 24)}d ago`;
+      };
       const projects = ctx.getProjects();
-      const activity: Array<{ project: string; role: string; text: string; ts?: string }> = [];
-      const alerts: Array<{ level: "error" | "warning"; message: string; project?: string; role?: string }> = [];
+      const activity: Array<{ project: string; role: string; time: string; text: string; mtime: number }> = [];
+      const issues: Array<{ project: string; role: string; type: string; text: string }> = [];
       const tasks: Array<{ priority: string; text: string; project: string; role: string; done: boolean }> = [];
 
       for (const p of projects) {
         let config;
         try { config = loadConfig(p.root); } catch { continue; }
 
-        for (const [name, rc] of Object.entries(config.roles)) {
+        for (const [name] of Object.entries(config.roles)) {
           const rDir = roleDir(p.root, name);
           const running = isRoleRunning(p.root, name);
 
-          // Activity: read short-term memory
+          // Activity + stale detection: read short-term memory
+          const stmPath = path.join(rDir, "memory", "short-term.md");
           try {
-            const stm = fs.readFileSync(path.join(rDir, "memory", "short-term.md"), "utf-8");
+            const stat = fs.statSync(stmPath);
+            const stm = fs.readFileSync(stmPath, "utf-8");
+            const ageMs = now - stat.mtimeMs;
             const bullets = stm.match(/^- .+$/gm);
             if (bullets) {
               for (const b of bullets.slice(-3)) {
-                activity.push({ project: p.name, role: name, text: b.replace(/^- /, "") });
+                activity.push({ project: p.name, role: name, time: relTime(ageMs), text: b.replace(/^- /, ""), mtime: stat.mtimeMs });
               }
+            }
+            if (ageMs > 3600000) {
+              issues.push({ project: p.name, role: name, type: "stale", text: `Memory ${relTime(ageMs)} outdated` });
             }
           } catch {}
 
-          // Alerts: role not running
+          // Issues: role not running
           if (!running) {
-            alerts.push({ level: "error", message: `Role "${name}" is not running`, project: p.name, role: name });
+            issues.push({ project: p.name, role: name, type: "stopped", text: "Container not running" });
           }
 
           // Tasks: parse todo.md
@@ -441,23 +456,18 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
               if (!taskMatch) continue;
               const text = taskMatch[1];
               const done = text.startsWith("~~") || text.includes("✅");
-              // Alert: unprocessed P0
               if (currentPriority === "P0" && !done) {
-                alerts.push({ level: "warning", message: `P0 pending: ${text.slice(0, 60)}`, project: p.name, role: name });
+                issues.push({ project: p.name, role: name, type: "p0-pending", text: text.slice(0, 80) });
               }
-              tasks.push({ priority: currentPriority, text: text.slice(0, 120), project: p.name, role: name, done });
+              if (!done) tasks.push({ priority: currentPriority, text: text.slice(0, 120), project: p.name, role: name, done });
             }
           } catch {}
         }
       }
 
-      // Sort tasks: P0 first, undone first
-      tasks.sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        return a.priority.localeCompare(b.priority);
-      });
-
-      res.json({ activity, alerts, tasks, ts: new Date().toISOString() });
+      activity.sort((a, b) => b.mtime - a.mtime);
+      tasks.sort((a, b) => a.priority.localeCompare(b.priority));
+      res.json({ activity: activity.map(({ mtime, ...a }) => a), issues, tasks, ts: new Date().toISOString() });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 

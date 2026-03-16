@@ -11,4 +11,4 @@
 ## P2
 
 - Templates (deprecated but still active Web UI fallback — remove when Central AI role creation is stable)
-- Extract /api/mission-control into routes-mission.ts if routes.ts grows further (currently 474 lines)
+- Extract mission-control into routes-mission.ts if routes.ts grows further

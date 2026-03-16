@@ -110,7 +110,8 @@ export function verifyUser(username: string, password: string): User | null {
   const config = loadUsers();
   const user = config.users.find(u => u.username === username);
   if (!user) return null;
-  if (hashPassword(password, user.salt) !== user.passwordHash) return null;
+  const hash = hashPassword(password, user.salt);
+  if (!crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(user.passwordHash, "hex"))) return null;
   return user;
 }
 
@@ -118,7 +119,8 @@ export function changePassword(username: string, oldPassword: string, newPasswor
   const config = loadUsers();
   const user = config.users.find(u => u.username === username);
   if (!user) return false;
-  if (hashPassword(oldPassword, user.salt) !== user.passwordHash) return false;
+  const oldHash = hashPassword(oldPassword, user.salt);
+  if (!crypto.timingSafeEqual(Buffer.from(oldHash, "hex"), Buffer.from(user.passwordHash, "hex"))) return false;
   const salt = crypto.randomBytes(32).toString("hex");
   user.salt = salt;
   user.passwordHash = hashPassword(newPassword, salt);
