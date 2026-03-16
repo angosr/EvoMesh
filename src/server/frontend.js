@@ -159,10 +159,12 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const authPath = terminalPath;
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
+  // Transparent touch layer for mobile scrolling (touch events don't bubble from iframe)
+  const touchLayer = document.createElement('div'); touchLayer.className = 'touch-scroll-layer';
   // Reconnect overlay (for mobile — no keyboard Enter)
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
   overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${esc(key)}')">Reconnect</button>`;
-  panel.appendChild(iframe); panel.appendChild(overlay);
+  panel.appendChild(iframe); panel.appendChild(touchLayer); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   // Auto-detect disconnection
   let rTimer = setInterval(() => {
@@ -762,22 +764,31 @@ const origInitResize = initResize;
     doScroll(e.deltaY > 0 ? 'down' : 'up', 3);
   }, { passive: false });
 
-  // Mobile: touch scroll
-  let touchStartY = 0, touchActive = false;
-  panels.addEventListener('touchstart', e => {
-    if (state.activePanel === 'dashboard' || state.activePanel === 'settings') return;
-    if (!state.openPanels[state.activePanel]) return;
-    if (e.touches.length === 1) { touchStartY = e.touches[0].clientY; touchActive = true; }
+  // Mobile: touch scroll via transparent layer on top of iframe
+  // Swipe = scroll, tap = pass through to iframe (hide layer briefly)
+  let touchStartY = 0, touchMoved = false;
+  document.addEventListener('touchstart', e => {
+    if (!e.target.classList?.contains('touch-scroll-layer')) return;
+    touchStartY = e.touches[0].clientY;
+    touchMoved = false;
   }, { passive: true });
-  panels.addEventListener('touchmove', e => {
-    if (!touchActive || e.touches.length !== 1) return;
+  document.addEventListener('touchmove', e => {
+    if (!e.target.classList?.contains('touch-scroll-layer')) return;
     const dy = touchStartY - e.touches[0].clientY;
     if (Math.abs(dy) > 30) {
+      touchMoved = true;
       doScroll(dy > 0 ? 'up' : 'down', Math.min(Math.floor(Math.abs(dy) / 30), 5));
       touchStartY = e.touches[0].clientY;
     }
   }, { passive: true });
-  panels.addEventListener('touchend', () => { touchActive = false; });
+  document.addEventListener('touchend', e => {
+    if (!e.target.classList?.contains('touch-scroll-layer')) return;
+    // If it was a tap (no movement), hide layer to let next tap reach iframe
+    if (!touchMoved) {
+      e.target.style.display = 'none';
+      setTimeout(() => { e.target.style.display = ''; }, 3000);
+    }
+  });
 })();
 
 // ==================== Init ====================
