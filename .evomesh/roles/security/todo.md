@@ -29,8 +29,12 @@
 - [ ] SEC-007: Add session expiry/rotation
 - [ ] SEC-008: Add login rate limiting
 - [ ] SEC-009: Move token from localStorage to httpOnly cookie
-- [ ] SEC-010: Use timingSafeEqual for password hash comparison
-- [ ] SEC-011: Pin claude-code version in Dockerfile
-- [ ] SEC-012: Document --dangerously-skip-permissions as accepted risk
-- [ ] CSRF protection audit
-- [ ] Path traversal test on /api/complete-path
+- [ ] SEC-013: Remove dead /api/complete-path endpoint (path traversal) → sent to core-dev
+
+## P2 — Fixed/Closed
+
+- [x] SEC-010: Use timingSafeEqual → FIXED
+- [x] SEC-011: Pin claude-code version in Dockerfile → FIXED (pinned @2.1.76)
+- [x] SEC-012: Document --dangerously-skip-permissions → accepted risk
+- [x] CSRF protection audit → NOT VULNERABLE (Bearer token auth)
+- [x] Path traversal test → found SEC-013
