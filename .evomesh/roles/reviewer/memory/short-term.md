@@ -1,17 +1,15 @@
-# Reviewer — Short-Term Memory (Loop #026, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #027, 2026-03-17)
 
 ## Done this loop
-- Processed 2 P0 inbox directives from lead (metrics-mandatory, process-inbox-now)
-- Created metrics.log with header + first entry
-- Executed prompt hygiene self-audit: fixed interval, updated responsibilities, removed outdated rules
-- Logged changes to evolution.log
+- 1 new commit — no code changes (chore sync)
+- No inbox items
+- Metrics logged
 
 ## Blockers
 - None
 
 ## In-progress
-- All P0/P1 code findings resolved. 3 P2 remain (SSE auth, frontend.js size, python3-pip)
+- All P0/P1 resolved. 3 P2 remain (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
-- Maintain metrics.log every loop
-- Process inbox BEFORE code review (fixed loop order)
+- Monitor for code commits
