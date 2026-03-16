@@ -153,6 +153,17 @@
     .term-toolbar button { padding: 12px 16px; font-size: 16px; border-radius: 8px; }
   }
 
+  /* Copy modal */
+  .copy-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .copy-modal { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; max-width: 90vw; max-height: 80vh; overflow: auto; width: 600px; display: flex; flex-direction: column; }
+  .copy-modal-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .copy-modal-header span { color: var(--accent); font-size: 13px; font-weight: 600; flex: 1; }
+  .copy-modal-btn { background: var(--accent); border: none; color: #fff; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .copy-modal-btn:hover { background: var(--accent-hover); }
+  .copy-modal-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 18px; padding: 2px 6px; line-height: 1; }
+  .copy-modal-close:hover { color: var(--text); }
+  .copy-modal-content { color: var(--text); font-size: 11px; line-height: 1.4; white-space: pre-wrap; word-break: break-all; user-select: text; -webkit-user-select: text; margin: 0; flex: 1; overflow-y: auto; }
+
   #dashboard { padding: 20px; overflow-y: auto; height: 100%; }
   #dashboard h2 { color: #e94560; margin-bottom: 14px; font-size: 16px; }
   .card { background: #111111; border: 1px solid #222; border-radius: 8px; padding: 14px; margin-bottom: 14px; }

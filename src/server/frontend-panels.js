@@ -282,17 +282,41 @@ async function showCopyDialog() {
     const res = await authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/log`);
     const text = await res.text();
     const clean = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[^\x20-\x7e\n\r\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '');
-    const last500 = clean.split('\n').slice(-100).join('\n');
+    const last100 = clean.split('\n').slice(-100).join('\n');
     const modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;padding:20px';
-    modal.innerHTML = `<div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;max-width:90vw;max-height:80vh;overflow:auto;width:600px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span style="color:#e94560;font-size:13px;font-weight:600">Terminal Output (select to copy)</span>
-        <button onclick="this.closest('div').parentElement.remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:16px">&times;</button>
-      </div>
-      <pre style="color:#ccc;font-size:11px;line-height:1.4;white-space:pre-wrap;word-break:break-all;user-select:text;-webkit-user-select:text">${last500.replace(/</g,'&lt;')}</pre>
-    </div>`;
-    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    modal.className = 'copy-modal-overlay';
+    const inner = document.createElement('div');
+    inner.className = 'copy-modal';
+    const header = document.createElement('div');
+    header.className = 'copy-modal-header';
+    header.innerHTML = `<span>Terminal Output</span>`;
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-modal-btn';
+    copyBtn.textContent = 'Copy All';
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(last100);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy All'; }, 1500);
+      } catch {
+        // Fallback: select all text
+        const pre = inner.querySelector('pre');
+        if (pre) { const range = document.createRange(); range.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+      }
+    });
+    header.appendChild(copyBtn);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'copy-modal-close';
+    closeBtn.textContent = '\u00d7';
+    closeBtn.addEventListener('click', () => modal.remove());
+    header.appendChild(closeBtn);
+    const pre = document.createElement('pre');
+    pre.className = 'copy-modal-content';
+    pre.textContent = last100;
+    inner.appendChild(header);
+    inner.appendChild(pre);
+    modal.appendChild(inner);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
   } catch {}
 }
