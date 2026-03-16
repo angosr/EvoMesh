@@ -12,7 +12,7 @@ import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, ge
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
 import type { TtydProcess } from "./terminal.js";
-import { registerRoutes } from "./routes.js";
+import { registerRoutes, allocatePort } from "./routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -332,8 +332,7 @@ export function startServer(port: number, initialRoot?: string) {
 
             console.log(`[auto-restart] ${name} crashed in ${p.name}, restarting...`);
             try {
-              let ttydPort = port + 1;
-              for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
+              const ttydPort = allocatePort(ctx);
               startRole(p.root, name, rc, config, ttydPort);
               ctx.ttydProcesses.set(key, { port: ttydPort, roleName: name, projectSlug: p.slug });
               lastRestart.set(key, Date.now());
