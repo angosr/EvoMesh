@@ -1,0 +1,11 @@
+{
+  "name": "agent-architect",
+  "display_name": "Agent Architect",
+  "type": "worker",
+  "status": "active",
+  "loop_interval": "30m",
+  "capabilities": ["protocol-design", "memory-architecture", "multi-agent-systems", "prompt-engineering"],
+  "accepts": ["task", "feedback", "proposal"],
+  "scope": [".evomesh/", "docs/"],
+  "description": "Multi-agent collaboration specialist"
+}

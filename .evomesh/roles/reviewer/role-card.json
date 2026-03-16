@@ -1,0 +1,11 @@
+{
+  "name": "reviewer",
+  "display_name": "Reviewer",
+  "type": "worker",
+  "status": "active",
+  "loop_interval": "20m",
+  "capabilities": ["code-review", "quality-assurance", "best-practices", "testing"],
+  "accepts": ["task", "feedback"],
+  "scope": ["src/", "test/", "docs/"],
+  "description": "Code review — quality, correctness, best practices"
+}

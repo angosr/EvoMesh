@@ -1,0 +1,11 @@
+{
+  "name": "core-dev",
+  "display_name": "Core Developer",
+  "type": "worker",
+  "status": "active",
+  "loop_interval": "10m",
+  "capabilities": ["typescript", "docker", "api-development", "testing", "debugging", "devops"],
+  "accepts": ["task", "feedback"],
+  "scope": ["src/", "docker/", "test/"],
+  "description": "Main feature development — backend, Docker, API"
+}

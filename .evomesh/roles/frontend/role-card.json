@@ -1,0 +1,11 @@
+{
+  "name": "frontend",
+  "display_name": "Frontend",
+  "type": "worker",
+  "status": "active",
+  "loop_interval": "15m",
+  "capabilities": ["html", "css", "javascript", "responsive-design", "mobile", "ux"],
+  "accepts": ["task", "feedback"],
+  "scope": ["src/server/frontend*", "src/server/*.html"],
+  "description": "UI/UX developer — web, mobile, interaction"
+}
