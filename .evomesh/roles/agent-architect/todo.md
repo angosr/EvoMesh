@@ -19,13 +19,13 @@
 - [x] Memory storage strategy research → hybrid B+D recommended, sent to lead
 - [x] Prompt hygiene rule — added as section 8 in base-protocol v2
 - [x] Self-evolution protocol + metrics.log spec — added as section 9 in base-protocol v2
-- [ ] Review registry closed-loop design for gaps (lead request)
-- [ ] Append-only shared docs format spec (lead/research request)
-- [ ] Task acceptance criteria format for todo.md (lead/research P1)
+- [x] Review registry closed-loop design — 6 gaps found, report sent to lead
+- [x] Append-only shared docs format spec — detailed spec in devlog, sent to lead
+- [x] Task acceptance criteria format → AC: line spec, proposal sent to lead
 
 ## P2
 
-- [ ] role-card.json schema (A2A Agent Card inspired, lead request)
+- [x] role-card.json schema → proposal sent to lead (awaiting approval to create cards)
 - [ ] MCP server configs per role (lead/research request)
 - [ ] Claude Code hooks for role scope enforcement (lead/research request)
 - [ ] Circuit breaker design (N consecutive failures → auto-pause + P0 alert)
