@@ -154,6 +154,13 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 
 **If you have nothing to do**: write that in short-term memory ("No pending tasks, idle"). Do NOT leave memory empty.
 
+### Adaptive Throttle (idle conservation)
+
+Track consecutive idle loops (no tasks completed, no inbox processed) in short-term memory.
+- **3+ consecutive idle loops** → enter **light mode**: only check inbox + git log for new commits. Skip full scans, reviews, or research. Write memory + metrics only.
+- **New work detected** (inbox message or new commits in scope) → resume full loop immediately.
+- Light mode reduces API usage while keeping the role responsive to new work.
+
 ---
 
 ## 5. Conflict Resolution
