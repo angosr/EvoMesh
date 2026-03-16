@@ -38,12 +38,12 @@ export function ensureTtydRunning(ctx: ServerContext): void {
     }
 
     // Restore admin container registration if running but not tracked
-    if (!ctx.ttydProcesses.has("admin/admin")) {
+    if (!ctx.ttydProcesses.has("central/ai")) {
       try {
         const state = getContainerState(`evomesh-${process.env.USER || "user"}-central`);
         if (state === "running") {
           const port = getContainerPort(`evomesh-${process.env.USER || "user"}-central`);
-          if (port) ctx.ttydProcesses.set("admin/admin", { port, roleName: "admin", projectSlug: "admin" });
+          if (port) ctx.ttydProcesses.set("central/ai", { port, roleName: "ai", projectSlug: "central" });
         }
       } catch {}
     }
