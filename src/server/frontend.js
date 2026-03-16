@@ -1,4 +1,8 @@
-let AUTH_TOKEN = localStorage.getItem('evomesh-token') || '';
+// Read token from URL param (set by login redirect) or localStorage
+let AUTH_TOKEN = new URLSearchParams(location.search).get('token') || localStorage.getItem('evomesh-token') || '';
+if (AUTH_TOKEN) localStorage.setItem('evomesh-token', AUTH_TOKEN);
+// Clean URL params after extracting token
+if (location.search.includes('token=')) history.replaceState(null, '', location.pathname);
 const API = `${location.origin}/api`;
 function authFetch(url, opts = {}) {
   opts.headers = { ...opts.headers, 'Authorization': `Bearer ${AUTH_TOKEN}` };
@@ -610,6 +614,8 @@ const origInitResize = initResize;
 // We inject touch handlers into the same-origin ttyd iframe, find the
 // WebSocket, and write raw bytes. Low-latency, no HTTP roundtrip.
 function injectTouchScroll(iframe) {
+  // WebSocket hook is injected server-side into ttyd HTML (see terminal.ts)
+  // Here we only need to wait for xterm-screen and attach touch handlers
   const POLL_INTERVAL = 500;
   const MAX_ATTEMPTS = 20;
   let attempts = 0;
@@ -623,20 +629,14 @@ function injectTouchScroll(iframe) {
       const xtermScreen = iframeDoc.querySelector('.xterm-screen');
       if (!xtermScreen) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
 
-      // Already injected?
       if (xtermScreen.dataset.touchScrollInjected) return;
       xtermScreen.dataset.touchScrollInjected = 'true';
 
-      // Find ttyd's WebSocket by hooking into the iframe's window
-      // ttyd sends terminal input as: 0 (input type byte) + data
       function sendToTerminal(str) {
         try {
           const iframeWin = iframe.contentWindow;
-          // ttyd stores the WebSocket on window.term or we find it via the global
-          // The most reliable way: find the active WebSocket
-          const ws = findWebSocket(iframeWin);
+          const ws = iframeWin?._evomeshWs;
           if (!ws || ws.readyState !== 1) return false;
-          // ttyd protocol: first byte 0 = input, followed by the actual data
           const encoder = new TextEncoder();
           const data = encoder.encode(str);
           const msg = new Uint8Array(data.length + 1);
@@ -647,75 +647,35 @@ function injectTouchScroll(iframe) {
         } catch { return false; }
       }
 
-      function findWebSocket(win) {
-        // ttyd v1.7+ stores ws on the global lib object
-        // Try common locations
-        if (win.term?.socket) return win.term.socket;
-        if (win.lib?.socket) return win.lib.socket;
-        // Fallback: find any open WebSocket
-        // We intercept WebSocket creation to capture it
-        return win._evomeshWs || null;
-      }
-
-      // Intercept WebSocket creation to capture the instance
-      const iframeWin = iframe.contentWindow;
-      if (iframeWin && !iframeWin._evomeshWsHooked) {
-        iframeWin._evomeshWsHooked = true;
-        const OrigWS = iframeWin.WebSocket;
-        iframeWin.WebSocket = function(url, protocols) {
-          const ws = protocols ? new OrigWS(url, protocols) : new OrigWS(url);
-          iframeWin._evomeshWs = ws;
-          return ws;
-        };
-        iframeWin.WebSocket.prototype = OrigWS.prototype;
-        iframeWin.WebSocket.CONNECTING = OrigWS.CONNECTING;
-        iframeWin.WebSocket.OPEN = OrigWS.OPEN;
-        iframeWin.WebSocket.CLOSING = OrigWS.CLOSING;
-        iframeWin.WebSocket.CLOSED = OrigWS.CLOSED;
-      }
-
       let startY = 0;
       let lastY = 0;
       let scrolling = false;
       let inCopyMode = false;
       let exitTimer = null;
       const THRESHOLD = 12;
-      const STEP_PX = 20; // px per scroll line
+      const STEP_PX = 20;
 
       function enterCopyMode() {
         if (inCopyMode) return;
-        // tmux prefix (Ctrl-B) + [ to enter copy-mode
-        if (sendToTerminal('\x02[')) {
-          inCopyMode = true;
-        }
+        if (sendToTerminal('\x02[')) { inCopyMode = true; }
       }
-
       function exitCopyMode() {
         if (!inCopyMode) return;
         sendToTerminal('q');
         inCopyMode = false;
       }
-
       function scrollUp(lines) {
         enterCopyMode();
-        // In tmux copy-mode, Up arrow scrolls up one line
-        for (let i = 0; i < lines; i++) {
-          sendToTerminal('\x1b[A'); // Up arrow escape sequence
-        }
+        for (let i = 0; i < lines; i++) sendToTerminal('\x1b[A');
         resetExitTimer();
       }
-
       function scrollDown(lines) {
-        if (!inCopyMode) return; // Can only scroll down in copy-mode
-        for (let i = 0; i < lines; i++) {
-          sendToTerminal('\x1b[B'); // Down arrow escape sequence
-        }
+        if (!inCopyMode) return;
+        for (let i = 0; i < lines; i++) sendToTerminal('\x1b[B');
         resetExitTimer();
       }
-
       function resetExitTimer() {
         if (exitTimer) clearTimeout(exitTimer);
-        // Exit copy-mode after 3 seconds of inactivity
         exitTimer = setTimeout(exitCopyMode, 3000);
       }
 
@@ -742,11 +702,10 @@ function injectTouchScroll(iframe) {
         const lines = Math.floor(Math.abs(dy) / STEP_PX);
         if (lines < 1) return;
 
+        e.preventDefault();
         if (dy > 0) scrollUp(lines);
         else scrollDown(lines);
-
         lastY = currentY;
-        e.preventDefault();
       }, { passive: false });
 
       xtermScreen.addEventListener('touchend', () => { scrolling = false; });
