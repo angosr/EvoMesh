@@ -1,40 +1,31 @@
-name: EvoMesh
-created: 2026-03-15
-repo: ""
 accounts:
+  '2': ~/.claude2
   main: ~/.claude
-roles:
-  lead:
-    type: lead
-    loop_interval: 20m
-    evolution_upgrade_every: 30
-    scope:
-      - .evomesh/blueprint.md
-      - .evomesh/status.md
-      - .evomesh/roles/*/inbox/
-      - docs/
-    description: 项目总控，审查所有角色，维护战略蓝图
-    account: main
-  executor:
-    type: worker
-    loop_interval: 10m
-    evolution_upgrade_every: 20
-    scope:
-      - src/
-      - tests/
-    description: 代码实现，测试，提交
-    account: main
-  reviewer:
-    type: worker
-    loop_interval: 15m
-    evolution_upgrade_every: 25
-    scope:
-      - src/
-      - tests/
-      - docs/
-    description: 代码审查，质量把控
-    account: main
+created: 2026-03-15
 git:
+  auto_push: true
   branch: main
   conflict_resolution: auto
-  auto_push: true
+name: EvoMesh
+repo: ''
+roles:
+  executor:
+    account: '2'
+    description: 代码实现，测试，提交
+    evolution_upgrade_every: 20
+    loop_interval: 10m
+    scope:
+    - src/
+    - tests/
+    type: worker
+  lead:
+    account: '2'
+    description: 项目总控，审查所有角色，维护战略蓝图
+    evolution_upgrade_every: 30
+    loop_interval: 20m
+    scope:
+    - .evomesh/blueprint.md
+    - .evomesh/status.md
+    - .evomesh/roles/*/inbox/
+    - docs/
+    type: lead

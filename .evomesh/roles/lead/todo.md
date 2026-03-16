@@ -1,18 +1,14 @@
 # lead -- 待办任务
 
-## 进行中
+## 已完成
 
-### 权限系统重设计
-- [x] 分析当前权限系统不足
-- [x] 对比主流工具权限设计
-- [x] 设计完整方案 + 自我攻击
-- [x] 输出设计文档: `docs/design-permission-system.md`
-- [x] 分派 Phase 1 实施任务给 executor
-- [ ] 审查 executor 的实施产出
+- [x] 权限系统设计 + 分派 → executor P0 完成，95/95 测试通过
+- [x] 代码工程化分析 + 分派给 executor (P1)
+- [x] CLAUDE.md 编写
+- [x] 项目特定规则填充（lead + executor ROLE.md）
 
-### 代码工程化整理
-- [ ] 分析项目代码质量现状
-- [ ] 分派具体子任务给 executor
+## 等待审查
 
-### CLAUDE.md 编写
-- [ ] 基于角色模板编写英文版 CLAUDE.md
+- [ ] executor P1 代码工程化产出
+- [ ] 权限系统 Phase 2 (UI 权限过滤) — P1 之后
+- [ ] 权限系统 Phase 3 (终端只读、限速、会话过期) — Phase 2 之后

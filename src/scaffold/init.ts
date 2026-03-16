@@ -2,13 +2,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { ensureDir, writeFile, writeYaml, exists } from "../utils/fs.js";
 import { defaultConfig } from "../config/defaults.js";
+import { detectExistingRoles, generateBootstrapContext } from "./detect.js";
+import type { DetectedRole } from "./detect.js";
 
-export function scaffoldProject(root: string, name: string): void {
+export interface ScaffoldResult {
+  /** Whether existing role designs were detected */
+  hasExistingRoles: boolean;
+  /** Detected role files (empty if none) */
+  detected: DetectedRole[];
+}
+
+export function scaffoldProject(root: string, name: string): ScaffoldResult {
   const evomesh = path.join(root, ".evomesh");
 
   if (exists(evomesh)) {
     throw new Error(".evomesh/ already exists. Use `evomesh role create` to add roles.");
   }
+
+  // Detect existing role designs BEFORE creating .evomesh/
+  const detected = detectExistingRoles(root);
 
   // Create directory structure
   ensureDir(evomesh);
@@ -76,6 +88,14 @@ export function scaffoldProject(root: string, name: string): void {
     "# 阻塞问题\n\n（暂无）\n"
   );
 
+  // If existing roles detected, write bootstrap context
+  if (detected.length > 0) {
+    writeFile(
+      path.join(evomesh, "bootstrap-context.md"),
+      generateBootstrapContext(name, detected),
+    );
+  }
+
   // Ensure .evomesh/runtime/ is in .gitignore
   const gitignorePath = path.join(root, ".gitignore");
   const gitignoreEntry = "\n.evomesh/runtime/\n";
@@ -87,4 +107,6 @@ export function scaffoldProject(root: string, name: string): void {
   } else {
     writeFile(gitignorePath, gitignoreEntry);
   }
+
+  return { hasExistingRoles: detected.length > 0, detected };
 }
