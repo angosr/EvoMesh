@@ -31,13 +31,15 @@ function renderSettings() {
 async function doChangePassword() {
   const oldPw = document.getElementById('pw-old').value;
   const newPw = document.getElementById('pw-new').value;
-  const confirm = document.getElementById('pw-confirm').value;
+  const confirmPw = document.getElementById('pw-confirm').value;
   const msg = document.getElementById('pw-msg');
+  const btn = document.querySelector('#pw-form .settings-btn.primary');
 
   if (!oldPw) { msg.className = 'settings-msg error'; msg.textContent = 'Enter current password'; return; }
   if (!newPw || newPw.length < 4) { msg.className = 'settings-msg error'; msg.textContent = 'New password must be at least 4 characters'; return; }
-  if (newPw !== confirm) { msg.className = 'settings-msg error'; msg.textContent = 'Passwords do not match'; return; }
+  if (newPw !== confirmPw) { msg.className = 'settings-msg error'; msg.textContent = 'Passwords do not match'; return; }
 
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
   try {
     const r = await authFetch('/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
     const d = await r.json();
@@ -50,6 +52,7 @@ async function doChangePassword() {
       msg.className = 'settings-msg error'; msg.textContent = d.error || 'Failed to update password';
     }
   } catch { msg.className = 'settings-msg error'; msg.textContent = 'Connection error'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
 }
 
 async function loadUsers() {
@@ -99,6 +102,8 @@ async function doAddUser() {
   if (!username || username.length < 2) { msg.className = 'settings-msg error'; msg.textContent = 'Username must be at least 2 characters'; return; }
   if (!password || password.length < 4) { msg.className = 'settings-msg error'; msg.textContent = 'Password must be at least 4 characters'; return; }
 
+  const addBtn = document.querySelector('#add-user-form .settings-btn.primary');
+  if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Adding...'; }
   try {
     const r = await authFetch(`${API}/users`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) });
     const d = await r.json();
@@ -111,6 +116,7 @@ async function doAddUser() {
       msg.className = 'settings-msg error'; msg.textContent = d.error || 'Failed';
     }
   } catch { msg.className = 'settings-msg error'; msg.textContent = 'Connection error'; }
+  if (addBtn) { addBtn.disabled = false; addBtn.textContent = 'Add'; }
 }
 
 async function deleteUser(username) {
