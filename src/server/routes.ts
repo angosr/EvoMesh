@@ -573,7 +573,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       const state = getContainerState(`evomesh-${process.env.USER || "user"}-central`);
       const port = state === "running" ? getContainerPort(`evomesh-${process.env.USER || "user"}-central`) : null;
-      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/admin/admin/" : null });
+      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/central/ai/" : null });
     } catch { res.json({ running: false, port: null, terminal: null }); }
   });
 
@@ -610,8 +610,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       ];
       execFileSync("docker", args, { stdio: "inherit" });
 
-      ctx.ttydProcesses.set("admin/admin", { port: adminPort, roleName: "admin", projectSlug: "admin" });
-      res.json({ ok: true, port: adminPort, terminal: "/terminal/admin/admin/" });
+      ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
+      res.json({ ok: true, port: adminPort, terminal: "/terminal/central/ai/" });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

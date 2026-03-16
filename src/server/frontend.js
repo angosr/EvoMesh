@@ -81,7 +81,7 @@ async function fetchAll() {
     const activeTerminals = new Set();
     state.projects.forEach(p => p.roles.forEach(r => { if (r.terminal) activeTerminals.add(`${p.slug}/${r.name}`); }));
     for (const key of Object.keys(state.openPanels)) {
-      if (key !== 'dashboard' && key !== 'settings' && !activeTerminals.has(key)) {
+      if (key !== 'dashboard' && key !== 'settings' && key !== 'central/ai' && !activeTerminals.has(key)) {
         closePanel(key);
       }
     }
@@ -506,7 +506,7 @@ function restoreLayout() {
 
 // ==================== Admin AI Terminal ====================
 function openCentralTerminal() {
-  const key = 'admin/admin';
+  const key = 'central/ai';
   if (state.openPanels[key]) { switchTo(key); return; }
   authFetch(`${API}/admin/status`).then(r => r.json()).then(status => {
     if (status.running && status.terminal) {
