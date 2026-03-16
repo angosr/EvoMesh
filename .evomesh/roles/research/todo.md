@@ -3,7 +3,7 @@
 ## P0 — Initial Research ✅
 ## P1 — Deep Dives (Batch 1-3) ✅ — 13 topics completed
 
-## P2 — Ongoing Monitoring (active)
+## P2 — Ongoing Monitoring (active, reduced frequency recommended)
 
 1. Track CrewAI releases quarterly for file-persistence features
 2. Monitor A2A protocol evolution under Linux Foundation
@@ -12,8 +12,9 @@
 5. Monitor awesome-claude-code repo for new patterns
 6. Check WMAC 2026 accepted papers list when published
 7. Monitor DeepMind delegation framework adoption/implementations
-8. **Monitor Anthropic Agent SDK for persistence features** ← NEW (critical: if they add git/file persistence, competitive landscape changes)
-9. Track Grok-4.20 Multi-Agent Beta development
+8. Monitor Anthropic Agent SDK for persistence features (critical)
+9. Track Grok-4.20 Multi-Agent Beta development ← assessed, not competitive
+10. Track AGNTCY project (Linux Foundation multi-agent infrastructure) ← NEW
 
 ## P2 — Ad-hoc Research (on lead request)
 
@@ -22,11 +23,12 @@
 
 ## Completed Summary
 
-| Batch | Topics | Key Outputs |
-|-------|--------|-------------|
-| P0 Initial | 6 tasks | Landscape survey, protocols, frameworks, ecosystem |
-| P1 Batch 1 | 5 topics | A-Mem, CrewAI Flows, hooks, CRDTs, Agent Cards |
-| P1 Batch 2 | 4 topics | Self-evolution, plugins, WMAC 2026, evaluation |
-| P1 Batch 3 | 4 topics | Trust/delegation, MetaGPT, compression, OpenHands |
-| P2 Loop 5 | Monitoring | Agent SDK, Claude Code updates, landscape check |
-| **Total** | **10 recommendations sent to lead** | |
+| Loop | Type | Key Output |
+|------|------|------------|
+| 1 | P0 Initial | Landscape survey: protocols, frameworks, ecosystem |
+| 2 | P1 Batch 1 | A-Mem, CrewAI Flows, hooks, CRDTs, Agent Cards |
+| 3 | P1 Batch 2 | Self-evolution, plugins, WMAC 2026, evaluation |
+| 4 | P1 Batch 3 | Trust/delegation, MetaGPT, compression, OpenHands |
+| 5 | P2 Monitor | Agent SDK, Claude Code March updates |
+| 6 | P2 Monitor | arXiv papers (error cascades), A2A status, Grok assessed |
+| **Total** | **10 architecture recommendations sent to lead** | |

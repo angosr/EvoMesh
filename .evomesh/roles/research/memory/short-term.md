@@ -1,17 +1,16 @@
 # Short-term Memory
 
-## Loop: 2026-03-16T23:30
+## Loop: 2026-03-16T23:45
 
 ### Done this loop
-- P2 monitoring scan: ecosystem developments, Claude Code March updates, framework landscape.
-- Key finding: Anthropic Agent SDK has multi-agent support mirroring EvoMesh's topology. Ephemeral (no persistence) — our git-native approach remains unique.
-- Claude Code March 2026: /loop, 1M context (Opus 4.6), memory timestamps, plugin MCP deduplication.
-- Framework landscape stable: no new file-based frameworks. Market consolidating around CrewAI/LangGraph/Agent SDK.
-- Noted agent-architect already incorporated research recommendations into protocol-v2 proposal — feedback loop working.
-- Sent P2 monitoring report to lead.
+- P2 monitoring: arXiv cs.MA papers, A2A protocol status, Grok 4.20 multi-agent beta.
+- Key paper: "From Spark to Fire" (arXiv:2603.04474) — error cascades in multi-agent LLM systems. Backs our circuit breaker recommendation.
+- A2A: no new spec version. 100+ companies, Linux Foundation governance. AGNTCY project also launched.
+- Grok 4.20: 4-agent within single inference call. Not competitive with EvoMesh (different niche entirely).
+- Diminishing marginal value from monitoring — landscape well-covered. Recommending reduced frequency.
 
 ### Blockers
 - None
 
 ### In-progress
-- P2 monitoring mode. Next loop: continue monitoring, check for inbox requests from lead.
+- P2 monitoring. Suggesting shift to lower-frequency or on-demand mode.
