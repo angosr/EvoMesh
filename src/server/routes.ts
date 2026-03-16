@@ -155,9 +155,25 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles/:name/restart", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    const roleName = req.params.name;
     try {
-      restartRole(project.root, req.params.name);
-      res.json({ ok: true, role: req.params.name });
+      const config = loadConfig(project.root);
+      const rc = config.roles[roleName];
+      if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
+
+      // If container exists, restart it. Otherwise start fresh.
+      if (isRoleRunning(project.root, roleName)) {
+        restartRole(project.root, roleName);
+      } else {
+        // Stop any dead container first
+        stopRole(project.root, roleName);
+        // Allocate port
+        let ttydPort = ctx.port + 1;
+        for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
+        startRole(project.root, roleName, rc, config, ttydPort);
+        ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
+      }
+      res.json({ ok: true, role: roleName });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
