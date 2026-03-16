@@ -628,6 +628,43 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // Central AI status (read central-status.md)
+  app.get("/api/admin/central-status", (_req, res) => {
+    const statusFile = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
+    try {
+      if (fs.existsSync(statusFile)) {
+        res.type("text").send(fs.readFileSync(statusFile, "utf-8"));
+      } else {
+        res.type("text").send("Central AI starting...");
+      }
+    } catch { res.type("text").send("Unable to read status"); }
+  });
+
+  // Send message to central AI inbox
+  app.post("/api/admin/message", (req, res) => {
+    const { message } = req.body;
+    if (!message || typeof message !== "string" || !message.trim()) { res.status(400).json({ error: "Empty" }); return; }
+    try {
+      const inboxDir = path.join(os.homedir(), ".evomesh", "central", "inbox");
+      fs.mkdirSync(inboxDir, { recursive: true });
+      const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
+      const filename = `${ts}_user_command.md`;
+      fs.writeFileSync(path.join(inboxDir, filename),
+        `---\nfrom: user\npriority: high\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
+
+      // Also try to send directly to central AI's tmux if running
+      const cname = "evomesh-admin";
+      const user = process.env.USER || "claudeuser";
+      try {
+        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "-l",
+          `[User Command] ${message.trim()}`], { stdio: "ignore" });
+        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "Enter"], { stdio: "ignore" });
+      } catch {}
+
+      res.json({ ok: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // --- Scroll: tmux copy-mode scroll via docker exec ---
   app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
     const project = ctx.getProject(req.params.slug);

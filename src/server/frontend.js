@@ -491,16 +491,7 @@ function restoreLayout() {
   } catch {}
 }
 
-// Auto-save on changes
-const _origSwitchTo = switchTo;
-switchTo = function(name) { _origSwitchTo(name); saveLayout(); };
-const _origClosePanel = closePanel;
-closePanel = function(key) { _origClosePanel(key); saveLayout(); };
-const _origSetLayout = setLayout;
-setLayout = function(mode) { _origSetLayout(mode); saveLayout(); };
-
 // Save on resize end
-const origInitResize = initResize;
 ['rh-left', 'rh-right'].forEach(id => {
   const handle = document.getElementById(id);
   handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
@@ -514,22 +505,82 @@ const origInitResize = initResize;
 // Terminal scroll + copy moved to frontend-panels.js
 
 // ==================== Admin AI Terminal ====================
-async function initAdminTerminal() {
-  const iframe = document.getElementById('admin-terminal');
-  if (!iframe) return;
-  try {
-    let status = await (await authFetch(`${API}/admin/status`)).json();
-    if (!status.running) {
-      iframe.srcdoc = '<div style="color:#888;font-size:12px;padding:20px;font-family:monospace">Starting AI Control Center...</div>';
-      const res = await authFetch(`${API}/admin/start`, { method: 'POST' });
-      const data = await res.json();
-      if (!data.ok) { iframe.srcdoc = `<div style="color:#ef4444;padding:20px;font-family:monospace">Failed: ${data.error}</div>`; return; }
-      await new Promise(r => setTimeout(r, 3000));
+function openCentralTerminal() {
+  // Open central AI terminal in a tab (like any other role)
+  const key = 'admin/admin';
+  if (state.openPanels[key]) { switchTo(key); return; }
+  // Check if central AI is running
+  authFetch(`${API}/admin/status`).then(r => r.json()).then(status => {
+    if (status.running && status.terminal) {
+      openTerminal('admin', 'Central AI', 'admin', status.terminal);
+    } else {
+      // Start it first
+      startAndOpenTerminal('admin', 'Central AI', 'admin');
     }
-    iframe.src = '/terminal/admin/admin/';
-  } catch (e) {
-    iframe.srcdoc = `<div style="color:#ef4444;padding:20px;font-family:monospace">Error: ${e}</div>`;
-  }
+  }).catch(() => alert('Failed to start Central AI'));
+}
+
+// ==================== Central AI Panel ====================
+async function initCentralPanel() {
+  // Start central AI container if not running
+  try {
+    const status = await (await authFetch(`${API}/admin/status`)).json();
+    if (!status.running) {
+      await authFetch(`${API}/admin/start`, { method: 'POST' });
+    }
+  } catch {}
+  // Load initial status
+  refreshCentralStatus();
+  setInterval(refreshCentralStatus, 10000);
+}
+
+async function refreshCentralStatus() {
+  const el = document.getElementById('central-status');
+  if (!el) return;
+  try {
+    // Read central-status.md via a simple API
+    const res = await authFetch(`${API}/admin/central-status`);
+    if (res.ok) {
+      const text = await res.text();
+      el.textContent = text || 'Central AI running. Waiting for first status update...';
+    }
+  } catch { el.textContent = 'Central AI offline'; }
+}
+
+function addCentralMessage(html, cls) {
+  const feed = document.getElementById('central-feed');
+  if (!feed) return;
+  const div = document.createElement('div');
+  div.style.cssText = `padding:5px 7px;border-radius:5px;font-size:11px;line-height:1.4;background:${cls==='user'?'#1a1a2e':'#111'};border:1px solid #222;${cls==='user'?'margin-left:20px':''}`;
+  div.innerHTML = html;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  while (feed.children.length > 100) feed.removeChild(feed.firstChild);
+}
+
+async function sendToCentral() {
+  const input = document.getElementById('central-input');
+  const text = input?.value?.trim();
+  if (!text) return;
+  addCentralMessage(`<span style="color:#e94560;font-weight:600">You</span> ${esc(text)}`, 'user');
+  input.value = '';
+  // Write to central AI inbox
+  try {
+    const res = await authFetch(`${API}/admin/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+    if (data.ok) addCentralMessage(`<span style="color:#4ade80">Delivered to Central AI</span>`, 'system');
+    else addCentralMessage(`<span style="color:#ef4444">Error: ${esc(data.error)}</span>`, 'system');
+  } catch { addCentralMessage('<span style="color:#ef4444">Failed to send</span>', 'system'); }
+}
+
+// Enter to send
+document.getElementById('central-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendToCentral(); }
+});
 }
 
 // ==================== Init ====================
@@ -545,10 +596,10 @@ async function initAdminTerminal() {
   fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();
   // Subscribe to refresh events from central AI operations
   try {
-    const refreshEs = new EventSource(`${API}/refresh/subscribe`);
+    const refreshEs = new EventSource(`${API}/refresh/subscribe?token=${encodeURIComponent(AUTH_TOKEN)}`);
     refreshEs.onmessage = () => { fetchAll(); };
   } catch {}
-  initAdminTerminal();
+  initCentralPanel();
 })();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });
 window.addEventListener('beforeunload', saveLayout);

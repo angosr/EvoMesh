@@ -19,6 +19,9 @@
   <button id="dashboard-btn" class="active" onclick="switchTo('dashboard')">
     <span class="dash-icon">&#9638;</span> Dashboard
   </button>
+  <button id="central-btn" onclick="openCentralTerminal()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer;border:none;background:none;color:#ccc;font-size:12px;width:100%;text-align:left;border-bottom:1px solid #222;">
+    <span style="color:#e94560">&#9679;</span> Central AI
+  </button>
   <div id="open-tabs-section">
     <div id="open-tabs-header" onclick="toggleOpenTabs()">
       <span class="arrow open" id="tabs-arrow">&#9654;</span>
@@ -144,10 +147,12 @@
 
 <!-- Right Panel: Mission Control -->
 <div id="chat-sidebar">
-  <h2><span class="pulse"></span> Mission Control</h2>
-  <iframe id="admin-terminal" style="width:100%;flex:1;border:none;background:#000"></iframe>
-  <div style="padding:4px 8px;border-top:1px solid #222;font-size:9px;color:#555;text-align:center">
-    AI can manage all projects, roles, and configs
+  <h2><span class="pulse"></span> Central AI</h2>
+  <div id="central-status" style="padding:8px;font-size:11px;color:#888;border-bottom:1px solid #222;max-height:40%;overflow-y:auto;white-space:pre-wrap;line-height:1.5"></div>
+  <div id="central-feed" style="flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:4px"></div>
+  <div style="border-top:1px solid #222;padding:6px;display:flex;gap:4px">
+    <textarea id="central-input" rows="2" placeholder="Ask Central AI..." style="flex:1;background:#0a0a0a;border:1px solid #222;color:#e0e0e0;padding:6px;border-radius:5px;font-size:12px;font-family:inherit;resize:none;outline:none"></textarea>
+    <button id="central-send" onclick="sendToCentral()" style="background:#e94560;border:none;color:#fff;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600">Send</button>
   </div>
 </div>
 
