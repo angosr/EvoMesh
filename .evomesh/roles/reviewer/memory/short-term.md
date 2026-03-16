@@ -1,9 +1,9 @@
-# Reviewer — Short-Term Memory (Loop #017, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #018, 2026-03-17)
 
 ## Done this loop
-- 4 new commits — no code changes (lead, research, security, chore)
-- No inbox items
-- 11th consecutive clean cycle
+- Reviewed smartInit migration (commit `373b4a7`): file-based templates, account load-balancing
+- 156 lines, clean implementation, no security issues
+- Template rendering uses simple `{var}` substitution — safe (admin-controlled templates)
 
 ## Blockers
 - None
@@ -12,4 +12,4 @@
 - 3 P2 items remain open (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
-- Monitor for code commits — core-dev smartInit migration may produce code soon
+- Monitor for more implementation commits (10 research recs being built)
