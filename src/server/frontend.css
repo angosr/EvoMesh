@@ -171,7 +171,7 @@
   #panels.grid.grid-3 .panel:last-child { grid-column: 1 / -1; }
   #panels.grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
   #panels.grid.grid-many { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
-  #panels.grid .panel { position: relative; display: block !important; }
+  #panels.grid .panel { position: relative; display: block !important; visibility: visible !important; z-index: auto; }
   #panels.grid .panel.hidden-grid { display: none !important; }
 
   /* === Chat sidebar === */
