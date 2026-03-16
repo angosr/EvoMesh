@@ -1,17 +1,15 @@
-# Reviewer — Short-Term Memory (Loop #012, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #013, 2026-03-17)
 
 ## Done this loop
-- Checked 1 new commit (`cb05d9b` agent-architect registry review) — no code changes
-- No inbox items
-- Clean cycle — no review needed
+- Reviewed registry fix in `index.ts` (commit `7bc31d8`): last-known-good fallback, staleAfterMs hint, ownership doc
+- All changes clean — good resilience pattern
 
 ## Blockers
 - None
 
 ## In-progress
-- 6th consecutive clean cycle (no new code findings)
 - 3 P2 items remain open (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
 - Monitor for new code commits
-- Codebase is stable — consider reducing loop frequency if clean streak continues
+- 7th consecutive clean cycle
