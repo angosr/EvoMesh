@@ -33,10 +33,16 @@ EvoMesh 的核心不是 Web UI，不是容器管理，而是**中枢 AI**（Cent
 中枢 AI **就是一个 Claude Code session**，运行在专属容器里，有以下特权：
 
 ### 访问范围
-- `~/work/` — 所有项目目录（RW）
-- `~/.evomesh/` — 工作区配置、用户配置（RW）
+- `~/` — 挂载整个用户 HOME 目录（RW），可访问一切文件
 - Docker socket — 管理所有角色容器
-- 所有项目的 `.evomesh/roles/*/` — 读写角色状态
+- 系统命令 — 可执行任意非危险操作（安装软件、网络请求等）
+
+### 禁止的危险操作
+- `rm -rf /` 或 `rm -rf ~`（删除根目录或整个 HOME）
+- `git push --force` 到 main/master
+- 删除 `.evomesh/` 配置目录
+- 修改 `/etc/` 系统配置
+- 这些限制写在中枢 AI 的 CLAUDE.md 里，通过 Claude Code 的 `--dangerously-skip-permissions` 的 hook 机制或 CLAUDE.md 硬性规则约束
 
 ### 不同于普通角色
 | | 普通角色 | 中枢 AI |
@@ -148,7 +154,16 @@ EvoMesh 的核心不是 Web UI，不是容器管理，而是**中枢 AI**（Cent
 6. 更新 `project.yaml` 添加角色配置
 7. 启动容器
 
-## 5. 中枢 AI 的配置注入
+## 5. 中枢 AI 的容器与配置
+
+中枢 AI 容器挂载整个 `~/` 目录，与宿主机完全一致的文件视图：
+```
+docker run ...
+  -v /home/{user}:/home/{user}:rw     # 整个 HOME
+  -v /var/run/docker.sock:/var/run/docker.sock:rw  # Docker 管理
+  --user {uid}:{gid}                   # 同宿主机用户
+  -w /home/{user}                      # 工作目录 = HOME
+```
 
 中枢 AI 的提示词和规则存储在：
 
