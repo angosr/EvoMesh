@@ -107,9 +107,6 @@ export function startServer(port: number, initialRoot?: string) {
     if (req.path.startsWith("/terminal/")) return next();
     const session = getSession(req);
     if (!session) { return res.status(401).json({ error: "Not authenticated" }); }
-    if (session.role === "viewer" && req.method !== "GET") {
-      return res.status(403).json({ error: "Viewers have read-only access" });
-    }
     (req as any)._session = session;
     next();
   });
@@ -170,7 +167,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (!username || !password) { res.status(400).json({ error: "Username and password required" }); return; }
     if (username.length < 2) { res.status(400).json({ error: "Username too short (min 2)" }); return; }
     if (password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
-    const userRole: UserRole = role === "viewer" ? "viewer" : "admin";
+    const userRole: UserRole = role === "admin" ? "admin" : "user";
     try {
       addUser(username.trim(), password, userRole);
       res.json({ ok: true, username: username.trim(), role: userRole });

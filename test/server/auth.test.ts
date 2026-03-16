@@ -73,29 +73,29 @@ describe("server/auth", () => {
     assert.equal(auth.changePassword("admin", "wrongold", "x"), false);
   });
 
-  it("addUser creates a new user", () => {
-    auth.addUser("viewer1", "viewpass", "viewer");
+  it("addUser creates a new user with 'user' role", () => {
+    auth.addUser("user1", "userpass", "user");
     const users = auth.listUsers();
     assert.equal(users.length, 2);
-    const v = users.find(u => u.username === "viewer1");
+    const v = users.find(u => u.username === "user1");
     assert.ok(v);
-    assert.equal(v.role, "viewer");
+    assert.equal(v.role, "user");
   });
 
   it("addUser throws for duplicate username", () => {
-    assert.throws(() => auth.addUser("viewer1", "x", "viewer"), /already exists/i);
+    assert.throws(() => auth.addUser("user1", "x", "user"), /already exists/i);
   });
 
   it("verifyUser works for added user", () => {
-    const user = auth.verifyUser("viewer1", "viewpass");
+    const user = auth.verifyUser("user1", "userpass");
     assert.ok(user);
-    assert.equal(user.role, "viewer");
+    assert.equal(user.role, "user");
   });
 
   it("resetPassword changes password without knowing old one", () => {
-    auth.resetPassword("viewer1", "resetpass");
-    assert.equal(auth.verifyUser("viewer1", "viewpass"), null);
-    assert.ok(auth.verifyUser("viewer1", "resetpass"));
+    auth.resetPassword("user1", "resetpass");
+    assert.equal(auth.verifyUser("user1", "userpass"), null);
+    assert.ok(auth.verifyUser("user1", "resetpass"));
   });
 
   it("resetPassword throws for nonexistent user", () => {
@@ -103,8 +103,8 @@ describe("server/auth", () => {
   });
 
   it("deleteUser removes user", () => {
-    auth.deleteUser("viewer1");
-    assert.equal(auth.verifyUser("viewer1", "resetpass"), null);
+    auth.deleteUser("user1");
+    assert.equal(auth.verifyUser("user1", "resetpass"), null);
     assert.equal(auth.listUsers().length, 1);
   });
 
@@ -148,5 +148,31 @@ describe("server/auth", () => {
     // Legacy file should be renamed
     assert.equal(fs.existsSync(legacyFile), false);
     assert.equal(fs.existsSync(legacyFile + ".bak"), true);
+  });
+
+  it("loadUsers auto-migrates viewer role to user", async () => {
+    // Write a users.yaml with legacy "viewer" role
+    const YAML = await import("yaml");
+    const config = {
+      users: [
+        { username: "oldviewer", passwordHash: "abc", salt: "def", role: "viewer", createdAt: "2026-01-01" },
+        { username: "keepadmin", passwordHash: "ghi", salt: "jkl", role: "admin", createdAt: "2026-01-01" },
+      ],
+    };
+    fs.mkdirSync(usersDir, { recursive: true });
+    fs.writeFileSync(usersFile, YAML.stringify(config), "utf-8");
+
+    // listUsers triggers loadUsers which auto-migrates
+    const users = auth.listUsers();
+    const viewer = users.find(u => u.username === "oldviewer");
+    assert.ok(viewer);
+    assert.equal(viewer.role, "user");
+    const admin = users.find(u => u.username === "keepadmin");
+    assert.ok(admin);
+    assert.equal(admin.role, "admin");
+
+    // Verify file was rewritten
+    const raw = YAML.parse(fs.readFileSync(usersFile, "utf-8"));
+    assert.equal(raw.users.find((u: any) => u.username === "oldviewer").role, "user");
   });
 });

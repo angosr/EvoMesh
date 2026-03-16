@@ -8,7 +8,7 @@ const AUTH_DIR = path.join(os.homedir(), ".evomesh");
 const USERS_FILE = path.join(AUTH_DIR, "users.yaml");
 const LEGACY_AUTH_FILE = path.join(AUTH_DIR, "auth.yaml");
 
-export type UserRole = "admin" | "viewer";
+export type UserRole = "admin" | "user";
 
 export interface User {
   username: string;
@@ -48,7 +48,18 @@ function loadUsers(): UsersConfig {
   try {
     if (fs.existsSync(USERS_FILE)) {
       const raw = YAML.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-      if (raw?.users && Array.isArray(raw.users)) return raw as UsersConfig;
+      if (raw?.users && Array.isArray(raw.users)) {
+        // Migrate legacy "viewer" role to "user"
+        let migrated = false;
+        for (const u of raw.users) {
+          if (u.role === "viewer") { u.role = "user"; migrated = true; }
+        }
+        if (migrated) {
+          fs.mkdirSync(AUTH_DIR, { recursive: true });
+          fs.writeFileSync(USERS_FILE, YAML.stringify(raw), "utf-8");
+        }
+        return raw as UsersConfig;
+      }
     }
   } catch {}
   return { users: [] };
