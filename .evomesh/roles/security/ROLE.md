@@ -20,7 +20,7 @@
 
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/ + memory/short-term.md
-3. `git diff LAST_COMMIT..HEAD -- src/ docker/` to see security-relevant changes
+3. `git diff LAST_COMMIT..HEAD -- src/ docker/` to see security-relevant changes. **If no changes in src/ or docker/, skip to step 6** — do not write "clean cycle"
 4. **Initial audit** (first loops): full grep scan, endpoint audit, Docker review
    **Monitoring mode** (ongoing): scan diffs for new endpoints, innerHTML, eval, auth changes
 5. Write findings to relevant role's inbox (P0 = critical, immediate)

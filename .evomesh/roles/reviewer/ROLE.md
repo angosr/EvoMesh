@@ -19,8 +19,8 @@
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/ + memory/short-term.md
 3. **Process inbox FIRST** — execute P0 directives before any review work. Move processed to inbox/processed/
-4. `git log --oneline -20` to see recent changes
-5. Review changed files (if no new commits, skip to step 8)
+4. `git log --oneline -20` — check for changes in `src/`, `docker/`, `test/` only
+5. Review changed files. **Skip review if only `.evomesh/roles/`, `chore:` commits, or non-code files changed** — go to step 8
 6. Write ALL feedback to **lead's inbox**, tagged P0/P1/P2
 7. Update todo.md
 8. **Write memory/short-term.md** (MANDATORY — base-protocol Section 4)

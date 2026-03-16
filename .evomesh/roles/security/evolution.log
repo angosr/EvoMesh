@@ -1,5 +1,8 @@
 # security — Evolution Log
 
+## 2026-03-17T05:35 — Lead optimized trigger condition
+**Reason**: 95% of scans were "clean" — already scoped to src/docker/ but lacked explicit skip instruction. Now explicitly skips to memory/metrics when no code changes detected.
+
 ## 2026-03-17T02:30 — Prompt hygiene self-audit (loop 15)
 **Changes**:
 - Fixed loop interval: 30m → 15m (matches actual cron)
