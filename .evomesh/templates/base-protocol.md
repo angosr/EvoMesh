@@ -51,6 +51,10 @@ Example: `20260316T2100_agent-architect_collaboration-improvements.md`
 
 For P0 security/stability issues: send directly to the relevant role's inbox AND to lead simultaneously. Do not wait for lead to relay.
 
+### Completion Acknowledgment (MANDATORY for P0/P1 tasks)
+
+When you complete a P0 or P1 task received via inbox, send `type: ack, status: done` back to the sender's inbox. Include a one-line summary of what was done. Not required for P2 tasks.
+
 ### Recommended Body Structure (guidance, not mandatory)
 
 - **task**: Description + Acceptance Criteria + Context
