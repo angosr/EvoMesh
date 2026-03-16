@@ -445,7 +445,7 @@ function toggleAddUser() {
   if (form.classList.contains('show')) {
     document.getElementById('new-username').value = '';
     document.getElementById('new-password').value = '';
-    document.getElementById('new-role').value = 'viewer';
+    document.getElementById('new-role').value = 'user';
     document.getElementById('add-user-msg').className = 'settings-msg';
     document.getElementById('new-username').focus();
   }
@@ -732,6 +732,53 @@ const origInitResize = initResize;
 
 
 
+
+// ==================== Terminal scroll (wheel + touch → API) ====================
+(function() {
+  const panels = document.getElementById('panels');
+  if (!panels) return;
+  let lastScroll = 0;
+  const THROTTLE = 150;
+
+  function doScroll(direction, lines) {
+    const now = Date.now();
+    if (now - lastScroll < THROTTLE) return;
+    lastScroll = now;
+    const key = state.activePanel;
+    if (!key || key === 'dashboard' || key === 'settings') return;
+    const parts = key.split('/');
+    if (parts.length !== 2) return;
+    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction, lines }),
+    }).catch(() => {});
+  }
+
+  // Desktop: scroll wheel
+  panels.addEventListener('wheel', e => {
+    if (state.activePanel === 'dashboard' || state.activePanel === 'settings') return;
+    if (!state.openPanels[state.activePanel]) return;
+    e.preventDefault();
+    doScroll(e.deltaY > 0 ? 'down' : 'up', 3);
+  }, { passive: false });
+
+  // Mobile: touch scroll
+  let touchStartY = 0, touchActive = false;
+  panels.addEventListener('touchstart', e => {
+    if (state.activePanel === 'dashboard' || state.activePanel === 'settings') return;
+    if (!state.openPanels[state.activePanel]) return;
+    if (e.touches.length === 1) { touchStartY = e.touches[0].clientY; touchActive = true; }
+  }, { passive: true });
+  panels.addEventListener('touchmove', e => {
+    if (!touchActive || e.touches.length !== 1) return;
+    const dy = touchStartY - e.touches[0].clientY;
+    if (Math.abs(dy) > 30) {
+      doScroll(dy > 0 ? 'up' : 'down', Math.min(Math.floor(Math.abs(dy) / 30), 5));
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  panels.addEventListener('touchend', () => { touchActive = false; });
+})();
 
 // ==================== Init ====================
 (async () => {

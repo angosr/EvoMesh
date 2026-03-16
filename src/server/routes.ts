@@ -435,4 +435,28 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     if (projects.length === 0) { res.json({ project: "none", roles: [] }); return; }
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });
+
+  // --- Scroll: send tmux copy-mode scroll commands ---
+  app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
+    const project = ctx.getProject(req.params.slug);
+    if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    const { direction, lines } = req.body;
+    if (direction !== "up" && direction !== "down") { res.status(400).send("Invalid direction"); return; }
+    const slug = path.basename(project.root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+    const containerName = `evomesh-${slug}-${req.params.name}`;
+    try {
+      const n = Math.min(Math.max(parseInt(lines) || 3, 1), 20);
+      if (direction === "up") {
+        execFileSync("docker", ["exec", containerName, "gosu", process.env.USER || "claudeuser", "tmux", "copy-mode", "-t", "claude"], { stdio: "ignore" });
+        for (let i = 0; i < n; i++) {
+          execFileSync("docker", ["exec", containerName, "gosu", process.env.USER || "claudeuser", "tmux", "send-keys", "-t", "claude", "-X", "scroll-up"], { stdio: "ignore" });
+        }
+      } else {
+        for (let i = 0; i < n; i++) {
+          execFileSync("docker", ["exec", containerName, "gosu", process.env.USER || "claudeuser", "tmux", "send-keys", "-t", "claude", "-X", "scroll-down"], { stdio: "ignore" });
+        }
+      }
+      res.json({ ok: true });
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
 }
