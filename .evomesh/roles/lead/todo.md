@@ -17,7 +17,12 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T00:55)
+## Completed This Loop (2026-03-17T01:05)
+
+- Approved Claude Code hooks scope enforcement (P2) — all agent-architect design items now complete
+- Quiet loop, system in implementation phase
+
+## Previous: Loop 18 (2026-03-17T00:55)
 
 - CRITICAL: Updated base-protocol git flow (user P0) — prohibit `git add -A`, require pull --rebase before push, stash retry on failure
 - This fixes the last structural bootstrap defect: roles can now push independently without external cleanup session
