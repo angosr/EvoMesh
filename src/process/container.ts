@@ -38,18 +38,28 @@ function ensureRoleConfig(
   const configDir = roleConfigDir(projectSlug, roleName);
   ensureDir(configDir);
 
-  // Copy credentials from account if not present or account changed
-  const srcCreds = path.join(accountPath, ".credentials.json");
-  const dstCreds = path.join(configDir, ".credentials.json");
-  if (fs.existsSync(srcCreds)) {
-    fs.copyFileSync(srcCreds, dstCreds);
+  // Copy essential files from account directory
+  // These are needed for Claude Code to recognize this as a valid config
+  const filesToCopy = [
+    ".credentials.json",  // OAuth tokens
+    ".claude.json",       // User settings/state
+    "settings.json",      // Claude Code settings
+  ];
+
+  for (const file of filesToCopy) {
+    const src = path.join(accountPath, file);
+    const dst = path.join(configDir, file);
+    if (fs.existsSync(src)) {
+      // Always update credentials; others only if missing
+      if (file === ".credentials.json" || !fs.existsSync(dst)) {
+        fs.copyFileSync(src, dst);
+      }
+    }
   }
 
-  // Copy .claude.json (settings/state) from account
-  const srcConfig = path.join(accountPath, ".claude.json");
-  const dstConfig = path.join(configDir, ".claude.json");
-  if (fs.existsSync(srcConfig) && !fs.existsSync(dstConfig)) {
-    fs.copyFileSync(srcConfig, dstConfig);
+  // Ensure subdirectories exist
+  for (const dir of ["sessions", "projects"]) {
+    ensureDir(path.join(configDir, dir));
   }
 
   return configDir;
@@ -130,9 +140,8 @@ export function startRole(
     "-p", `127.0.0.1:${ttydPort}:7681`,
     // Volume mounts
     "-v", `${path.resolve(root)}:/project:rw`,
-    "-v", `${configDir}:/home/evomesh/.claude:rw`,
-    // Mount credentials directly from account (rw: claude refreshes tokens)
-    "-v", `${path.join(accountPath, ".credentials.json")}:/home/evomesh/.claude/.credentials.json:rw`,
+    // Mount account directory directly — Claude Code needs full config to avoid login
+    "-v", `${accountPath}:/home/evomesh/.claude:rw`,
   ];
 
   // Git config (optional)
