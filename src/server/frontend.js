@@ -506,15 +506,14 @@ function restoreLayout() {
 
 // ==================== Admin AI Terminal ====================
 function openCentralTerminal() {
-  // Open central AI terminal in a tab (like any other role)
   const key = 'admin/admin';
   if (state.openPanels[key]) { switchTo(key); return; }
-  // Check if central AI is running
   authFetch(`${API}/admin/status`).then(r => r.json()).then(status => {
-    if (status.running && status.terminal) {
-      openTerminal('admin', 'Central AI', 'admin', status.terminal);
+    if (status.running && status.port) {
+      // Central AI uses host network — connect directly to its port, bypass proxy
+      const directUrl = `${location.protocol}//${location.hostname}:${status.port}/`;
+      openTerminal('admin', 'Central AI', 'admin', directUrl);
     } else {
-      // Start it first
       startAndOpenTerminal('admin', 'Central AI', 'admin');
     }
   }).catch(() => alert('Failed to start Central AI'));
