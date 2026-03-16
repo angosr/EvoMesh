@@ -271,11 +271,7 @@ function switchTo(name) {
   const dashBtn = document.getElementById('dashboard-btn');
   const settingsBtn = document.getElementById('settings-btn');
   if (dashBtn) { dashBtn.classList.toggle('active', name === 'dashboard'); }
-  if (settingsBtn) {
-    settingsBtn.style.background = name === 'settings' ? '#1a1a2e' : '';
-    settingsBtn.style.color = name === 'settings' ? '#e94560' : '#444';
-    settingsBtn.style.fontWeight = name === 'settings' ? '600' : '';
-  }
+  if (settingsBtn) { settingsBtn.classList.toggle('active', name === 'settings'); }
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
 }

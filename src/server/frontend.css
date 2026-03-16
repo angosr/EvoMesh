@@ -70,9 +70,9 @@
   .login-alert { background: #3b1010; border: 1px solid #ef4444; color: #ef4444; padding: 4px 8px; margin: 4px 10px; border-radius: 4px; font-size: 9px; }
 
   /* Dashboard button */
-  #dashboard-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 12px; width: 100%; text-align: left; border-bottom: 1px solid #222; }
-  #dashboard-btn:hover { background: #1a1a1a; }
-  #dashboard-btn.active { background: #1a1a2e; color: #e94560; font-weight: 600; }
+  #dashboard-btn, #settings-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; cursor: pointer; border: none; background: none; color: #ccc; font-size: 12px; width: 100%; text-align: left; border-bottom: 1px solid #222; }
+  #dashboard-btn:hover, #settings-btn:hover { background: #1a1a1a; }
+  #dashboard-btn.active, #settings-btn.active { background: #1a1a2e; color: #e94560; font-weight: 600; }
   #dashboard-btn .dash-icon { font-size: 14px; }
 
   /* Open tabs section in sidebar */
