@@ -162,7 +162,20 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   // Reconnect overlay (for mobile — no keyboard Enter)
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
   overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${esc(key)}')">Reconnect</button>`;
-  panel.appendChild(iframe); panel.appendChild(overlay);
+  // Terminal toolbar with quick-action buttons
+  const toolbar = document.createElement('div');
+  toolbar.className = 'term-toolbar';
+  toolbar.innerHTML = [
+    ['↑3', 'up', 3],
+    ['PgUp', 'up', 20],
+    ['PgDn', 'down', 20],
+    ['↓3', 'down', 3],
+    ['Esc', 'esc', 0],
+    ['Copy', 'copy', 0],
+  ].map(([label, action, lines]) =>
+    `<button onclick="event.stopPropagation();termAction('${key}','${action}',${lines})" title="${label}">${label}</button>`
+  ).join('');
+  panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   // Auto-detect disconnection
   let rTimer = setInterval(() => {
@@ -795,6 +808,27 @@ const origInitResize = initResize;
 })();
 
 // Copy dialog: fetch terminal content as plain text for easy copy
+function termAction(key, action, lines) {
+  const parts = key.split('/');
+  if (parts.length !== 2) return;
+  const slug = parts[0], role = parts[1];
+
+  if (action === 'copy') { showCopyDialog(); return; }
+  if (action === 'esc') {
+    // Send Escape key to exit tmux copy-mode
+    authFetch(`${API}/projects/${slug}/roles/${role}/scroll`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction: 'esc', lines: 0 }),
+    }).catch(() => {});
+    return;
+  }
+  // up/down scroll
+  authFetch(`${API}/projects/${slug}/roles/${role}/scroll`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ direction: action, lines }),
+  }).catch(() => {});
+}
+
 async function showCopyDialog() {
   const key = state.activePanel;
   if (!key) return;

@@ -141,6 +141,18 @@
   .panel .reconnect-overlay .reconnect-btn { padding: 14px 28px; background: #e94560; border: none; color: #fff; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
   .panel .reconnect-overlay .reconnect-btn:hover { background: #d63851; }
   .panel .reconnect-overlay .reconnect-msg { color: #888; font-size: 13px; }
+
+  /* Terminal toolbar */
+  .term-toolbar { position: absolute; bottom: 8px; right: 8px; z-index: 3; display: flex; gap: 3px; opacity: 0.3; transition: opacity 0.2s; }
+  .term-toolbar:hover { opacity: 0.9; }
+  .term-toolbar button { background: #222; border: 1px solid #444; color: #ccc; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-family: monospace; }
+  .term-toolbar button:hover { background: #333; border-color: #666; }
+  .term-toolbar button:active { background: #e94560; color: #fff; }
+  @media (pointer: coarse) {
+    .term-toolbar { opacity: 0.6; }
+    .term-toolbar button { padding: 10px 14px; font-size: 14px; }
+  }
+
   #dashboard { padding: 20px; overflow-y: auto; height: 100%; }
   #dashboard h2 { color: #e94560; margin-bottom: 14px; font-size: 16px; }
   .card { background: #111111; border: 1px solid #222; border-radius: 8px; padding: 14px; margin-bottom: 14px; }
