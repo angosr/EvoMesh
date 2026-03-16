@@ -1,3 +1,8 @@
+export interface McpServerConfig {
+  command: string;
+  args: string[];
+}
+
 export interface RoleConfig {
   type: "lead" | "worker";
   loop_interval: string;
@@ -7,6 +12,7 @@ export interface RoleConfig {
   description: string;
   memory?: string;  // e.g. "2g" → docker --memory
   cpus?: string;    // e.g. "1.5" → docker --cpus
+  mcp?: Record<string, McpServerConfig>;  // MCP servers for this role
 }
 
 export interface GitConfig {

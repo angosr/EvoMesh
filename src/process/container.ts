@@ -34,7 +34,8 @@ function projectSlugFromRoot(root: string): string {
 function ensureRoleConfig(
   projectSlug: string,
   roleName: string,
-  accountPath: string
+  accountPath: string,
+  mcpServers?: Record<string, { command: string; args: string[] }>,
 ): string {
   const configDir = roleConfigDir(projectSlug, roleName);
   ensureDir(configDir);
@@ -61,6 +62,15 @@ function ensureRoleConfig(
   // Ensure subdirectories exist
   for (const dir of ["sessions", "projects"]) {
     ensureDir(path.join(configDir, dir));
+  }
+
+  // Merge MCP server config into settings.json
+  if (mcpServers && Object.keys(mcpServers).length > 0) {
+    const settingsPath = path.join(configDir, "settings.json");
+    let settings: Record<string, any> = {};
+    try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8")); } catch {}
+    settings.mcpServers = { ...settings.mcpServers, ...mcpServers };
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
   }
 
   return configDir;
@@ -134,8 +144,8 @@ export function startRole(
     if (port) return { role: roleName, containerName: name, ttydPort: port };
   }
 
-  // Ensure role config directory with credentials
-  const configDir = ensureRoleConfig(projectSlug, roleName, accountPath);
+  // Ensure role config directory with credentials + MCP config
+  const configDir = ensureRoleConfig(projectSlug, roleName, accountPath, roleConfig.mcp);
 
   // Remove stopped/dead container before creating new one
   try { execFileSync("docker", ["rm", "-f", name], { stdio: ["pipe", "pipe", "ignore"] }); } catch {}
