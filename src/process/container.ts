@@ -259,14 +259,15 @@ export function getRoleLogs(root: string, roleName: string, tail: number = 500):
 
 /**
  * Send input to the running claude process via docker exec.
+ * Uses env var to pass input safely — avoids shell injection.
  */
 export function sendInput(root: string, roleName: string, input: string): boolean {
   const name = containerName(projectSlugFromRoot(root), roleName);
   try {
-    // Write to ttyd's stdin via the container's PID 1 fd
-    execFileSync("docker", ["exec", name, "sh", "-c", `printf '%s\n' "${input.replace(/"/g, '\\"')}" > /proc/1/fd/0`], {
-      stdio: "ignore",
-    });
+    execFileSync("docker", [
+      "exec", "-e", `EVOMESH_INPUT=${input}`,
+      name, "sh", "-c", 'printf "%s\\n" "$EVOMESH_INPUT" > /proc/1/fd/0',
+    ], { stdio: "ignore" });
     return true;
   } catch {
     return false;

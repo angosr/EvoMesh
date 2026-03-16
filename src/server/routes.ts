@@ -2,23 +2,17 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
-import YAML from "yaml";
 import { loadConfig } from "../config/loader.js";
-import { roleDir, evomeshDir, expandHome } from "../utils/paths.js";
+import { roleDir, expandHome } from "../utils/paths.js";
 import { loadWorkspace, saveWorkspace, addProject, slugify } from "../workspace/config.js";
 import { smartInit } from "../workspace/smartInit.js";
-import { createRole, deleteRole } from "../roles/manager.js";
-import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
 import { exists } from "../utils/fs.js";
 import {
-  startRole, stopRole, restartRole, isRoleRunning,
-  getRoleLogs, sendInput, switchAccount as switchContainerAccount,
-  getContainerState, getContainerPort,
+  startRole, stopRole, isRoleRunning, sendInput,
 } from "../process/container.js";
-import { ensureTtydRunning } from "./terminal.js";
 import {
   hasMinProjectRole, getProjectRole, setProjectOwner, grantAccess, revokeAccess,
-  listMembers, removeProject, getAccessibleProjects, loadAcl, saveAcl,
+  listMembers, removeProject, loadAcl, saveAcl,
 } from "./acl.js";
 import type { ProjectRole } from "./acl.js";
 import type { SessionInfo } from "./auth.js";
@@ -69,10 +63,14 @@ function ensureAclMigration(ctx: ServerContext): void {
   if (changed) saveAcl(acl);
 }
 
+let _nextPort = 0;
 export function allocatePort(ctx: ServerContext): number {
-  let port = ctx.port + 1;
-  for (const [, t] of ctx.ttydProcesses) { if (t.port >= port) port = t.port + 1; }
-  return port;
+  if (_nextPort === 0) {
+    // Initialize from existing state
+    _nextPort = ctx.port + 1;
+    for (const [, t] of ctx.ttydProcesses) { if (t.port >= _nextPort) _nextPort = t.port + 1; }
+  }
+  return _nextPort++;
 }
 
 // Refresh subscribers (SSE connections waiting for push)
