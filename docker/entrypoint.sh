@@ -14,8 +14,10 @@ useradd -u "$TARGET_UID" -g "$TARGET_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGE
 export HOME="$TARGET_HOME"
 
 # Session resume logic
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$TARGET_HOME/.claude}"
-SESSION_FILE="${CONFIG_DIR}/.session-id"
+# Store session ID in the project's role directory (not CLAUDE_CONFIG_DIR, which is shared)
+WORK_DIR="${PWD:-/project}"
+ROLE_SESSION_DIR="${WORK_DIR}/.evomesh/roles/${ROLE_NAME:-role}"
+SESSION_FILE="${ROLE_SESSION_DIR}/.session-id"
 CLAUDE_ARGS="--dangerously-skip-permissions"
 
 if [ -f "$SESSION_FILE" ] && [ -s "$SESSION_FILE" ]; then
@@ -30,7 +32,7 @@ fi
 # Graceful shutdown
 cleanup() {
   echo "[evomesh] Shutting down..."
-  HISTORY="${CONFIG_DIR}/history.jsonl"
+  HISTORY="${CLAUDE_CONFIG_DIR:-$TARGET_HOME/.claude}/history.jsonl"
   if [ -f "$HISTORY" ]; then
     SID=$(tail -1 "$HISTORY" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | head -1 | cut -d'"' -f4)
     [ -n "$SID" ] && echo "$SID" > "$SESSION_FILE"
@@ -92,7 +94,7 @@ asyncio.run(send_loop())
 
   # Save session ID after loop starts
   sleep 10
-  HISTORY="${CONFIG_DIR}/history.jsonl"
+  HISTORY="${CLAUDE_CONFIG_DIR:-$TARGET_HOME/.claude}/history.jsonl"
   if [ -f "$HISTORY" ]; then
     SID=$(tail -1 "$HISTORY" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | head -1 | cut -d'"' -f4)
     if [ -n "$SID" ]; then
