@@ -13,8 +13,14 @@
 
 ## P1 — Current Issues
 
+- [x] Mission Control panel — scaffolded with 4 tabs (Activity, Issues, Tasks, Central AI)
+  - Activity: auto-renders from project/role state (fallback until API exists)
+  - Issues: auto-detects login-needed and stopped roles with action buttons
+  - Tasks: placeholder waiting for `/api/mission-control` endpoint
+  - Central AI: compact status + feed, command input always visible
 - [ ] Mobile terminal scrolling not smooth (API-based workaround with fixed step sizes)
 - [x] Dashboard table more responsive — done: card layout on mobile
+- [x] XSS risk in inline onclick handlers — fixed: replaced with addEventListener + data-* attributes
 - [ ] Touch scroll layer approach vs tmux mouse tradeoff
 - [ ] Settings page needs polish (partially addressed in mobile CSS)
 

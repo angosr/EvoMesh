@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EvoMesh</title>
-<link rel="stylesheet" href="/app.css?v=1773844800">
+<link rel="stylesheet" href="/app.css?v=1773848400">
 </head>
 <body>
 
@@ -31,21 +31,6 @@
     <div id="open-tabs-list"></div>
   </div>
   <div id="project-tree"></div>
-  <div id="add-project-area">
-    <button id="add-project-btn" onclick="showAddForm()">+ Add Project</button>
-    <div id="add-form">
-      <div id="autocomplete"></div>
-      <input id="add-input" placeholder="GitHub URL or local path..." autocomplete="off" />
-      <select id="add-lang" style="width:100%;padding:5px 7px;background:#0a0a0a;border:1px solid #222;color:#e0e0e0;border-radius:4px;font-size:11px;margin-bottom:4px;">
-        <option value="en">English</option>
-        <option value="zh">中文</option>
-      </select>
-      <div class="btns">
-        <button class="btn-ok" onclick="doAddProject()">Add</button>
-        <button class="btn-cancel" onclick="hideAddForm()">Cancel</button>
-      </div>
-    </div>
-  </div>
   <div id="status-bar">Loading...</div>
 </div>
 <div class="resize-handle" id="rh-left"></div>
@@ -147,35 +132,42 @@
 
 <!-- Right Panel: Mission Control -->
 <div id="chat-sidebar">
-  <h2><span class="pulse"></span> Central AI</h2>
-  <div id="central-status" style="padding:8px;font-size:11px;color:#888;border-bottom:1px solid #222;max-height:40%;overflow-y:auto;white-space:pre-wrap;line-height:1.5"></div>
-  <div id="central-feed" style="flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:4px"></div>
-  <div style="border-top:1px solid #222;padding:6px;display:flex;gap:4px">
-    <textarea id="central-input" rows="2" placeholder="Ask Central AI..." style="flex:1;background:#0a0a0a;border:1px solid #222;color:#e0e0e0;padding:6px;border-radius:5px;font-size:12px;font-family:inherit;resize:none;outline:none"></textarea>
-    <button id="central-send" onclick="sendToCentral()" style="background:#e94560;border:none;color:#fff;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600">Send</button>
+  <h2><span class="pulse"></span> Mission Control</h2>
+  <div id="mc-tabs">
+    <button class="mc-tab active" data-mc-tab="activity">Activity</button>
+    <button class="mc-tab" data-mc-tab="issues">Issues</button>
+    <button class="mc-tab" data-mc-tab="tasks">Tasks</button>
+    <button class="mc-tab" data-mc-tab="central">Central AI</button>
+  </div>
+  <!-- Activity Feed -->
+  <div class="mc-panel active" id="mc-activity">
+    <div id="mc-activity-feed"></div>
+    <div id="mc-activity-empty" class="mc-empty">No activity yet. Waiting for roles...</div>
+  </div>
+  <!-- Issues / Alerts -->
+  <div class="mc-panel" id="mc-issues">
+    <div id="mc-issues-list"></div>
+    <div id="mc-issues-empty" class="mc-empty">No issues detected.</div>
+  </div>
+  <!-- Tasks Overview -->
+  <div class="mc-panel" id="mc-tasks">
+    <div id="mc-tasks-list"></div>
+    <div id="mc-tasks-empty" class="mc-empty">No tasks found.</div>
+  </div>
+  <!-- Central AI (compact) -->
+  <div class="mc-panel" id="mc-central">
+    <div id="central-status" class="mc-central-status"></div>
+    <div id="central-feed" class="mc-central-feed"></div>
+  </div>
+  <!-- Command input (always visible) -->
+  <div id="mc-command">
+    <textarea id="central-input" rows="2" placeholder="Send command to Central AI..."></textarea>
+    <button id="central-send" onclick="sendToCentral()">Send</button>
   </div>
 </div>
 
-<!-- Role Modal -->
-<div id="role-modal-overlay" onclick="if(event.target===this)closeRoleModal()">
-  <div id="role-modal">
-    <h3>Add Role</h3>
-    <input type="hidden" id="rm-slug" />
-    <label>Role Name</label>
-    <input id="rm-name" placeholder="e.g. designer, tester" />
-    <label>Template</label>
-    <select id="rm-template"><option value="executor">executor</option><option value="lead">lead</option><option value="reviewer">reviewer</option></select>
-    <label>Account</label>
-    <select id="rm-account"></select>
-    <div class="modal-btns">
-      <button class="btn-create" onclick="doCreateRole()">Create</button>
-      <button class="btn-close" onclick="closeRoleModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<script src="/app.js?v=1773844800"></script>
-<script src="/app-panels.js?v=1773844800"></script>
-<script src="/app-settings.js?v=1773844800"></script>
+<script src="/app.js?v=1773848400"></script>
+<script src="/app-panels.js?v=1773848400"></script>
+<script src="/app-settings.js?v=1773848400"></script>
 </body>
 </html>

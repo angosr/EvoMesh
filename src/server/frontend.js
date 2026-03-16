@@ -124,15 +124,8 @@ function renderSidebar() {
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
       rd.appendChild(btn);
     }
-    if (p.myRole === 'owner') {
-      const ab = document.createElement('button'); ab.className = 'add-role-btn'; ab.textContent = '+ Add Role';
-      ab.onclick = () => showRoleModal(p.slug); rd.appendChild(ab);
-    }
     group.appendChild(rd); tree.appendChild(group);
   }
-  // Hide "Add Project" button for viewers (only admin/user can create)
-  const addBtn = document.getElementById('add-project-btn');
-  if (addBtn) addBtn.style.display = (state.systemRole === 'admin' || state.systemRole === 'user') ? '' : 'none';
   document.getElementById('status-bar').textContent = `${state.projects.length} projects · ${totalRunning}/${totalRoles} running`;
 }
 
@@ -191,7 +184,7 @@ function renderDashboard() {
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
       const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:#666">${esc(r.account)}</span>`;
       const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="mem" title="Memory (e.g. 2g, 512m)"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="cpu" title="CPUs (e.g. 1.5, 2)">` : '';
-      const actCol = isOwner ? `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button><button class="dash-action danger" data-action="delete" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">Delete</button>` : '';
+      const actCol = isOwner ? `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button>` : '';
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span></td>
         <td>${statusBadge}${loginBadge}</td>
@@ -214,9 +207,6 @@ function renderDashboard() {
   });
   el.querySelectorAll('.dash-action[data-action="restart"]').forEach(btn => {
     btn.addEventListener('click', () => saveAndRestart(btn.dataset.slug, btn.dataset.role));
-  });
-  el.querySelectorAll('.dash-action[data-action="delete"]').forEach(btn => {
-    btn.addEventListener('click', () => deleteRole(btn.dataset.slug, btn.dataset.role));
   });
   el.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
@@ -413,35 +403,7 @@ async function restartRole(slug, roleName) {
   if (!confirm(`Restart "${roleName}"? Session will reconnect automatically.`)) return;
   try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
-async function deleteRole(slug, roleName) {
-  if (!confirm(`Delete "${roleName}"?`)) return;
-  try { const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}`, {method:'DELETE'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> deleted`, 'system'); closePanel(`${slug}/${roleName}`); fetchAll(); } } catch { alert('Failed'); }
-}
-function showRoleModal(slug) { document.getElementById('rm-slug').value = slug; document.getElementById('rm-name').value = ''; const s = document.getElementById('rm-account'); s.innerHTML = state.accounts.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join(''); document.getElementById('role-modal-overlay').classList.add('show'); document.getElementById('rm-name').focus(); }
-function closeRoleModal() { document.getElementById('role-modal-overlay').classList.remove('show'); }
-async function doCreateRole() { const slug = document.getElementById('rm-slug').value, name = document.getElementById('rm-name').value.trim(), template = document.getElementById('rm-template').value, account = document.getElementById('rm-account').value; if (!name) return; try { const r = await authFetch(`${API}/projects/${slug}/roles`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,template,account})}); const d = await r.json(); if (d.ok) { addFeedMessage(`Role <strong>${esc(name)}</strong> created`, 'system'); closeRoleModal(); fetchAll(); } else alert(d.error); } catch { alert('Failed'); } }
-document.getElementById('rm-name').addEventListener('keydown', e => { if (e.key==='Enter') doCreateRole(); if (e.key==='Escape') closeRoleModal(); });
 
-// ==================== Add project ====================
-function showAddForm() { document.getElementById('add-project-btn').style.display = 'none'; document.getElementById('add-form').style.display = 'block'; document.getElementById('add-input').focus(); }
-function hideAddForm() { document.getElementById('add-project-btn').style.display = 'block'; document.getElementById('add-form').style.display = 'none'; document.getElementById('add-input').value = ''; }
-async function doAddProject() { const input = document.getElementById('add-input').value.trim(); if (!input) return; const lang = document.getElementById('add-lang').value; const body = input.startsWith('http')||input.startsWith('git@') ? {url:input,lang} : {path:input,lang}; try { addFeedMessage(`Adding: ${esc(input)} (${lang})...`, 'system'); const r = await authFetch(`${API}/projects/add`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(d.project.name)}</strong> added`, 'system'); hideAddForm(); setTimeout(fetchAll, 3000); } else addFeedMessage(`Error: ${d.error}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } }
-
-// Path autocomplete
-let acTimer = null, acIndex = -1;
-const addInput = document.getElementById('add-input'), acBox = document.getElementById('autocomplete');
-addInput.addEventListener('input', () => { clearTimeout(acTimer); const v = addInput.value.trim(); if (!v||v.startsWith('http')||v.startsWith('git@')) { acBox.classList.remove('show'); return; } acTimer = setTimeout(() => fetchCompletions(v), 150); });
-addInput.addEventListener('keydown', e => {
-  const items = acBox.querySelectorAll('.ac-item');
-  if (e.key==='ArrowDown' && acBox.classList.contains('show')) { e.preventDefault(); acIndex = Math.min(acIndex+1, items.length-1); items.forEach((el,i) => el.classList.toggle('selected', i===acIndex)); }
-  else if (e.key==='ArrowUp' && acBox.classList.contains('show')) { e.preventDefault(); acIndex = Math.max(acIndex-1, 0); items.forEach((el,i) => el.classList.toggle('selected', i===acIndex)); }
-  else if ((e.key==='Tab'||e.key==='Enter') && acBox.classList.contains('show') && items.length>0) { e.preventDefault(); const sel = acIndex>=0?items[acIndex]:items[0]; addInput.value = sel.dataset.path; acBox.classList.remove('show'); acIndex=-1; clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(addInput.value), 150); }
-  else if (e.key==='Enter') { acBox.classList.remove('show'); doAddProject(); }
-  else if (e.key==='Escape') { if (acBox.classList.contains('show')) acBox.classList.remove('show'); else hideAddForm(); }
-});
-addInput.addEventListener('blur', () => setTimeout(() => acBox.classList.remove('show'), 200));
-async function fetchCompletions(q) { try { const r = await authFetch(`${API}/complete-path?q=${encodeURIComponent(q)}`); const d = await r.json(); if (!d.suggestions.length) { acBox.classList.remove('show'); return; } acBox.innerHTML = d.suggestions.map(s => `<div class="ac-item" data-path="${esc(s.path)}"><span>${esc(s.path)}</span>${s.hasEvomesh?'<span class="ac-badge">evomesh</span>':''}</div>`).join(''); acBox.querySelectorAll('.ac-item').forEach(item => { item.addEventListener('mousedown', e => { e.preventDefault(); selectCompletion(item.dataset.path); }); }); acBox.classList.add('show'); acIndex=-1; } catch { acBox.classList.remove('show'); } }
-function selectCompletion(p) { addInput.value = p; acBox.classList.remove('show'); acIndex=-1; addInput.focus(); clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(p), 150); }
 
 // ==================== Chat / Feed ====================
 let lastRoleStates = {}, serverConnected = true;
@@ -589,25 +551,197 @@ async function startAndOpenCentral() {
   }
 }
 
-// ==================== Central AI Panel ====================
-async function initCentralPanel() {
-  // Start central AI container if not running
-  try {
-    const status = await (await authFetch(`${API}/admin/status`)).json();
-    if (!status.running) {
-      await authFetch(`${API}/admin/start`, { method: 'POST' });
-    }
-  } catch {}
-  // Load initial status
+// ==================== Mission Control ====================
+function initMissionControl() {
+  // Tab switching
+  document.querySelectorAll('.mc-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.mc-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.mc-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = document.getElementById(`mc-${tab.dataset.mcTab}`);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  // Start polling
+  refreshMissionControl();
+  setInterval(refreshMissionControl, 5000);
+
+  // Central AI status (less frequent)
   refreshCentralStatus();
   setInterval(refreshCentralStatus, 10000);
+
+  // Try to start central AI if not running
+  authFetch(`${API}/admin/status`).then(r => r.json()).then(s => {
+    if (!s.running) authFetch(`${API}/admin/start`, { method: 'POST' }).catch(() => {});
+  }).catch(() => {});
+}
+
+async function refreshMissionControl() {
+  try {
+    const res = await authFetch(`${API}/mission-control`);
+    if (!res.ok) {
+      // API not implemented yet — build from existing data
+      renderMCFromState();
+      return;
+    }
+    const data = await res.json();
+    if (data.activity) renderMCActivity(data.activity);
+    if (data.issues) renderMCIssues(data.issues);
+    if (data.tasks) renderMCTasks(data.tasks);
+  } catch {
+    // Fallback: build from existing project/role state
+    renderMCFromState();
+  }
+}
+
+// Fallback: build activity/issues from existing fetchAll data
+function renderMCFromState() {
+  const feed = document.getElementById('mc-activity-feed');
+  const empty = document.getElementById('mc-activity-empty');
+  if (!feed) return;
+
+  const items = [];
+  for (const p of state.projects) {
+    for (const r of p.roles) {
+      items.push({
+        project: p.name,
+        role: r.name,
+        type: r.type || 'worker',
+        running: r.running,
+        needsLogin: r.needsLogin,
+      });
+    }
+  }
+
+  if (!items.length) {
+    feed.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+
+  feed.innerHTML = items.map(it => {
+    const roleClass = it.type === 'lead' ? ' lead' : '';
+    const status = it.needsLogin ? '<span style="color:var(--red)">needs login</span>'
+      : it.running ? '<span style="color:var(--green)">running</span>'
+      : '<span style="color:var(--text-faint)">stopped</span>';
+    return `<div class="mc-activity-item">
+      <span class="mc-time">${esc(timeStr)}</span>
+      <span class="mc-project">${esc(it.project)}</span>
+      <span class="mc-role${roleClass}">${esc(it.role)}</span>
+      <span class="mc-status">${status}</span>
+    </div>`;
+  }).join('');
+
+  // Build issues from state (login-needed, stopped roles)
+  const issuesList = document.getElementById('mc-issues-list');
+  const issuesEmpty = document.getElementById('mc-issues-empty');
+  if (!issuesList) return;
+
+  const issues = [];
+  for (const p of state.projects) {
+    for (const r of p.roles) {
+      if (r.needsLogin) issues.push({ priority: 'p0', title: `${r.name} needs login`, meta: p.name, slug: p.slug, role: r.name });
+      else if (!r.running) issues.push({ priority: 'p1', title: `${r.name} stopped`, meta: p.name, slug: p.slug, role: r.name });
+    }
+  }
+
+  if (!issues.length) {
+    issuesList.innerHTML = '';
+    if (issuesEmpty) issuesEmpty.style.display = '';
+  } else {
+    if (issuesEmpty) issuesEmpty.style.display = 'none';
+    issuesList.innerHTML = issues.map(is => `<div class="mc-issue ${esc(is.priority)}">
+      <div class="mc-issue-title">${esc(is.title)}</div>
+      <div class="mc-issue-meta">${esc(is.meta)}</div>
+      <div class="mc-issue-actions">
+        <button data-action="mc-restart" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Restart</button>
+        <button data-action="mc-open" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Open</button>
+      </div>
+    </div>`).join('');
+    issuesList.querySelectorAll('[data-action="mc-restart"]').forEach(btn => {
+      btn.addEventListener('click', () => restartRole(btn.dataset.slug, btn.dataset.role));
+    });
+    issuesList.querySelectorAll('[data-action="mc-open"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = state.projects.find(proj => proj.slug === btn.dataset.slug);
+        if (p) {
+          const r = p.roles.find(role => role.name === btn.dataset.role);
+          openTerminal(btn.dataset.slug, p.name, btn.dataset.role, r?.terminal);
+        }
+      });
+    });
+  }
+
+  // Tasks: show placeholder until API exists
+  const tasksList = document.getElementById('mc-tasks-list');
+  const tasksEmpty = document.getElementById('mc-tasks-empty');
+  if (tasksList && tasksEmpty) {
+    tasksList.innerHTML = '';
+    tasksEmpty.style.display = '';
+    tasksEmpty.textContent = 'Waiting for /api/mission-control endpoint...';
+  }
+}
+
+function renderMCActivity(activity) {
+  const feed = document.getElementById('mc-activity-feed');
+  const empty = document.getElementById('mc-activity-empty');
+  if (!feed) return;
+  if (!activity.length) { feed.innerHTML = ''; if (empty) empty.style.display = ''; return; }
+  if (empty) empty.style.display = 'none';
+  feed.innerHTML = activity.map(a => {
+    const roleClass = a.type === 'lead' ? ' lead' : '';
+    return `<div class="mc-activity-item">
+      <span class="mc-time">${esc(a.time || '')}</span>
+      <span class="mc-project">${esc(a.project || '')}</span>
+      <span class="mc-role${roleClass}">${esc(a.role || '')}</span>
+      <span class="mc-status">${esc(a.status || '')}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderMCIssues(issues) {
+  const list = document.getElementById('mc-issues-list');
+  const empty = document.getElementById('mc-issues-empty');
+  if (!list) return;
+  if (!issues.length) { list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = issues.map(is => `<div class="mc-issue ${esc(is.priority || 'p2')}">
+    <div class="mc-issue-title">${esc(is.title || '')}</div>
+    <div class="mc-issue-meta">${esc(is.meta || '')}</div>
+    <div class="mc-issue-actions">
+      ${is.slug && is.role ? `<button data-action="mc-restart" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Restart</button>` : ''}
+    </div>
+  </div>`).join('');
+  list.querySelectorAll('[data-action="mc-restart"]').forEach(btn => {
+    btn.addEventListener('click', () => restartRole(btn.dataset.slug, btn.dataset.role));
+  });
+}
+
+function renderMCTasks(tasks) {
+  const list = document.getElementById('mc-tasks-list');
+  const empty = document.getElementById('mc-tasks-empty');
+  if (!list) return;
+  if (!tasks.length) { list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = tasks.map(t => `<div class="mc-task">
+    <span class="mc-task-priority ${esc(t.priority || 'p2')}">${esc((t.priority || 'P2').toUpperCase())}</span>
+    <div>
+      <div class="mc-task-text">${esc(t.text || '')}</div>
+      <div class="mc-task-role">${esc(t.role || '')} · ${esc(t.project || '')}</div>
+    </div>
+  </div>`).join('');
 }
 
 async function refreshCentralStatus() {
   const el = document.getElementById('central-status');
   if (!el) return;
   try {
-    // Read central-status.md via a simple API
     const res = await authFetch(`${API}/admin/central-status`);
     if (res.ok) {
       const text = await res.text();
@@ -620,7 +754,7 @@ function addCentralMessage(html, cls) {
   const feed = document.getElementById('central-feed');
   if (!feed) return;
   const div = document.createElement('div');
-  div.style.cssText = `padding:5px 7px;border-radius:5px;font-size:11px;line-height:1.4;background:${cls==='user'?'#1a1a2e':'#111'};border:1px solid #222;${cls==='user'?'margin-left:20px':''}`;
+  div.className = `feed-msg ${cls || 'status'}`;
   div.innerHTML = html;
   feed.appendChild(div);
   feed.scrollTop = feed.scrollHeight;
@@ -631,9 +765,8 @@ async function sendToCentral() {
   const input = document.getElementById('central-input');
   const text = input?.value?.trim();
   if (!text) return;
-  addCentralMessage(`<span style="color:#e94560;font-weight:600">You</span> ${esc(text)}`, 'user');
+  addCentralMessage(`<span style="color:var(--accent);font-weight:600">You</span> ${esc(text)}`, 'user');
   input.value = '';
-  // Write to central AI inbox
   try {
     const res = await authFetch(`${API}/admin/message`, {
       method: 'POST',
@@ -641,9 +774,9 @@ async function sendToCentral() {
       body: JSON.stringify({ message: text }),
     });
     const data = await res.json();
-    if (data.ok) addCentralMessage(`<span style="color:#4ade80">Delivered to Central AI</span>`, 'system');
-    else addCentralMessage(`<span style="color:#ef4444">Error: ${esc(data.error)}</span>`, 'system');
-  } catch { addCentralMessage('<span style="color:#ef4444">Failed to send</span>', 'system'); }
+    if (data.ok) addCentralMessage(`<span style="color:var(--green)">Delivered to Central AI</span>`, 'system');
+    else addCentralMessage(`<span style="color:var(--red)">Error: ${esc(data.error)}</span>`, 'system');
+  } catch { addCentralMessage(`<span style="color:var(--red)">Failed to send</span>`, 'system'); }
 }
 
 // Enter to send
@@ -667,7 +800,7 @@ document.getElementById('central-input')?.addEventListener('keydown', e => {
     const refreshEs = new EventSource(`${API}/refresh/subscribe?token=${encodeURIComponent(AUTH_TOKEN)}`);
     refreshEs.onmessage = () => { fetchAll(); };
   } catch {}
-  initCentralPanel();
+  initMissionControl();
 })();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });
 window.addEventListener('beforeunload', saveLayout);
