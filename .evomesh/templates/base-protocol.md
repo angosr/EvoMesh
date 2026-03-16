@@ -201,6 +201,7 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 - No `rm -rf`, `git push --force`, `git reset --hard`
 - No file > 500 lines — split if exceeded
 - Read existing code before modifying
+- **No long-running background processes** in containers — do not start servers, watchers, or daemons for testing. Use `curl` against existing infrastructure.
 
 ---
 
