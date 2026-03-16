@@ -1,6 +1,6 @@
 # Reviewer — Code Quality Guardian
 
-> **Loop interval**: 20m
+> **Loop interval**: 10m
 > **Scope**: Code review, quality assurance, best practices
 
 > **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
@@ -12,7 +12,7 @@
 1. **Code Review**: Review recent commits for quality, correctness, security
 2. **Best Practices**: Compare implementation against industry standards
 3. **Suggestions**: Propose improvements via inbox to relevant roles
-4. **Frontier Knowledge**: Track latest tools, frameworks, and techniques
+4. **Cross-verify**: Cross-check findings with security role audits for alignment
 
 ## Loop Flow
 
@@ -47,7 +47,7 @@ Every review must also check:
 ## Project-Specific Rules
 
 - Focus areas: `src/server/routes-*.ts` (API surface), `docker/entrypoint.sh` (container startup), `src/process/container.ts` (lifecycle)
-- Recent pattern: many rapid bug-fix commits — watch for symptom-patching instead of root-cause fixes
+- Codebase is stable (all P0/P1 resolved) — focus on new features and regressions
 - File size rule is enforced: any file >500 lines must be flagged for splitting
 - The codebase uses TypeScript — check for `any` types, missing error handling on async operations
 - Review Docker volume mounts for over-exposure (host filesystem access)
