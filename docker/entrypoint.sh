@@ -79,11 +79,13 @@ TTYD_PID=$!
       sleep $WAIT_TIME
       echo "[evomesh] Sending /loop command..."
       export EVOMESH_TTYD_PORT="${TTYD_PORT:-7681}"
+      export EVOMESH_LOOP_CMD="$LOOP_CMD"
       python3 << 'PYEOF' 2>&1
 import asyncio, websockets, os
 
 async def send_loop():
     port = os.environ.get('EVOMESH_TTYD_PORT', '7681')
+    cmd = os.environ.get('EVOMESH_LOOP_CMD', '/loop 10m default')
     uri = f'ws://127.0.0.1:{port}/ws'
     try:
         async with websockets.connect(uri, subprotocols=['tty']) as ws:
@@ -92,12 +94,12 @@ async def send_loop():
                     await asyncio.wait_for(ws.recv(), timeout=0.5)
                 except asyncio.TimeoutError:
                     break
-            cmd = "$LOOP_CMD" + "\r"
-            for ch in cmd:
+            full_cmd = cmd + "\r"
+            for ch in full_cmd:
                 await ws.send(bytes([0]) + ch.encode('utf-8'))
                 await asyncio.sleep(0.02)
             await asyncio.sleep(2)
-            print('[evomesh] /loop command sent')
+            print(f'[evomesh] /loop command sent: {cmd[:50]}...')
     except Exception as e:
         print(f'[evomesh] WS error: {e}')
 
