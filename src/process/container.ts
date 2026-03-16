@@ -132,36 +132,52 @@ export function startRole(
   // Stop/remove existing container
   try { execFileSync("docker", ["rm", "-f", name], { stdio: "ignore" }); } catch {}
 
-  // Build docker args
+  const homeDir = os.homedir();
+
+  // Build docker args — mount to same paths as host for full compatibility
   const args = [
     "run", "-d",
     "--name", name,
     "--hostname", roleName,
     "-p", `127.0.0.1:${ttydPort}:7681`,
-    // Volume mounts
-    "-v", `${path.resolve(root)}:/project:rw`,
-    // Mount account directory directly — Claude Code needs full config to avoid login
-    "-v", `${accountPath}:/home/evomesh/.claude:rw`,
+
+    // Project directory (RW)
+    "-v", `${path.resolve(root)}:${path.resolve(root)}:rw`,
+
+    // Claude config dir — the account directory (RW, for token refresh)
+    "-v", `${accountPath}:${accountPath}:rw`,
+
+    // ~/.claude.json — onboarding state, theme (at HOME root, separate from config dir)
+    "-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`,
   ];
 
-  // Git config (optional)
-  const gitconfig = path.join(os.homedir(), ".gitconfig");
+  // Git config (RO)
+  const gitconfig = path.join(homeDir, ".gitconfig");
   if (fs.existsSync(gitconfig)) {
-    args.push("-v", `${gitconfig}:/home/evomesh/.gitconfig:ro`);
+    args.push("-v", `${gitconfig}:${gitconfig}:ro`);
   }
 
-  // SSH keys (optional)
-  const sshDir = path.join(os.homedir(), ".ssh");
+  // SSH keys (RO)
+  const sshDir = path.join(homeDir, ".ssh");
   if (fs.existsSync(sshDir)) {
-    args.push("-v", `${sshDir}:/home/evomesh/.ssh:ro`);
+    args.push("-v", `${sshDir}:${sshDir}:ro`);
   }
 
-  // Environment
+  // Environment — preserve host paths
+  args.push("-e", `HOST_UID=${process.getuid?.() || 1000}`);
+  args.push("-e", `HOST_GID=${process.getgid?.() || 1000}`);
+  args.push("-e", `HOST_USER=${process.env.USER || "user"}`);
+  args.push("-e", `HOST_HOME=${homeDir}`);
+  args.push("-e", `HOME=${homeDir}`);
+  args.push("-e", `CLAUDE_CONFIG_DIR=${accountPath}`);
   args.push("-e", `ROLE_NAME=${roleName}`);
   args.push("-e", `LOOP_INTERVAL=${roleConfig.loop_interval || "10m"}`);
 
   const roleRoot = `.evomesh/roles/${roleName}`;
   args.push("-e", `LOOP_PROMPT=你是 ${roleName} 角色。执行 ${roleRoot}/ROLE.md 工作目录: ${roleRoot}/`);
+
+  // Working directory — same as host
+  args.push("-w", path.resolve(root));
 
   // Resource limits
   if (roleConfig.memory) args.push("--memory", roleConfig.memory);

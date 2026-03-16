@@ -1,10 +1,24 @@
 #!/bin/bash
 set -e
 
-SESSION_FILE="/home/evomesh/.claude/.session-id"
+# Run as root initially to set up user, then drop privileges
+TARGET_UID=${HOST_UID:-1000}
+TARGET_GID=${HOST_GID:-1000}
+TARGET_USER=${HOST_USER:-user}
+TARGET_HOME=${HOST_HOME:-/home/$TARGET_USER}
+
+# Create group and user matching host (with correct HOME)
+groupadd -g "$TARGET_GID" "$TARGET_USER" 2>/dev/null || true
+useradd -u "$TARGET_UID" -g "$TARGET_GID" -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER" 2>/dev/null || true
+
+# Export for gosu child
+export HOME="$TARGET_HOME"
+
+# Session resume logic
+CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$TARGET_HOME/.claude}"
+SESSION_FILE="${CONFIG_DIR}/.session-id"
 CLAUDE_ARGS="--dangerously-skip-permissions"
 
-# Resume or fresh start
 if [ -f "$SESSION_FILE" ] && [ -s "$SESSION_FILE" ]; then
   SID=$(cat "$SESSION_FILE")
   CLAUDE_ARGS="--resume $SID $CLAUDE_ARGS"
@@ -14,15 +28,13 @@ else
   echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
 fi
 
-# Graceful shutdown: save session ID before exit
+# Graceful shutdown
 cleanup() {
   echo "[evomesh] Shutting down..."
-  if [ -f "/home/evomesh/.claude/history.jsonl" ]; then
-    SID=$(tail -1 /home/evomesh/.claude/history.jsonl 2>/dev/null | grep -o '"sessionId":"[^"]*"' | head -1 | cut -d'"' -f4)
-    if [ -n "$SID" ]; then
-      echo "$SID" > "$SESSION_FILE"
-      echo "[evomesh] Saved session: $SID"
-    fi
+  HISTORY="${CLAUDE_CONFIG_DIR:-$TARGET_HOME/.claude}/history.jsonl"
+  if [ -f "$HISTORY" ]; then
+    SID=$(tail -1 "$HISTORY" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | head -1 | cut -d'"' -f4)
+    [ -n "$SID" ] && echo "$SID" > "$SESSION_FILE"
   fi
   kill -TERM $(pgrep -f "claude" 2>/dev/null) 2>/dev/null || true
   wait
@@ -30,12 +42,12 @@ cleanup() {
 }
 trap cleanup SIGTERM SIGINT
 
-echo "[evomesh] Starting ttyd + claude..."
+echo "[evomesh] Starting as $TARGET_USER (uid=$TARGET_UID)..."
 
-# Start ttyd wrapping claude directly (no tmux)
-exec ttyd \
+# Drop to host user and start ttyd + claude
+exec gosu "$TARGET_USER" ttyd \
   --writable \
   -t fontSize=14 \
   -t scrollback=10000 \
   --port 7681 \
-  -- claude $CLAUDE_ARGS
+  -- /usr/local/bin/claude $CLAUDE_ARGS
