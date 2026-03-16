@@ -1,6 +1,8 @@
-## 2026-03-17 Loop 33
+## 2026-03-17 Loop 34
 
-- **Done**: Added completion ack rule to base-protocol: P0/P1 tasks must get `type: ack, status: done` reply when completed. Fixes feedback gap where core-dev and frontend never reported completion (0 messages to lead).
+- **Done**:
+  - Sent P0 to frontend: stop spawning server processes in container (5 zombies found)
+  - Added "no long-running background processes" rule to base-protocol section 7
 - **Blockers**: None
-- **In-progress**: Rule is in protocol now — roles will pick it up on next loop.
-- **Next focus**: Monitor. System stable.
+- **In-progress**: Frontend needs to clean up zombie processes
+- **Next focus**: Monitor. Consider --pids-limit for containers as P2.
