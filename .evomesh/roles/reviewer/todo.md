@@ -2,15 +2,24 @@
 
 ## Completed
 
-- [x] Review #001 — routes, container, entrypoint, auth, ACL, frontend (4 P0, 3 P1, 4 P2)
-- [x] Review #002 — terminal.ts, spawner.ts, frontend-panels/settings, Dockerfile
-- [x] Review #003 — verified terminal auth fix, e:any refactor, mission-control, smoke tests
-- [x] Verified: P0-1 XSS, P1-1 shell injection, P1-2 port race, P1-3 unused imports, P1-4 terminal auth, P2-1 e:any
+- [x] Review #001 — 4 P0, 3 P1, 4 P2 findings
+- [x] Review #002 — terminal auth P0, Dockerfile, spawner
+- [x] Review #003 — verified terminal auth, e:any refactor
+- [x] Review #004 — verified HOME mount, SSH keys, admin auth, mission-control fixes
 
-## P1 — Follow-up
+## Verified Fixes (9/11)
 
-1. Monitor P0-2 (HOME mount) and P0-3 (SSH keys) — still open
-2. Monitor P0-4 (SSE auth bypass) — still open
-3. Watch routes.ts (473/500 lines) and frontend.js (806 lines) — needs splitting
-4. Review mission-control UI code in frontend.js when next touched
-5. Re-review Dockerfile when package pins are added
+| P0-1 XSS | P0-2 HOME mount | P0-3 SSH keys | P1-1 Shell inj | P1-2 Port race |
+|-----------|-----------------|---------------|----------------|----------------|
+| ✓         | ✓               | ✓             | ✓              | ✓              |
+
+| P1-3 Imports | P1-4 Terminal auth | P2-1 e:any | Admin auth endpoints |
+|--------------|-------------------|------------|---------------------|
+| ✓            | ✓                 | ✓          | ✓                   |
+
+## Open
+
+1. P0-4: SSE `/api/refresh/subscribe` still has no auth (low risk — only refresh pings)
+2. P2: `frontend.js` at 832 lines — needs splitting
+3. P2: `routes.ts` at 475 lines — near 500-line limit
+4. P2: Dockerfile unpinned versions
