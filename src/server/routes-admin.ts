@@ -10,65 +10,97 @@ import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
 import { requireProjectRole } from "./routes.js";
 
+/**
+ * Ensure Central AI container is running. Called on server startup and by API.
+ * Returns { port, terminal } or null on failure.
+ */
+function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
+  const containerName = `evomesh-${process.env.USER || "user"}-central`;
+  const adminPort = ctx.port + 100;
+
+  // Already running? Just register and return.
+  if (getContainerState(containerName) === "running") {
+    const port = getContainerPort(containerName) || adminPort;
+    ctx.ttydProcesses.set("central/ai", { port, roleName: "ai", projectSlug: "central" });
+    return { port, terminal: "/terminal/central/ai/" };
+  }
+
+  try {
+    const homeDir = os.homedir();
+    // Remove stopped/dead container
+    try { execFileSync("docker", ["rm", "-f", containerName], { stdio: ["pipe","pipe","ignore"] }); } catch {}
+
+    // Find account
+    let accountPath = path.join(homeDir, ".claude");
+    try {
+      const projects = ctx.getProjects();
+      if (projects.length > 0) {
+        const config = loadConfig(projects[0].root);
+        const firstAccount = Object.values(config.accounts)[0];
+        if (firstAccount) accountPath = expandHome(firstAccount);
+      }
+    } catch {}
+    const mainClaudeJson = path.join(homeDir, ".claude.json");
+
+    const args = [
+      "run", "-d",
+      "--name", containerName,
+      "-p", `127.0.0.1:${adminPort}:7681`,
+      "-v", `${homeDir}:${homeDir}:rw`,
+      "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
+      "-e", `HOST_UID=${process.getuid?.() || 1000}`,
+      "-e", `HOST_GID=${process.getgid?.() || 1000}`,
+      "-e", `HOST_USER=${process.env.USER || "user"}`,
+      "-e", `HOST_HOME=${homeDir}`,
+      "-e", `HOME=${homeDir}`,
+      "-e", `CLAUDE_CONFIG_DIR=${accountPath}`,
+      "-e", "ROLE_NAME=central",
+      "-e", "ROLE_ROOT_OVERRIDE=.evomesh/central",
+      "-w", `${homeDir}`,
+      "--log-opt", "max-size=10m",
+      "evomesh-role",
+    ];
+    execFileSync("docker", args, { stdio: "inherit" });
+
+    ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
+    return { port: adminPort, terminal: "/terminal/central/ai/" };
+  } catch (e: any) {
+    console.error("[central-ai] Failed to start:", e.message);
+    return null;
+  }
+}
+
 export function registerAdminRoutes(app: import("express").Express, ctx: ServerContext): void {
+
+  // Ensure Central AI is always running on server startup
+  try {
+    const result = ensureCentralAI(ctx);
+    if (result) console.log(`[central-ai] Running on port ${result.port}`);
+    else console.error("[central-ai] Failed to start on boot");
+  } catch (e: any) { console.error("[central-ai] Boot error:", e.message); }
 
   // --- Admin AI terminal ---
   app.get("/api/admin/status", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
-    try {
-      const state = getContainerState(`evomesh-${process.env.USER || "user"}-central`);
-      const port = state === "running" ? getContainerPort(`evomesh-${process.env.USER || "user"}-central`) : null;
-      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/central/ai/" : null });
-    } catch { res.json({ running: false, port: null, terminal: null }); }
+    // Ensure it's running (auto-restart if crashed)
+    const result = ensureCentralAI(ctx);
+    if (result) {
+      res.json({ running: true, port: result.port, terminal: result.terminal });
+    } else {
+      res.json({ running: false, port: null, terminal: null });
+    }
   });
 
   app.post("/api/admin/start", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
-    try {
-      const homeDir = os.homedir();
-      const adminPort = ctx.port + 100; // Use high offset to avoid collision
-      // Remove old container
-      try { execFileSync("docker", ["rm", "-f", `evomesh-${process.env.USER || "user"}-central`], { stdio: ["pipe","pipe","ignore"] }); } catch {}
-
-      // Central AI uses the first available account from workspace projects
-      let accountPath = path.join(homeDir, ".claude"); // fallback
-      try {
-        const projects = ctx.getProjects();
-        if (projects.length > 0) {
-          const config = loadConfig(projects[0].root);
-          const firstAccount = Object.values(config.accounts)[0];
-          if (firstAccount) accountPath = expandHome(firstAccount);
-        }
-      } catch {}
-      const mainClaudeJson = path.join(homeDir, ".claude.json");
-
-      // Start central AI container — bridge network like normal roles
-      // Central AI: bridge network, mounts entire HOME for file-based access
-      const args = [
-        "run", "-d",
-        "--name", `evomesh-${process.env.USER || "user"}-central`,
-        "-p", `127.0.0.1:${adminPort}:7681`,
-        "-v", `${homeDir}:${homeDir}:rw`,
-        "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
-        "-e", `HOST_UID=${process.getuid?.() || 1000}`,
-        "-e", `HOST_GID=${process.getgid?.() || 1000}`,
-        "-e", `HOST_USER=${process.env.USER || "user"}`,
-        "-e", `HOST_HOME=${homeDir}`,
-        "-e", `HOME=${homeDir}`,
-        "-e", `CLAUDE_CONFIG_DIR=${accountPath}`,
-        "-e", "ROLE_NAME=central",
-        "-e", "ROLE_ROOT_OVERRIDE=.evomesh/central",
-        "-w", `${homeDir}`,
-        "--log-opt", "max-size=10m",
-        "evomesh-role",
-      ];
-      execFileSync("docker", args, { stdio: "inherit" });
-
-      ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
-      res.json({ ok: true, port: adminPort, terminal: "/terminal/central/ai/" });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    const result = ensureCentralAI(ctx);
+    if (result) {
+      res.json({ ok: true, ...result });
+    } else {
+      res.status(500).json({ error: "Failed to start Central AI" });
+    }
   });
 
   // Central AI status (read central-status.md)
