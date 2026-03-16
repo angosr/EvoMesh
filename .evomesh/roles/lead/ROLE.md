@@ -18,12 +18,14 @@
 ## Loop Flow
 
 1. `git pull --rebase`
-2. Read this file + todo.md + inbox/
-3. Scan ALL roles: read their todo.md, short-term.md, evolution.log
-4. Update `blueprint.md` and `status.md`
-5. Identify issues → dispatch tasks or send feedback via inbox
-6. Update own todo.md and memory
-7. commit + push
+2. Read this file + todo.md + inbox/ + **memory/short-term.md** (restore previous loop context)
+3. Read **`shared/decisions.md`** — binding architectural decisions
+4. Scan ALL roles: read their todo.md, short-term.md, evolution.log
+5. Update `blueprint.md` and `status.md`
+6. Identify issues → dispatch tasks or send feedback via inbox
+7. Update own todo.md
+8. **Write `memory/short-term.md`** (MANDATORY per base-protocol Section 4)
+9. commit + push
 
 ## Key Rules
 
@@ -34,8 +36,7 @@
 
 ## Project-Specific Rules
 
-- Current phase: Foundation → Collaboration. Core infra works; focus is on establishing shared protocols
-- Critical blocker: base-protocol.md must exist before roles can effectively collaborate
-- Hub-and-spoke with P0 exception: P0 security/stability issues may go direct to relevant role + lead simultaneously
+- Current phase: Self-Evolution. Protocols established, all 7 roles operational
+- Hub-and-spoke with P0 exception + bug-fix direct channel (reviewer/security → core-dev/frontend, CC lead)
 - 7 roles active: lead, core-dev, frontend, reviewer, security, research, agent-architect
 - Inbox filename standard: `YYYYMMDDTHHMM_from_topic.md`
