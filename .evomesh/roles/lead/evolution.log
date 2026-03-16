@@ -13,3 +13,11 @@
 - Removed duplicate rules already in base-protocol (inbox filename, role count)
 - Net: 43 lines → 37 lines (14% reduction)
 **Trigger**: User P0 directive — v2 protocol mechanisms not being executed
+
+## 2026-03-17T05:25 — Added Proactive Goal Generation (Loop 45)
+**Changes**:
+- Added "Proactive Goal Generation" as responsibility #3
+- Added step 5 to loop flow: scan research devlogs, metrics trends, blueprint gaps
+- Added key rule: "generate goals, not just process inbox — idle system = lead failure"
+- Net: ROLE.md 29→37 lines (added capability, not bloat)
+**Trigger**: User P0 directive — lead was purely reactive, never self-generated a goal
