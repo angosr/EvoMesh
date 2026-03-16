@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EvoMesh</title>
-<link rel="stylesheet" href="/app.css?v=1773678270">
+<link rel="stylesheet" href="/app.css?v=1773679222">
 </head>
 <body>
 
@@ -132,7 +132,7 @@
 
 <!-- Right Panel: Mission Control -->
 <div id="chat-sidebar">
-  <h2><span class="pulse"></span> Mission Control</h2>
+  <h2><span class="pulse"></span> Mission Control <button class="mc-close" onclick="toggleChat()" title="Close">&times;</button></h2>
   <div id="mc-tabs">
     <button class="mc-tab active" data-mc-tab="activity">Activity</button>
     <button class="mc-tab" data-mc-tab="issues">Issues</button>
@@ -163,15 +163,10 @@
       <button id="central-send" onclick="sendToCentral()">Send</button>
     </div>
   </div>
-  <!-- Command input for non-central tabs (always visible) -->
-  <div id="mc-command">
-    <textarea id="mc-quick-input" rows="1" placeholder="Quick command to Central AI..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();quickSendToCentral()}"></textarea>
-    <button onclick="quickSendToCentral()">Send</button>
-  </div>
 </div>
 
-<script src="/app.js?v=1773678270"></script>
-<script src="/app-panels.js?v=1773678270"></script>
-<script src="/app-settings.js?v=1773678270"></script>
+<script src="/app.js?v=1773679222"></script>
+<script src="/app-panels.js?v=1773679222"></script>
+<script src="/app-settings.js?v=1773679222"></script>
 </body>
 </html>
