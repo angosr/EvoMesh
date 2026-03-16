@@ -552,7 +552,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       const state = getContainerState("evomesh-admin");
       const port = state === "running" ? getContainerPort("evomesh-admin") : null;
-      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/admin/" : null });
+      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/admin/admin/" : null });
     } catch { res.json({ running: false, port: null, terminal: null }); }
   });
 
@@ -599,7 +599,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       // Register in ttyd processes
       ctx.ttydProcesses.set("admin/admin", { port: adminPort, roleName: "admin", projectSlug: "admin" });
 
-      res.json({ ok: true, port: adminPort, terminal: "/terminal/admin/" });
+      res.json({ ok: true, port: adminPort, terminal: "/terminal/admin/admin/" });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 

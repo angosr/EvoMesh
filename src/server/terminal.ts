@@ -1,6 +1,6 @@
 import http from "node:http";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, startRole, ensureImage } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState, startRole, ensureImage } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 
 export interface TtydProcess {
@@ -33,6 +33,17 @@ export function ensureTtydRunning(ctx: ServerContext): void {
 
           // Start container for roles that should be running
           // (only start if explicitly requested via API, not auto-start all)
+        }
+      } catch {}
+    }
+
+    // Restore admin container registration if running but not tracked
+    if (!ctx.ttydProcesses.has("admin/admin")) {
+      try {
+        const state = getContainerState("evomesh-admin");
+        if (state === "running") {
+          const port = getContainerPort("evomesh-admin");
+          if (port) ctx.ttydProcesses.set("admin/admin", { port, roleName: "admin", projectSlug: "admin" });
         }
       } catch {}
     }
