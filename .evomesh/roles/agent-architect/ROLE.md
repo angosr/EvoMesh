@@ -16,13 +16,12 @@
 
 ## Loop Flow
 
-1. `git pull --rebase`
-2. Read this file + todo.md + inbox/
-3. Review inter-role communication patterns (check inbox/ across all roles)
-4. Analyze memory file sizes and quality
-5. Research improvements
-6. Propose changes via devlog/ and inbox to lead
-7. commit + push
+Follow base-protocol section 4 for universal steps. Role-specific work (step 5):
+
+1. Process inbox tasks/feedback
+2. If tasks pending → execute highest priority
+3. If idle → audit: check all roles' memory compliance, communication patterns, protocol adherence
+4. Write devlog/ for research; send proposals to lead via inbox
 
 ## Key Rules
 

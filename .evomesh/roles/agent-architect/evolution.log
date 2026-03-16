@@ -1,1 +1,15 @@
-# agent-architect — Evolution Log\n\n(none)
+# agent-architect — Evolution Log
+
+## Evo-1 | 2026-03-17 | Loop 15
+**Type**: Prompt hygiene
+**Changes**:
+- Removed responsibility 5 (Frontier Research) — overlapped with research role
+- Fixed key rule: "propose only" → "implement directly when approved" (matched actual behavior)
+**Reason**: Self-audit per base-protocol section 8
+
+## Evo-2 | 2026-03-17 | Loop 18
+**Type**: Prompt hygiene
+**Changes**:
+- Simplified Loop Flow: removed universal steps (duplicated base-protocol section 4), kept only role-specific work
+- Replaced vague "Research improvements" with specific idle behavior: compliance audits + protocol adherence checks
+**Reason**: Self-audit. Loop flow was 7 steps duplicating base-protocol; now 4 role-specific steps. Idle behavior was undefined — now codified based on actual loops 15-17.
