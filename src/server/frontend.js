@@ -148,7 +148,6 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     } catch { /* cross-origin = ttyd alive */ }
   }, 2000);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
-  injectTouchScroll(iframe);
   state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
 
