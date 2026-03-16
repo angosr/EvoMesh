@@ -267,11 +267,11 @@ function switchTo(name) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   const title = name === 'dashboard' ? 'Dashboard' : name === 'settings' ? 'Settings' : esc(name);
   document.getElementById('panel-title').innerHTML = `<strong>${title}</strong>`;
-  // Update sidebar buttons
+  // Update sidebar buttons — always sync both
   const dashBtn = document.getElementById('dashboard-btn');
   const settingsBtn = document.getElementById('settings-btn');
-  if (dashBtn) { dashBtn.classList.toggle('active', name === 'dashboard'); }
-  if (settingsBtn) { settingsBtn.classList.toggle('active', name === 'settings'); }
+  if (dashBtn) { name === 'dashboard' ? dashBtn.classList.add('active') : dashBtn.classList.remove('active'); }
+  if (settingsBtn) { name === 'settings' ? settingsBtn.classList.add('active') : settingsBtn.classList.remove('active'); }
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
 }
