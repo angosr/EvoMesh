@@ -1,7 +1,7 @@
-# Reviewer — Short-Term Memory (Loop #033, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #034, 2026-03-17)
 
 ## Done this loop
-- 2 new commits — no code changes (adaptive throttle proposal, sync)
+- 1 new commit — no code changes (lead adaptive throttle for idle roles)
 - No inbox items
 - Metrics logged
 
