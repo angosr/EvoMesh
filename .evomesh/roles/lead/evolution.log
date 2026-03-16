@@ -2,3 +2,14 @@
 
 ## 2026-03-16T21:50 — Lead added Project-Specific Rules
 **Reason**: ROLE.md had empty Project-Specific Rules. Added current phase context, critical blocker, hub-and-spoke P0 exception rule, active role count, and inbox filename standard.
+
+## 2026-03-17T01:55 — Prompt Hygiene Self-Audit (Loop 24, first 10-loop audit)
+**Changes**:
+- Fixed loop interval 20m → 10m (was stale)
+- Removed "Research cutting-edge approaches" responsibility (research role does this)
+- Changed "every loop" to "when changes warrant" for blueprint/status updates
+- Changed "scan ALL roles" to "scan active roles" (was too expensive)
+- Added mandatory metrics.log step to loop flow
+- Removed duplicate rules already in base-protocol (inbox filename, role count)
+- Net: 43 lines → 37 lines (14% reduction)
+**Trigger**: User P0 directive — v2 protocol mechanisms not being executed

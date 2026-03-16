@@ -139,6 +139,9 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
    - **Next focus**: [what to do next loop]
    ```
 7. Update todo.md (mark completed ✅, add new tasks from inbox). For P1+ tasks, include `AC:` acceptance criteria — objectively verifiable completion conditions.
+7b. **Append `metrics.log`** (MANDATORY, one CSV line per loop, NOT committed to git):
+   `timestamp,loop_duration_s,tasks_completed,errors,inbox_processed`
+   Create file with header if it doesn't exist.
 8. Git commit and push:
    1. `git add <only your own modified files>` — **NEVER use `git add -A` or `git add .`**
    2. `git commit`

@@ -17,7 +17,15 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T01:35)
+## Completed This Loop (2026-03-17T01:55)
+
+- LEADING BY EXAMPLE: wrote metrics.log (24 entries), executed first prompt hygiene self-audit
+- Self-audit result: ROLE.md 43→37 lines, removed dead rules, fixed stale interval, added metrics step
+- Broadcast P0 to all 6 roles: start writing metrics.log immediately
+- Made metrics.log MANDATORY in base-protocol loop flow (step 7b)
+- core-dev fixed port collision bug in auto-restart, reviewer verified clean
+
+## Previous: Loop 22 (2026-03-17T01:35)
 
 - Cleaned inbox: 27 processed messages → inbox/processed/
 - Processed user P1 failure resilience: documented project.yaml ownership rule in base-protocol section 10
