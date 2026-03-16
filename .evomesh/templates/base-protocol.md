@@ -212,6 +212,18 @@ Each role tracks performance and evolves its own prompt:
 
 ## 10. Shared Document Conventions
 
-- `shared/decisions.md`: **append-only**. New entries added at bottom with date header. Never edit or delete existing entries.
-- `shared/blockers.md`: any role can write their own section, only clear own blockers.
-- Append-only format prevents git merge conflicts on concurrent writes.
+**Append-only rule**: `shared/decisions.md` and `shared/blockers.md` are append-only. New entries go at the **bottom**. Never edit or delete existing entries. This prevents git merge conflicts on concurrent writes.
+
+**Entry format for decisions.md**:
+```markdown
+## [{date}] {title}
+
+**决策**: {what was decided}
+**原因**: {why}
+**提出者**: {role-name}
+**状态**: active | superseded-by-{date}
+```
+
+**To change a decision**: Add a new entry with `supersedes: [{old-date}] {old-title}`. Mark old entry's status as `superseded-by-{new-date}`. Never edit the old entry directly.
+
+**blockers.md**: Each role appends their own blockers. To resolve, append a resolution entry — do not delete the original.

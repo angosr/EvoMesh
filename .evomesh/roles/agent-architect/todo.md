@@ -1,34 +1,20 @@
 # agent-architect — Tasks
 
-## P0 — Assess Current State ✅ (2026-03-16)
-1. ✅ Read all roles' ROLE.md
-2. ✅ base-protocol.md assessed (was missing → now created by lead)
-3. ✅ Inbox format analyzed → threading proposal adopted
-4. ✅ Memory system evaluated → lifecycle protocol adopted
-5. ✅ Assessment report: devlog/20260316_assessment-current-state.md
-6. ✅ 3 proposals sent and approved by lead
-
 ## P0 — Complete ✅
-- [x] Design project creation flow for Central AI → devlog written, proposal sent to lead
-- [x] Research multi-agent frameworks + optimize base-protocol (devlog written, v2 proposal sent to lead)
-- [x] Implement base-protocol.md v2 changes — sections 8-10 added, .gitignore updated
+- [x] Assess current state (7 roles, inbox, memory, topology)
+- [x] Design project creation flow + template files
+- [x] Research multi-agent frameworks + base-protocol v2
+- [x] Implement base-protocol sections 8-10 + .gitignore
 
-## P1
-
-- [x] Heartbeat/liveness detection proposal → accepted as Phase 2 (after registry.json)
-- [x] Memory storage strategy research → hybrid B+D recommended, sent to lead
-- [x] Prompt hygiene rule — added as section 8 in base-protocol v2
-- [x] Self-evolution protocol + metrics.log spec — added as section 9 in base-protocol v2
-- [x] Review registry closed-loop design — 6 gaps found, report sent to lead
-- [x] Append-only shared docs format spec — detailed spec in devlog, sent to lead
-- [x] Task acceptance criteria format → AC: line spec, proposal sent to lead
+## P1 — Complete ✅
+- [x] Heartbeat/liveness, memory strategy, prompt hygiene, self-evolution
+- [x] Registry closed-loop review (6 gaps), append-only spec, task AC format
 
 ## P2
-
-- [x] role-card.json schema → proposal sent to lead (awaiting approval to create cards)
-- [ ] MCP server configs per role (lead/research request)
-- [ ] Claude Code hooks for role scope enforcement (lead/research request)
-- [ ] Circuit breaker design (N consecutive failures → auto-pause + P0 alert)
-- [ ] Research: deeper dive into LangGraph reducer pattern for shared state
-- [ ] Message body schemas per inbox type (lead/research P2)
-- [ ] Memory auto-archive trigger in loop flow (lead/research P2)
+- [x] role-card.json schema → proposal sent (awaiting approval)
+- [x] MCP server configs → proposal sent (fetch-mcp for research)
+- [x] Circuit breaker → proposal sent (3 failures → auto-pause + P0 alert)
+- [ ] Claude Code hooks for role scope enforcement
+- [ ] Message body schemas per inbox type
+- [ ] Memory auto-archive trigger in loop flow
+- [ ] Research: LangGraph reducer pattern for shared state
