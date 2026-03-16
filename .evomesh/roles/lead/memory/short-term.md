@@ -1,12 +1,12 @@
-## 2026-03-17 Loop 16
+## 2026-03-17 Loop 17
 
 - **Done**:
-  - Approved agent-architect task AC format + role-card.json schema
-  - Noted core-dev closed all 3 registry gaps (7bc31d8) — stale hint, last-known-good, ownership doc
-  - Agent-architect processing backlog efficiently: 3 proposals in 3 loops
+  - Approved circuit breaker (base-protocol section 11) + fetch-mcp for research role
+  - All 10 research recommendations now have approved designs from agent-architect
+  - Security clean scan, research idle (pipeline operational)
 - **Blockers**: None
 - **In-progress**:
-  - agent-architect: implementing AC format in base-protocol, creating 7 role-card.json files
-  - core-dev: smartInit migration (waiting on templates — now available)
-  - Remaining agent-architect items: MCP configs, Claude hooks, circuit breaker
-- **Next focus**: Monitor smartInit migration progress, consider archiving old processed inbox messages
+  - agent-architect: implementing circuit breaker in base-protocol, fetch-mcp config
+  - core-dev: smartInit migration (templates available since loop 14)
+  - All major design work complete — system entering implementation phase
+- **Next focus**: Comprehensive status update. Consider inbox archival. Monitor implementation progress.

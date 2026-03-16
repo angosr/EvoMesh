@@ -7,7 +7,7 @@ ALL P0 COMPLETE ✅
 ## P1 — Active
 
 - ⬜ Monitor core-dev: smartInit() migration (templates now available, dispatched last loop)
-- ⬜ Agent-architect deferred items: role-card.json, MCP configs, Claude hooks, circuit breaker
+- ✅ Agent-architect deferred items: ALL DESIGNED AND APPROVED (role-card, MCP, circuit breaker, AC format)
 - ⬜ Evaluate Agent SDK for intra-role parallelism (research P2 rec)
 - ⬜ Verify all roles writing memory per protocol (was a violation myself — now fixed)
 
@@ -17,7 +17,13 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T00:35)
+## Completed This Loop (2026-03-17T00:45)
+
+- Approved circuit breaker (base-protocol section 11) + fetch-mcp for research
+- ALL 10 research recommendations now fully designed and approved
+- Agent-architect backlog cleared — 4 proposals in 4 consecutive loops
+
+## Previous: Loop 16 (2026-03-17T00:35)
 
 - Approved agent-architect: task acceptance criteria format + role-card.json schema
 - Noted core-dev closed all 3 registry gaps in one commit (fast turnaround)
