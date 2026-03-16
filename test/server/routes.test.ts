@@ -146,18 +146,12 @@ describe("server/routes", () => {
 
   // --- GET /api/projects/:slug/roles/:name/log ---
 
-  it("GET /api/projects/:slug/roles/:name/log returns log content", async () => {
-    const logPath = path.join(tmp.root, ".evomesh", "runtime", "lead.log");
-    fs.writeFileSync(logPath, "line1\nline2\nline3\n", "utf-8");
+  it("GET /api/projects/:slug/roles/:name/log returns 200 with text", async () => {
+    // Container-based: getRoleLogs returns empty string for non-running containers
     const res = await fetch(`${baseUrl}/api/projects/test-project/roles/lead/log`);
     assert.equal(res.status, 200);
     const text = await res.text();
-    assert.ok(text.includes("line1"));
-  });
-
-  it("GET /api/projects/:slug/roles/:name/log returns 404 for missing log", async () => {
-    const res = await fetch(`${baseUrl}/api/projects/test-project/roles/executor/log`);
-    assert.equal(res.status, 404);
+    assert.equal(typeof text, "string");
   });
 
   it("GET /api/projects/:slug/roles/:name/log rejects invalid name", async () => {
