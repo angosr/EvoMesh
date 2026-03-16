@@ -1,7 +1,7 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-16T21:30
+> Last updated: 2026-03-16T21:50
 
 ## Current Progress
 - Docker container backend: operational
@@ -12,7 +12,7 @@
 - Active development: bug fixes in container/frontend (5 recent fix commits)
 
 ## Active Roles (EvoMesh project)
-- **lead**: Project control, blueprint/status maintenance, task dispatch — operational
+- **lead**: Project control, blueprint/status maintenance, task dispatch — operational, ROLE.md optimization done
 - **agent-architect**: Collaboration architecture — P0 assessment COMPLETE, now drafting base-protocol.md
 - **core-dev**: Code implementation, testing — tasks assigned, awaiting first loop
 - **frontend**: Web UI improvements — tasks assigned, awaiting first loop

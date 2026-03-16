@@ -1,1 +1,4 @@
-# research — Evolution Log\n\n(none)
+# research — Evolution Log
+
+## 2026-03-16T21:50 — Lead added Project-Specific Rules
+**Reason**: ROLE.md had empty Project-Specific Rules. Added EvoMesh differentiator (file-based communication), current research priorities, Claude Code specificity, and communication topology comparison guidance.

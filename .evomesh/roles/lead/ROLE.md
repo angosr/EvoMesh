@@ -34,4 +34,8 @@
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- Current phase: Foundation → Collaboration. Core infra works; focus is on establishing shared protocols
+- Critical blocker: base-protocol.md must exist before roles can effectively collaborate
+- Hub-and-spoke with P0 exception: P0 security/stability issues may go direct to relevant role + lead simultaneously
+- 7 roles active: lead, core-dev, frontend, reviewer, security, research, agent-architect
+- Inbox filename standard: `YYYYMMDDTHHMM_from_topic.md`

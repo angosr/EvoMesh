@@ -39,4 +39,9 @@
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- Primary attack surface: Express API at port 8123 (all routes in `src/server/routes-*.ts`)
+- Container escape risk: Docker containers mount host volumes — check what's exposed
+- Auth system: password-based login with session cookies. Check for session fixation, replay
+- ttyd terminals: WebSocket connections to containers — check for auth bypass on WS upgrade
+- Entrypoint runs as non-root but has access to claude CLI — check for command injection via role names, project slugs
+- Network: containers use bridge network with port mapping. Verify no unintended host port exposure

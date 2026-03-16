@@ -1,1 +1,4 @@
-# core-dev — Evolution Log\n\n(none)
+# core-dev — Evolution Log
+
+## 2026-03-16T21:50 — Lead added Project-Specific Rules
+**Reason**: ROLE.md had empty Project-Specific Rules. Added EvoMesh tech stack details (TypeScript/Express/Docker), file conventions, commit format, and env var requirement so the role has project context from first loop.

@@ -33,4 +33,9 @@
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- No frontend framework — vanilla HTML/JS/CSS in `src/server/frontend.html`, `frontend.js`, `frontend.css`
+- Terminal panels use ttyd (WebSocket-based). Touch/scroll interactions must not conflict with tmux
+- CSS variables defined in `:root` — use them for all colors and spacing
+- Dashboard table shows container status — keep it responsive for mobile
+- Cache busting: `?v=timestamp` parameter on static assets. Update when changing JS/CSS
+- Auth: login page is separate. All UI routes require valid session

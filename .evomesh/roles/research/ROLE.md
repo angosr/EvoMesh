@@ -52,4 +52,7 @@ What this means for our project direction
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- EvoMesh differentiator: file-based communication (not API/RPC like AutoGen/CrewAI) — research should compare this approach
+- Key research topics for current phase: inter-agent protocols, memory architectures, self-evolution mechanisms
+- Prioritize research that's directly applicable — we use Claude Code (not generic LLM APIs)
+- When researching frameworks, note their communication topology (hub-spoke vs mesh vs broadcast) for comparison

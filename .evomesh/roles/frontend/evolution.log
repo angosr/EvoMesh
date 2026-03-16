@@ -1,1 +1,4 @@
-# frontend — Evolution Log\n\n(none)
+# frontend — Evolution Log
+
+## 2026-03-16T21:50 — Lead added Project-Specific Rules
+**Reason**: ROLE.md had empty Project-Specific Rules. Added details about vanilla HTML/JS/CSS stack (no framework), ttyd terminal interaction constraints, CSS variable convention, cache busting pattern, and auth requirement.

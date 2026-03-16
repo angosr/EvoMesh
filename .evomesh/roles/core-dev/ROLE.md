@@ -34,4 +34,9 @@
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- Stack: TypeScript + Express + Docker. No frontend frameworks — vanilla HTML/JS/CSS
+- Container lifecycle: each role = 1 Docker container (ttyd + tmux + claude). See `src/process/container.ts`
+- API routes are in `src/server/routes-*.ts` (split at 500 lines). Always add auth middleware to new endpoints
+- Use `process.env.*` for all config. Never hardcode paths, ports, or usernames
+- Entrypoint: `docker/entrypoint.sh` runs as non-root user. Changes affect ALL role containers
+- Commit format: `{type}({scope}): {description}` — e.g. `fix(server): ...`, `feat(docker): ...`

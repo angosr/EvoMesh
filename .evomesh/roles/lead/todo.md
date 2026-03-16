@@ -7,7 +7,7 @@
 3. ✅ Update status.md — all 7 roles listed, blocker documented, timestamps added
 4. ✅ Review agent-architect proposals — ALL 3 APPROVED, assigned base-protocol.md creation
 5. ~~Write initial tasks to each role's todo.md~~ — already done in prior loop
-6. ⬜ Review and optimize each role's ROLE.md — are the prompts clear and efficient?
+6. ✅ Review and optimize each role's ROLE.md — added Project-Specific Rules to all 7 roles
 
 ## P1 — This Week
 
@@ -21,7 +21,16 @@
 - ⬜ Once base-protocol.md is drafted, review and finalize it
 - ⬜ Kick off core-dev, reviewer, security roles for their first loops
 
-## Completed This Loop (2026-03-16T21:30)
+## Completed This Loop (2026-03-16T21:50)
+
+- Reviewed all 7 ROLE.md files for prompt quality
+- Added Project-Specific Rules to all 7 roles (core-dev, frontend, reviewer, security, research, agent-architect, lead)
+- Logged all ROLE.md changes to each role's evolution.log
+- Noted core-dev progress: routes.ts split into 3 files, expandHome fix
+- base-protocol.md still MISSING — agent-architect hasn't looped yet to pick up approval
+- Updated status.md timestamp
+
+## Previous Loop (2026-03-16T21:30)
 
 - Scanned all 7 roles' todo.md files
 - Read agent-architect's full assessment report

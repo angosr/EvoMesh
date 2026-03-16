@@ -1,1 +1,4 @@
-# reviewer — Evolution Log\n\n(none)
+# reviewer — Evolution Log
+
+## 2026-03-16T21:50 — Lead added Project-Specific Rules
+**Reason**: ROLE.md had empty Project-Specific Rules. Added key focus areas (routes, entrypoint, container.ts), flagged rapid bug-fix pattern to watch, TypeScript-specific review items, and Docker volume review.

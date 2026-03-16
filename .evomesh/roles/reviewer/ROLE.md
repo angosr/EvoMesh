@@ -43,4 +43,8 @@ Every review must also check:
 
 ## Project-Specific Rules
 
-(To be filled through self-evolution)
+- Focus areas: `src/server/routes-*.ts` (API surface), `docker/entrypoint.sh` (container startup), `src/process/container.ts` (lifecycle)
+- Recent pattern: many rapid bug-fix commits — watch for symptom-patching instead of root-cause fixes
+- File size rule is enforced: any file >500 lines must be flagged for splitting
+- The codebase uses TypeScript — check for `any` types, missing error handling on async operations
+- Review Docker volume mounts for over-exposure (host filesystem access)
