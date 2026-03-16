@@ -1,20 +1,20 @@
 # Frontend — Short-Term Memory
 
-## Last Loop (Loop 12 — 2026-03-16)
+## Last Loop (Loop 13 — 2026-03-16)
 
 ### Done
-- Swipe-to-close for mobile panels (P2):
-  - Sidebar: swipe left (60px threshold) to dismiss
-  - Mission Control: swipe right to dismiss
-  - Ignores vertical-dominant swipes (won't conflict with scrolling)
-  - Uses closeMobileOverlay() for consistent cleanup
+- Dark/light theme toggle (P2):
+  - Light theme via [data-theme="light"] CSS selector overriding :root variables
+  - Toggle button in Settings > Appearance section
+  - Persisted to localStorage, applied on page load
+  - Migrated 5 major structural elements from hardcoded #111/#222 to var(--bg-panel)/var(--border)
 
 ### Blockers
 - `/api/mission-control` endpoint still pending core-dev
 
 ### In Progress
-- Nothing — all original tasks complete
+- Nothing
 
-### Next Loop Focus
-- P2: Dark/light theme toggle (last remaining item)
-- Any new inbox items
+### All Original Tasks Complete
+Every P0, P1, and P2 item from the initial code review and all inbox tasks are done.
+Remaining work is blocked on core-dev (mission-control API) or new inbox items.

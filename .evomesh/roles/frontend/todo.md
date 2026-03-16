@@ -17,4 +17,4 @@
 
 ## P2 — Improvements
 - [x] Swipe-to-close for mobile sidebar (swipe left) and Mission Control (swipe right)
-- [ ] Consider dark/light theme toggle using existing CSS variables
+- [x] Dark/light theme toggle with localStorage persistence

@@ -26,6 +26,7 @@ function renderSettings() {
   document.getElementById('pw-confirm').value = '';
   document.getElementById('pw-msg').className = 'settings-msg';
   document.getElementById('pw-msg').textContent = '';
+  if (typeof updateThemeButton === 'function') updateThemeButton();
 }
 
 async function doChangePassword() {

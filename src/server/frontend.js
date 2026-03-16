@@ -320,6 +320,27 @@ function doLogout() {
 }
 
 
+// ==================== Theme toggle ====================
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme;
+  const next = current === 'light' ? '' : 'light';
+  if (next) document.documentElement.dataset.theme = next;
+  else delete document.documentElement.dataset.theme;
+  localStorage.setItem('evomesh-theme', next || 'dark');
+  updateThemeButton();
+}
+function updateThemeButton() {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const isLight = document.documentElement.dataset.theme === 'light';
+  btn.textContent = isLight ? 'Switch to Dark' : 'Switch to Light';
+}
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem('evomesh-theme');
+  if (saved === 'light') document.documentElement.dataset.theme = 'light';
+})();
+
 // Settings moved to frontend-settings.js
 
 
