@@ -1,13 +1,9 @@
 # 短期记忆
 
-- Loop #1-20: 基础建设周期
-- Loop #22: auth.ts 单元测试 18 cases
-- Loop #23-32: 空闲轮 + 周期调整
-- Loop #33: 自我审查 — routes.ts 空catch修复
-- Loop #34: routes.ts 测试覆盖 23 cases
-- Loop #35: P0 Task1(UserRole) + Task2(acl.ts 24 tests)
-- Loop #36: P0 Task3-6 完成（权限系统 Phase 1）
-- Loop #37: P1 Tasks 1-4 完成（slugify/allocatePort/响应格式/spawner调研）
-- Loop #38 (2026-03-16): 自我审查 — 发现并修复 /api/admin/* 缺少权限检查的安全漏洞
-- 下一步: Phase 2 UI 权限过滤（待 lead 分派具体任务）
-- 测试: 95/95 全通过
+- Loop #1-34: 基础建设 + 测试 + 自我审查
+- Loop #35-36: P0 权限系统 Phase 1 完成
+- Loop #37: P1 代码工程化整理完成
+- Loop #38: 自我审查 — /api/admin/* 安全修复
+- Loop #39 (2026-03-16): 自我审查 + P2 Task1(API myRole字段) + 新增6个权限测试
+- 下一步: P2 Task2 (frontend 权限显隐) + Task3 (成员管理面板)
+- 测试: 101/101 全通过
