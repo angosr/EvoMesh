@@ -68,3 +68,12 @@ git:
   branch: main
   conflict_resolution: auto
   auto_push: true
+  research:
+    type: worker
+    loop_interval: 30m
+    account: "2"
+    evolution_upgrade_every: 25
+    scope:
+      - devlog/
+      - docs/
+    description: "Frontier research — papers, open source, trends, roadmap advice"
