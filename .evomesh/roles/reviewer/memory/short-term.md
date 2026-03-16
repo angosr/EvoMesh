@@ -1,15 +1,14 @@
-# Reviewer — Short-Term Memory (Loop #021, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #022, 2026-03-17)
 
 ## Done this loop
-- Verified P1-9 port collision fix (commit `c638038`): uses `allocatePort(ctx)` — correct
+- 4 new commits — no code changes (lead v2 protocol, security verify, frontend self-audit, chore)
 - No inbox items
 
 ## Blockers
 - None
 
 ## In-progress
-- P1-9 RESOLVED — all P0/P1 findings now fixed
-- 3 P2 items remain open (SSE auth, frontend.js size, python3-pip)
+- All P0/P1 resolved. 3 P2 remain (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
-- Monitor for new code commits
+- Monitor for code commits
