@@ -67,6 +67,12 @@ function ensureAclMigration(ctx: ServerContext): void {
   if (changed) saveAcl(acl);
 }
 
+function allocatePort(ctx: ServerContext): number {
+  let port = ctx.port + 1;
+  for (const [, t] of ctx.ttydProcesses) { if (t.port >= port) port = t.port + 1; }
+  return port;
+}
+
 export function registerRoutes(app: import("express").Express, ctx: ServerContext): void {
 
   // Run ACL migration on startup
@@ -129,7 +135,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         fs.writeFileSync(todoPath, initTask, "utf-8");
 
         const rc = config.roles[leadName];
-        const ttydPort = ctx.port + 1;
+        const ttydPort = allocatePort(ctx);
         try {
           startRole(projectRoot, leadName, rc, config, ttydPort);
           ctx.ttydProcesses.set(`${slug}/${leadName}`, { port: ttydPort, roleName: leadName, projectSlug: slug });
@@ -196,8 +202,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
       // Allocate port
-      let ttydPort = ctx.port + 1;
-      for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
+      const ttydPort = allocatePort(ctx);
 
       const result = startRole(project.root, roleName, rc, config, ttydPort);
       ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
@@ -231,8 +236,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         // Stop any dead container first
         stopRole(project.root, roleName);
         // Allocate port
-        let ttydPort = ctx.port + 1;
-        for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
+        const ttydPort = allocatePort(ctx);
         startRole(project.root, roleName, rc, config, ttydPort);
         ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
       }
@@ -308,8 +312,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       if (wasRunning) {
         stopRole(project.root, roleName);
         ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
-        let ttydPort = ctx.port + 1;
-        for (const [, t] of ctx.ttydProcesses) { if (t.port >= ttydPort) ttydPort = t.port + 1; }
+        const ttydPort = allocatePort(ctx);
         const fresh = loadConfig(project.root);
         startRole(project.root, roleName, fresh.roles[roleName], fresh, ttydPort);
         ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
