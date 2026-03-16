@@ -5,6 +5,13 @@
 
 > **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
+## 🔒 每轮 Loop 必须执行（不可跳过）
+1. **写 `memory/short-term.md`**（Done/Blockers/In-progress/Next focus）
+2. **追加 `metrics.log`** 一行 CSV：`timestamp,duration_s,tasks_done,errors,inbox_processed`
+3. **更新 `todo.md`**（标记完成 ✅，添加新任务）
+4. **读 `shared/decisions.md`**（架构决策优先于本地假设）
+5. **git add 仅自己修改的文件** → commit → push
+
 ---
 
 ## Responsibilities
