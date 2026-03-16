@@ -184,28 +184,6 @@ describe("server/routes", () => {
     }
   });
 
-  // --- GET /api/complete-path ---
-
-  it("GET /api/complete-path returns directory suggestions", async () => {
-    const res = await fetch(`${baseUrl}/api/complete-path?q=${encodeURIComponent("/tmp/")}`);
-    assert.equal(res.status, 200);
-    const body = await res.json() as any;
-    assert.ok(Array.isArray(body.suggestions));
-  });
-
-  it("GET /api/complete-path returns empty for nonexistent path", async () => {
-    const res = await fetch(`${baseUrl}/api/complete-path?q=${encodeURIComponent("/nonexistent_xyz_123/")}`);
-    assert.equal(res.status, 200);
-    const body = await res.json() as any;
-    assert.deepEqual(body.suggestions, []);
-  });
-
-  it("GET /api/complete-path returns empty for empty query", async () => {
-    const res = await fetch(`${baseUrl}/api/complete-path?q=`);
-    const body = await res.json() as any;
-    assert.deepEqual(body.suggestions, []);
-  });
-
   // --- DELETE /api/projects/:slug ---
 
   it("DELETE /api/projects/:slug returns 404 for unknown project", async () => {

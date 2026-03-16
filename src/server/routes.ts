@@ -339,28 +339,6 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
-  // --- Path autocomplete ---
-
-  app.get("/api/complete-path", (req, res) => {
-    const partial = String(req.query.q || "");
-    if (!partial) { res.json({ suggestions: [] }); return; }
-    try {
-      const expanded = partial.startsWith("~") ? path.join(os.homedir(), partial.slice(1)) : partial;
-      const dir = expanded.endsWith("/") ? expanded : path.dirname(expanded);
-      const prefix = expanded.endsWith("/") ? "" : path.basename(expanded);
-      if (!fs.existsSync(dir)) { res.json({ suggestions: [] }); return; }
-      const entries = fs.readdirSync(dir, { withFileTypes: true })
-        .filter(e => e.isDirectory() && !e.name.startsWith(".") && e.name.toLowerCase().startsWith(prefix.toLowerCase()))
-        .slice(0, 15)
-        .map(e => {
-          const full = path.join(dir, e.name);
-          const display = partial.startsWith("~") ? "~" + full.slice(os.homedir().length) : full;
-          return { path: display + "/", hasEvomesh: fs.existsSync(path.join(full, ".evomesh", "project.yaml")) };
-        });
-      res.json({ suggestions: entries });
-    } catch { res.json({ suggestions: [] }); }
-  });
-
   // --- Project members ---
 
   app.get("/api/projects/:slug/members", (req, res) => {
