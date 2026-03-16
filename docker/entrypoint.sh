@@ -36,8 +36,10 @@ if [ -z "$SESSION_ID" ] && [ -f "$HISTORY_FILE" ]; then
   fi
 fi
 
+IS_RESUME=false
 if [ -n "$SESSION_ID" ]; then
   CLAUDE_ARGS="--resume $SESSION_ID $CLAUDE_ARGS"
+  IS_RESUME=true
   echo "[evomesh] Resuming session: $SESSION_ID"
 else
   CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
@@ -79,10 +81,26 @@ TTYD_PID=$!
   ROLE_ROOT=".evomesh/roles/${ROLE_NAME}"
   LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/"
 
+  # Skip /loop injection if resuming (cron jobs persist in session)
+  if [ "$IS_RESUME" = "true" ]; then
+    echo "[evomesh] Resumed session — /loop already active, skipping injection"
+    # Still save session ID
+    sleep 5
+    if [ -f "$HISTORY_FILE" ]; then
+      SID=$(grep "${ROLE_NAME}" "$HISTORY_FILE" 2>/dev/null | tail -1 | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
+      if [ -n "$SID" ]; then
+        mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
+        echo "$SID" > "$ROLE_SESSION_FILE"
+      fi
+    fi
+    exit 0
+  fi
+
   echo "[evomesh] Waiting for Claude to be ready..."
   for i in $(seq 1 60); do
     if pgrep -f "claude" > /dev/null 2>&1; then
-      sleep 10  # Give claude time to fully render
+      echo "[evomesh] Claude process found. Waiting 15s for UI to be ready..."
+      sleep 15
       echo "[evomesh] Claude is ready. Sending /loop command..."
       python3 << 'PYEOF' 2>&1
 import asyncio, websockets
