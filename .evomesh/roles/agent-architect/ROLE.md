@@ -20,7 +20,7 @@ Follow base-protocol section 4 for universal steps. Role-specific work (step 5):
 
 1. Process inbox tasks/feedback
 2. If tasks pending → execute highest priority
-3. If idle → audit: check all roles' memory compliance, communication patterns, protocol adherence
+3. If idle for 5+ consecutive loops → audit: check all roles' memory compliance, communication patterns, protocol adherence. Max 1 audit per 10 idle loops.
 4. Write devlog/ for research; send proposals to lead via inbox
 
 ## Key Rules

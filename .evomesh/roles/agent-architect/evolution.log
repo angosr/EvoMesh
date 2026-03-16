@@ -13,3 +13,10 @@
 - Simplified Loop Flow: removed universal steps (duplicated base-protocol section 4), kept only role-specific work
 - Replaced vague "Research improvements" with specific idle behavior: compliance audits + protocol adherence checks
 **Reason**: Self-audit. Loop flow was 7 steps duplicating base-protocol; now 4 role-specific steps. Idle behavior was undefined — now codified based on actual loops 15-17.
+
+## Evo-3 | 2026-03-17 | Loop 31
+**Type**: Self-evolution (metrics-driven, evolution_upgrade_every threshold)
+**Changes**:
+- Added frequency limit to idle audit: "5+ consecutive idle loops, max 1 per 10 idle loops"
+**Reason**: Metrics showed 12 idle loops (39% of total) but only 1 audit produced. Unbounded "if idle → audit" was wasteful — most idle loops just appended metrics. Rate-limiting audits matches actual useful output.
+**No change**: All 4 responsibilities remain active. Key rules all followed. No dead rules found.
