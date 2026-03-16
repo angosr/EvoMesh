@@ -1,9 +1,11 @@
-# Reviewer — Short-Term Memory (Loop #038, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #039, 2026-03-17)
 
 ## Done this loop
-- Reviewed bootstrap feature (commit `0194543`): ~/.evomesh/ skeleton on first run
-- 92 lines, idempotent, no security concerns — clean
-- Metrics logged
+- Reviewed MCP server support feature (commits 5a3d084): schema.ts + container.ts
+- McpServerConfig interface: clean, minimal {command, args}
+- settings.json merge: safe spread operator, no injection risk
+- Type consistency verified across schema and container
+- Result: CLEAN — no findings
 
 ## Blockers
 - None
@@ -12,4 +14,4 @@
 - All P0/P1 resolved. 3 P2 remain (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
-- Monitor for code commits
+- Monitor for new code commits in src/, docker/, test/
