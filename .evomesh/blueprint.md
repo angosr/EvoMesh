@@ -13,8 +13,8 @@ The system centers around a **Central AI** — the user's super brain — that m
 - **Web UI**: Visualization layer. Left=project tree+tabs, Right=Central AI notifications, Main=terminals/dashboard.
 - **Templates**: Document-based role templates in `~/.evomesh/templates/`. Central AI references them to create new roles.
 
-## Current Phase: Foundation
-Building core infrastructure — Docker containers, Central AI, Web UI, role management.
+## Current Phase: Foundation → Collaboration
+Core infrastructure (Docker, Central AI, Web UI) is operational. Now establishing shared protocols and enabling multi-role collaboration.
 
 ## Roadmap
 1. ✅ Multi-project workspace with Web UI
@@ -31,3 +31,6 @@ Building core infrastructure — Docker containers, Central AI, Web UI, role man
 - Docker containers per role — isolation, resource limits, persistence
 - tmux inside container — process survives browser disconnect
 - Central AI as hub — all operations through natural language
+- Hub-and-spoke coordination (lead as single coordinator) with P0 direct-channel exception
+- Inbox filename standard: `YYYYMMDDTHHMM_from_topic.md` (ISO 8601 T separator)
+- Memory lifecycle: short-term (50 lines, per-loop) + long-term (200 lines, append-only) + archive
