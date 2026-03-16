@@ -17,4 +17,4 @@
 - [x] Claude Code hooks → scope-guard.sh design + revised scopes, proposal sent to lead
 - [x] Message body schemas → recommended structures per type, proposal sent
 - [x] Memory auto-archive → 7-day trigger + 500-line compression, proposal sent
-- [ ] Research: LangGraph reducer pattern for shared state
+- [x] LangGraph reducer research → validates EvoMesh design (append-only = append reducer, single-writer = LWW, per-role = partitioned state). No changes needed.

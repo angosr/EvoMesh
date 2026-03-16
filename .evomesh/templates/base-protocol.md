@@ -51,6 +51,14 @@ Example: `20260316T2100_agent-architect_collaboration-improvements.md`
 
 For P0 security/stability issues: send directly to the relevant role's inbox AND to lead simultaneously. Do not wait for lead to relay.
 
+### Recommended Body Structure (guidance, not mandatory)
+
+- **task**: Description + Acceptance Criteria + Context
+- **proposal**: Problem + Proposed Solution + Expected Impact + Self-Attack
+- **feedback**: Target (file/line) + Issue + Suggested Fix
+- **report**: Summary + Findings + Recommendations
+- **ack**: Brief acknowledgment, no structure needed
+
 ---
 
 ## 2. Memory Lifecycle
@@ -77,7 +85,8 @@ Append-only. Contains:
 ### Archive Trigger
 
 - When short-term > 50 lines → summarize key items to long-term, then clear
-- When long-term > 200 lines → move oldest entries to `memory/archive.md`
+- When long-term > 200 lines → move entries older than 7 days to `memory/archive.md`
+- When archive.md > 500 lines → summarize oldest 50% into a `## Summary` section at top
 
 ### Required Per Loop (ENFORCED)
 
