@@ -159,12 +159,10 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const authPath = terminalPath;
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
-  // Transparent touch layer for mobile scrolling (touch events don't bubble from iframe)
-  const touchLayer = document.createElement('div'); touchLayer.className = 'touch-scroll-layer';
   // Reconnect overlay (for mobile — no keyboard Enter)
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
   overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${esc(key)}')">Reconnect</button>`;
-  panel.appendChild(iframe); panel.appendChild(touchLayer); panel.appendChild(overlay);
+  panel.appendChild(iframe); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   // Auto-detect disconnection
   let rTimer = setInterval(() => {
@@ -733,62 +731,6 @@ const origInitResize = initResize;
 
 
 
-// ==================== Terminal scroll (wheel + touch → API) ====================
-(function() {
-  const panels = document.getElementById('panels');
-  if (!panels) return;
-  let lastScroll = 0;
-  const THROTTLE = 50;
-
-  function doScroll(direction, lines) {
-    const now = Date.now();
-    if (now - lastScroll < THROTTLE) return;
-    lastScroll = now;
-    const key = state.activePanel;
-    if (!key || key === 'dashboard' || key === 'settings') return;
-    const parts = key.split('/');
-    if (parts.length !== 2) return;
-    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction, lines }),
-    }).catch(() => {});
-  }
-
-  // Desktop: scroll wheel
-  panels.addEventListener('wheel', e => {
-    if (state.activePanel === 'dashboard' || state.activePanel === 'settings') return;
-    if (!state.openPanels[state.activePanel]) return;
-    e.preventDefault();
-    doScroll(e.deltaY > 0 ? 'down' : 'up', 3);
-  }, { passive: false });
-
-  // Mobile: touch scroll via transparent layer on top of iframe
-  // Swipe = scroll, tap = pass through to iframe (hide layer briefly)
-  let touchStartY = 0, touchMoved = false;
-  document.addEventListener('touchstart', e => {
-    if (!e.target.classList?.contains('touch-scroll-layer')) return;
-    touchStartY = e.touches[0].clientY;
-    touchMoved = false;
-  }, { passive: true });
-  document.addEventListener('touchmove', e => {
-    if (!e.target.classList?.contains('touch-scroll-layer')) return;
-    const dy = e.touches[0].clientY - touchStartY; // positive = finger moves down = scroll up (see older content)
-    if (Math.abs(dy) > 10) {
-      touchMoved = true;
-      const lines = Math.min(Math.ceil(Math.abs(dy) / 8), 15);
-      doScroll(dy > 0 ? 'up' : 'down', lines); // finger down = scroll up (natural scrolling)
-      touchStartY = e.touches[0].clientY;
-    }
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    if (!e.target.classList?.contains('touch-scroll-layer')) return;
-    // If it was a tap (no movement), hide layer to let next tap reach iframe
-    if (!touchMoved) {
-      e.target.style.display = 'none';
-      setTimeout(() => { e.target.style.display = ''; }, 3000);
-    }
-  });
-})();
 
 // ==================== Init ====================
 (async () => {
