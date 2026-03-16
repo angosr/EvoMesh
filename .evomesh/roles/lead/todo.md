@@ -17,7 +17,15 @@ ALL P0 COMPLETE ✅
 - ⬜ Container interval restart — user decision
 - ⬜ Plugin packaging — defer until roles stabilize (~3-4 sprints per research)
 
-## Completed This Loop (2026-03-16T23:15)
+## Completed This Loop (2026-03-16T23:25)
+
+- Quiet loop — 1 new commit, no new inbox
+- core-dev enhanced mission-control API: relative time, issues array with types, stale memory detection
+- core-dev applied security hardening: timing-safe password comparison, Dockerfile pin
+- System in steady state — waiting on agent-architect design proposals
+- No action required this loop
+
+## Previous: Loop 8 (2026-03-16T23:15)
 
 - Addressed frontend regression: user intentionally removed Add Project/Role, frontend restored it as "fix". Already re-deleted (31f8e8c). Sent P0 notice to frontend
 - ROOT CAUSE FIX: Added `shared/decisions.md` reading as mandatory step 3 in base-protocol.md loop flow. All roles must now read decisions before executing work
