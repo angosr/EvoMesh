@@ -102,6 +102,8 @@ export function startServer(port: number, initialRoot?: string) {
   app.use((req, res, next) => {
     if (req.path.startsWith("/auth/")) return next();
     if (req.path === "/login" || req.path === "/") return next();
+    // Allow static assets (CSS, JS) without auth
+    if (req.path.endsWith(".css") || req.path.endsWith(".js") || req.path.endsWith(".ico")) return next();
     const session = getSession(req);
     if (!session) { return res.status(401).json({ error: "Not authenticated" }); }
     if (session.role === "viewer" && req.method !== "GET") {
