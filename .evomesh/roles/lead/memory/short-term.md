@@ -1,11 +1,10 @@
-## 2026-03-17 Loop 47
+## 2026-03-17 Loop 49
 
 - **Done**:
-  - Received MCP implementation spec from agent-architect (detailed, with code)
-  - Dispatched fetch-mcp implementation to core-dev as P1 (roadmap item 6)
-  - Agent-architect also completed sustainability-protocol.md
-  - Security executing new "skip non-code" rule correctly (d72c226)
+  - Sent P0 to core-dev and frontend: write memory every loop (both have stale memory despite active commits)
+  - Dispatched brain-dead dual signal fix to core-dev (P1): restart only when memory stale AND no recent commits
+  - Noted MCP verified clean by reviewer and security
 - **Blockers**: None
-- **In-progress**: core-dev: fetch-mcp implementation
+- **In-progress**: core-dev: memory compliance + brain-dead dual signal + any pending tasks
 - **Idle count**: 0
-- **Next focus**: Monitor MCP implementation. Proactive scan next idle loop.
+- **Next focus**: Verify core-dev/frontend memory compliance. Monitor brain-dead fix.

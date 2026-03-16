@@ -2,6 +2,7 @@ import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { execFileSync } from "node:child_process";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
@@ -285,10 +286,24 @@ export function startServer(port: number, initialRoot?: string) {
       }
       lastGoodProjects = { ...projectEntries };
 
-      // Central AI status
+      // Central AI status + brain-dead detection
       const centralName = `evomesh-${process.env.USER || "user"}-central`;
       const centralRunning = getContainerState(centralName) === "running";
       const centralPort = centralRunning ? getContainerPort(centralName) : null;
+
+      if (centralRunning) {
+        try {
+          const centralStatusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
+          const stat = fs.statSync(centralStatusPath);
+          const ageMs = Date.now() - stat.mtimeMs;
+          if (ageMs > 30 * 60 * 1000) {
+            console.log(`[brain-dead] central AI status stale ${Math.round(ageMs / 60000)}min, force-restarting`);
+            try { execFileSync("docker", ["rm", "-f", centralName], { stdio: "ignore" }); } catch {}
+            ctx.ttydProcesses.delete("central/ai");
+            // ensureCentralAI in routes-admin will recreate on next status check
+          }
+        } catch {} // file doesn't exist yet — skip
+      }
 
       const registry = {
         timestamp: new Date().toISOString(),
