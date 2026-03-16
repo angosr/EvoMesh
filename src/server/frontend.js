@@ -639,41 +639,9 @@ function selectCompletion(p) { addInput.value = p; acBox.classList.remove('show'
 
 // ==================== Chat / Feed ====================
 let lastRoleStates = {}, serverConnected = true;
-function addFeedMessage(html, cls='status') { const feed = document.getElementById('chat-feed'), div = document.createElement('div'); div.className = `feed-msg ${cls}`; div.innerHTML = html; feed.appendChild(div); feed.scrollTop = feed.scrollHeight; while (feed.children.length > 100) feed.removeChild(feed.firstChild); }
-function renderChatProjectSelect() { const sel = document.getElementById('chat-project-select'); sel.innerHTML = state.projects.map(p => `<option value="${p.slug}" ${p.slug===state.chatProject?'selected':''}>${esc(p.name)}</option>`).join(''); }
-function chatProjectChanged() { state.chatProject = document.getElementById('chat-project-select').value; }
-function startSSEFeed() {
-  const es = new EventSource(`${API}/feed?token=${encodeURIComponent(AUTH_TOKEN)}`);
-  es.onmessage = e => {
-    try {
-      const d = JSON.parse(e.data);
-      if (d.type === 'status') {
-        const ts = new Date(d.ts).toLocaleTimeString();
-        const changes = [];
-        for (const entry of d.entries) {
-          const key = `${entry.slug}/${entry.role}`;
-          const prev = lastRoleStates[key];
-          const curr = `${entry.running}|${entry.status}`;
-          if (prev !== curr) {
-            lastRoleStates[key] = curr;
-            if (prev !== undefined) {
-              const dot = `<span class="feed-dot ${entry.running?'running':'stopped'}"></span>`;
-              const nc = entry.type === 'lead' ? 'role-name lead' : 'role-name';
-              changes.push(`<span class="proj-label">${esc(entry.project)}</span> ${dot}<span class="${nc}">${entry.role}</span> <span class="role-status">${entry.status}</span>`);
-            }
-          }
-        }
-        if (changes.length > 0) {
-          addFeedMessage(`<span class="ts">${ts}</span>${changes.join('<br>')}`, 'status');
-        }
-      }
-    } catch {}
-  };
-  es.onerror = () => { es.close(); setTimeout(startSSEFeed, 5000); };
-}
-async function sendChat() { const input = document.getElementById('chat-input'), text = input.value.trim(); if (!text||!state.chatProject) return; document.getElementById('chat-send').disabled = true; try { const r = await authFetch(`${API}/projects/${state.chatProject}/chat`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d = await r.json(); if (d.ok) { addFeedMessage(`<span class="label">You</span> ${esc(text)}`, 'user'); addFeedMessage(`Delivered to <strong>${esc(d.delivered_to)}</strong>`, 'system'); input.value = ''; } else addFeedMessage(`Error: ${esc(d.error)}`, 'system'); } catch { addFeedMessage('Failed', 'system'); } document.getElementById('chat-send').disabled = false; input.focus(); }
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); } });
+function addFeedMessage(html, cls='status') { console.log(`[${cls}] ${html.replace(/<[^>]*>/g,'')}`); }
+function renderChatProjectSelect() { /* removed — admin terminal replaces chat */ }
+function startSSEFeed() { /* removed — admin terminal replaces status feed */ }
 
 // ==================== Metrics ====================
 async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
@@ -875,9 +843,27 @@ async function showCopyDialog() {
   } catch {}
 }
 
+// ==================== Admin AI Terminal ====================
+async function initAdminTerminal() {
+  const iframe = document.getElementById('admin-terminal');
+  if (!iframe) return;
+  try {
+    let status = await (await authFetch(`${API}/admin/status`)).json();
+    if (!status.running) {
+      iframe.srcdoc = '<div style="color:#888;font-size:12px;padding:20px;font-family:monospace">Starting AI Control Center...</div>';
+      const res = await authFetch(`${API}/admin/start`, { method: 'POST' });
+      const data = await res.json();
+      if (!data.ok) { iframe.srcdoc = `<div style="color:#ef4444;padding:20px;font-family:monospace">Failed: ${data.error}</div>`; return; }
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    iframe.src = '/terminal/admin/admin/';
+  } catch (e) {
+    iframe.srcdoc = `<div style="color:#ef4444;padding:20px;font-family:monospace">Error: ${e}</div>`;
+  }
+}
+
 // ==================== Init ====================
 (async () => {
-  // Validate auth before starting the app
   if (!AUTH_TOKEN) { location.href = '/login'; return; }
   try {
     const r = await fetch('/auth/validate', { headers: { 'Authorization': 'Bearer ' + AUTH_TOKEN } });
@@ -887,6 +873,7 @@ async function showCopyDialog() {
   } catch { location.href = '/login'; return; }
   restoreLayout();
   fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();
+  initAdminTerminal();
 })();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });
 window.addEventListener('beforeunload', saveLayout);

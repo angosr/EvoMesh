@@ -145,11 +145,9 @@
 <!-- Right Panel: Mission Control -->
 <div id="chat-sidebar">
   <h2><span class="pulse"></span> Mission Control</h2>
-  <div id="chat-feed"></div>
-  <div id="chat-input-area">
-    <select id="chat-project-select" onchange="chatProjectChanged()" style="flex-shrink:0;width:auto;max-width:100px;"></select>
-    <textarea id="chat-input" rows="1" placeholder="Message to Lead..."></textarea>
-    <button id="chat-send" onclick="sendChat()">Send</button>
+  <iframe id="admin-terminal" style="width:100%;flex:1;border:none;background:#000"></iframe>
+  <div style="padding:4px 8px;border-top:1px solid #222;font-size:9px;color:#555;text-align:center">
+    AI can manage all projects, roles, and configs
   </div>
 </div>
 

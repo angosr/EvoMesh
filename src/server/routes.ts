@@ -13,11 +13,20 @@ import { exists } from "../utils/fs.js";
 import {
   startRole, stopRole, restartRole, isRoleRunning,
   getRoleLogs, sendInput, switchAccount as switchContainerAccount,
+  getContainerState, getContainerPort,
 } from "../process/container.js";
 import { ensureTtydRunning } from "./terminal.js";
+import {
+  hasMinProjectRole, setProjectOwner, grantAccess, revokeAccess,
+  listMembers, removeProject, getAccessibleProjects, loadAcl, saveAcl,
+} from "./acl.js";
+import type { ProjectRole } from "./acl.js";
+import type { SessionInfo } from "./auth.js";
+import { listUsers } from "./auth.js";
 import type { ServerContext } from "./index.js";
 
 const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
+const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
@@ -25,14 +34,58 @@ function formatBytes(bytes: number): string {
   return (bytes / (1024 ** 3)).toFixed(1) + " GB";
 }
 
+/**
+ * Check if the request has a session with at least the given project role.
+ * Returns true if authorized, sends 403 and returns false otherwise.
+ */
+function requireProjectRole(req: any, res: any, projectPath: string, minRole: ProjectRole): boolean {
+  const session = req._session as SessionInfo | undefined;
+  if (!session) { res.status(401).json({ error: "Not authenticated" }); return false; }
+  if (hasMinProjectRole(session.username, session.role, projectPath, minRole)) return true;
+  res.status(403).json({ error: "Insufficient project permissions" });
+  return false;
+}
+
+/**
+ * Ensure ACL has entries for all known projects. On first run, assigns
+ * existing projects to the first admin user.
+ */
+function ensureAclMigration(ctx: ServerContext): void {
+  const acl = loadAcl();
+  const projects = ctx.getProjects();
+  let changed = false;
+  for (const p of projects) {
+    const key = path.resolve(p.root);
+    if (!acl.projects[key]) {
+      // Find first admin user as default owner
+      const users = listUsers();
+      const admin = users.find(u => u.role === "admin");
+      acl.projects[key] = { owner: admin?.username || "admin", members: [] };
+      changed = true;
+    }
+  }
+  if (changed) saveAcl(acl);
+}
+
 export function registerRoutes(app: import("express").Express, ctx: ServerContext): void {
+
+  // Run ACL migration on startup
+  ensureAclMigration(ctx);
 
   // --- Projects ---
 
-  app.get("/api/projects", (_req, res) => {
+  app.get("/api/projects", (req, res) => {
     try {
+      const session = (req as any)._session as SessionInfo | undefined;
       const projects = ctx.getProjects();
-      const result = projects.map(p => {
+      // Admin sees all; others see only accessible projects
+      const accessible = session?.role === "admin"
+        ? projects
+        : projects.filter(p => {
+            if (!session) return false;
+            return hasMinProjectRole(session.username, session.role, p.root, "viewer");
+          });
+      const result = accessible.map(p => {
         let hasConfig = false, roleCount = 0;
         try { const c = loadConfig(p.root); hasConfig = true; roleCount = Object.keys(c.roles).length; } catch {}
         return { slug: p.slug, name: p.name, path: p.root, hasConfig, roleCount };
@@ -42,6 +95,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   });
 
   app.post("/api/projects/add", async (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
+    // admin or user can create projects
     try {
       const { url, path: localPath, lang: reqLang } = req.body;
       const lang = (reqLang === "en" ? "en" : "zh") as "zh" | "en";
@@ -60,6 +116,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
       const config = smartInit(projectRoot, projectName, lang);
       addProject(projectName, projectRoot, lang);
+      setProjectOwner(projectRoot, session.username);
       const slug = slugify(projectName);
 
       // Write init task for lead and start it
@@ -86,6 +143,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.delete("/api/projects/:slug", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     // Stop all containers for this project
     try {
       const config = loadConfig(project.root);
@@ -94,6 +152,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
       }
     } catch {}
+    removeProject(project.root);
     const ws = loadWorkspace();
     ws.projects = ws.projects.filter(p => path.resolve(p.path) !== project.root);
     saveWorkspace(ws);
@@ -105,6 +164,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.get("/api/projects/:slug/status", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "viewer")) return;
     try {
       const config = loadConfig(project.root);
       const roles = Object.entries(config.roles).map(([name, rc]) => {
@@ -128,6 +188,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles/:name/start", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
       const config = loadConfig(project.root);
@@ -147,6 +208,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles/:name/stop", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     stopRole(project.root, req.params.name);
     ctx.ttydProcesses.delete(`${project.slug}/${req.params.name}`);
     res.json({ ok: true });
@@ -155,6 +217,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles/:name/restart", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
       const config = loadConfig(project.root);
@@ -182,6 +245,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.get("/api/projects/:slug/roles/:name/log", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "viewer")) return;
     const logs = getRoleLogs(project.root, req.params.name);
     res.type("text").send(logs);
   });
@@ -195,6 +259,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { name, template, account } = req.body;
     if (!name || !ROLE_NAME_RE.test(name)) { res.status(400).json({ error: "Invalid role name" }); return; }
     if (!template || !TEMPLATES[template]) { res.status(400).json({ error: `Invalid template` }); return; }
@@ -209,6 +274,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.delete("/api/projects/:slug/roles/:name", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
       const config = loadConfig(project.root);
@@ -225,6 +291,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles/:name/config", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
       const config = loadConfig(project.root);
@@ -257,6 +324,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/roles/:name/account", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
       const { accountName, accountPath: rawPath } = req.body;
@@ -288,6 +356,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.post("/api/projects/:slug/chat", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "member")) return;
     const { message } = req.body;
     if (!message || typeof message !== "string" || !message.trim()) { res.status(400).json({ error: "Empty" }); return; }
     try {
@@ -311,6 +380,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.get("/api/projects/:slug/chat/history", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project) { res.json({ messages: [] }); return; }
+    if (!requireProjectRole(req, res, project.root, "viewer")) return;
     try {
       const config = loadConfig(project.root);
       const leadName = Object.entries(config.roles).find(([, rc]) => rc.type === "lead")?.[0];
@@ -428,6 +498,39 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch { res.json({ suggestions: [] }); }
   });
 
+  // --- Project members ---
+
+  app.get("/api/projects/:slug/members", (req, res) => {
+    const project = ctx.getProject(req.params.slug);
+    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "viewer")) return;
+    const members = listMembers(project.root);
+    res.json(members || { owner: "", members: [] });
+  });
+
+  app.post("/api/projects/:slug/members", (req, res) => {
+    const project = ctx.getProject(req.params.slug);
+    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
+    const { username, role } = req.body;
+    if (!username || !USERNAME_RE.test(username)) { res.status(400).json({ error: "Invalid username" }); return; }
+    if (role !== "member" && role !== "viewer") { res.status(400).json({ error: "Role must be 'member' or 'viewer'" }); return; }
+    try {
+      grantAccess(project.root, username, role);
+      res.json({ ok: true, username, role });
+    } catch (e: any) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.delete("/api/projects/:slug/members/:username", (req, res) => {
+    const project = ctx.getProject(req.params.slug);
+    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
+    try {
+      revokeAccess(project.root, req.params.username);
+      res.json({ ok: true });
+    } catch (e: any) { res.status(400).json({ error: e.message }); }
+  });
+
   // --- Backward compat ---
 
   app.get("/api/status", (_req, res) => {
@@ -436,10 +539,65 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });
 
+  // --- Admin AI terminal ---
+  app.get("/api/admin/status", (_req, res) => {
+    try {
+      const state = getContainerState("evomesh-admin");
+      const port = state === "running" ? getContainerPort("evomesh-admin") : null;
+      res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/admin/" : null });
+    } catch { res.json({ running: false, port: null, terminal: null }); }
+  });
+
+  app.post("/api/admin/start", (_req, res) => {
+    try {
+      const homeDir = os.homedir();
+      const adminPort = ctx.port + 100; // Use high offset to avoid collision
+      // Remove old container
+      try { execFileSync("docker", ["rm", "-f", "evomesh-admin"], { stdio: ["pipe","pipe","ignore"] }); } catch {}
+
+      // Start admin container with access to ALL projects + evomesh source
+      const args = [
+        "run", "-d",
+        "--name", "evomesh-admin",
+        "-p", `127.0.0.1:${adminPort}:7681`,
+        // Mount all of user's work directory
+        "-v", `${homeDir}/work:${homeDir}/work:rw`,
+        // Mount evomesh config
+        "-v", `${homeDir}/.evomesh:${homeDir}/.evomesh:rw`,
+        // Claude config
+        "-v", `${homeDir}/.claude:${homeDir}/.claude:rw`,
+        "-v", `${homeDir}/.claude.json:${homeDir}/.claude.json:rw`,
+        // Git + SSH
+        "-v", `${homeDir}/.gitconfig:${homeDir}/.gitconfig:ro`,
+        "-v", `${homeDir}/.ssh:${homeDir}/.ssh:ro`,
+        // Docker socket for managing other containers
+        "-v", "/var/run/docker.sock:/var/run/docker.sock:rw",
+        // User identity
+        "-e", `HOST_UID=${process.getuid?.() || 1000}`,
+        "-e", `HOST_GID=${process.getgid?.() || 1000}`,
+        "-e", `HOST_USER=${process.env.USER || "user"}`,
+        "-e", `HOST_HOME=${homeDir}`,
+        "-e", `HOME=${homeDir}`,
+        "-e", `CLAUDE_CONFIG_DIR=${homeDir}/.claude`,
+        "-e", "ROLE_NAME=admin",
+        "-w", `${homeDir}/work/EvoMesh`,
+        "--log-opt", "max-size=10m",
+        "evomesh-role",
+      ];
+      execFileSync("docker", args, { stdio: "inherit" });
+
+      // Register in ttyd processes
+      ctx.ttydProcesses.set("admin/admin", { port: adminPort, roleName: "admin", projectSlug: "admin" });
+
+      res.json({ ok: true, port: adminPort, terminal: "/terminal/admin/" });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // --- Scroll: tmux copy-mode scroll via docker exec ---
   app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
     const project = ctx.getProject(req.params.slug);
     if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
     if (!["up", "down", "esc"].includes(direction)) { res.status(400).send("Bad direction"); return; }
     const slug = path.basename(project.root).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
