@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 29
+## 2026-03-17 Loop 30
 
-- **Done**: Reviewed MCP server support (container.ts, schema.ts). Config from project.yaml only, no new API. Executes inside container. Clean.
+- **Done**: 5 commits, no src/docker changes, empty inbox. Skipped per trigger.
 - **Next focus**: Monitoring mode.
