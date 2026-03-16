@@ -229,6 +229,20 @@ export function startServer(port: number, initialRoot?: string) {
     res.type("js").sendFile(path.resolve(p));
   });
 
+  app.get("/app-panels.js", (_req, res) => {
+    const p = resolveAsset("frontend-panels.js");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.set("Cache-Control", "no-store");
+    res.type("js").sendFile(path.resolve(p));
+  });
+
+  app.get("/app-settings.js", (_req, res) => {
+    const p = resolveAsset("frontend-settings.js");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.set("Cache-Control", "no-store");
+    res.type("js").sendFile(path.resolve(p));
+  });
+
   app.get("/", (_req, res) => {
     const p = resolveAsset("frontend.html");
     if (!p) { res.send("Frontend not found."); return; }
