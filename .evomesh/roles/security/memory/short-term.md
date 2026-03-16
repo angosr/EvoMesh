@@ -1,15 +1,12 @@
-## 2026-03-16 Loop 5
+## 2026-03-16 Loop 6
 
 - **Done**:
-  - Reviewed 8 new commits since loop 4
-  - Scanned diffs: routes.ts, frontend-panels.js, frontend-settings.js, frontend.js, frontend.html, frontend.css
-  - Copy dialog improved: switched from innerHTML to textContent (safer)
-  - Fixed `confirm` variable shadowing window.confirm (good)
-  - Mission control API: field renaming only, no security impact
-  - No new endpoints, no auth changes, no Docker changes
+  - Scanned 6 new commits: theme toggle, swipe-to-close, mobile scroll, reviewer clean pass
+  - All frontend-only changes (no server/Docker modifications)
+  - Grep for innerHTML/eval/document.write: clean
+  - Theme toggle: uses dataset.theme + localStorage (safe)
+  - Swipe handlers: pure touch event logic (safe)
+  - No new findings
 - **Blockers**: Cannot git pull (persistent unstaged changes)
 - **In-progress**: None
-- **Next focus**:
-  - All issues resolved except 4 P2 hardening items
-  - Monitoring mode — scan diffs each loop
-  - Consider consolidated hardening proposal if lead requests it
+- **Next focus**: Monitoring mode continues. 4 P2 hardening items remain.
