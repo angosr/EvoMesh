@@ -543,7 +543,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   });
 
   // --- Admin AI terminal ---
-  app.get("/api/admin/status", (_req, res) => {
+  app.get("/api/admin/status", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     try {
       const state = getContainerState("evomesh-admin");
       const port = state === "running" ? getContainerPort("evomesh-admin") : null;
@@ -551,7 +553,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch { res.json({ running: false, port: null, terminal: null }); }
   });
 
-  app.post("/api/admin/start", (_req, res) => {
+  app.post("/api/admin/start", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     try {
       const homeDir = os.homedir();
       const adminPort = ctx.port + 100; // Use high offset to avoid collision
