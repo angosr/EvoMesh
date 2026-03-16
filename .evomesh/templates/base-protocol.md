@@ -12,19 +12,17 @@ Every inbox message is a Markdown file with YAML frontmatter:
 
 ```yaml
 ---
+# Required (always include)
 from: role-name
 to: role-name          # or "all" for broadcast
 priority: P0|P1|P2
 type: task|proposal|feedback|report|ack
 date: YYYY-MM-DDTHH:MM
-thread-id: optional     # links related messages (use first message filename as thread-id)
-ref: optional-filename  # references another message
+# Optional (include when relevant)
+thread-id: ...         # links related messages (use first message filename)
+ref: ...               # references another message
 status: pending|accepted|rejected|done
 ---
-
-# Title
-
-## Content
 ```
 
 ### Filename Convention
@@ -189,3 +187,31 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 - No `rm -rf`, `git push --force`, `git reset --hard`
 - No file > 500 lines — split if exceeded
 - Read existing code before modifying
+
+---
+
+## 8. Prompt Hygiene
+
+- Every line in ROLE.md must produce **observable behavior change**. If not, delete it.
+- Roles self-audit their ROLE.md every 10 loops: remove dead rules, merge duplicates, trim unused conditions.
+- base-protocol.md target: <250 lines. Brevity = compliance.
+
+---
+
+## 9. Self-Evolution Protocol
+
+Each role tracks performance and evolves its own prompt:
+
+1. **Measure**: Append one line to `metrics.log` per loop (CSV, `.gitignore`'d):
+   `timestamp,loop_duration_s,tasks_completed,errors,inbox_processed`
+2. **Reflect**: Every 10 loops, review own ROLE.md against metrics. Ask: "What rules helped? What rules were ignored or counterproductive?"
+3. **Propose**: Send ROLE.md change proposal to lead inbox with evidence from metrics.
+4. **Apply**: Lead approves/rejects. Approved changes logged in `evolution.log`.
+
+---
+
+## 10. Shared Document Conventions
+
+- `shared/decisions.md`: **append-only**. New entries added at bottom with date header. Never edit or delete existing entries.
+- `shared/blockers.md`: any role can write their own section, only clear own blockers.
+- Append-only format prevents git merge conflicts on concurrent writes.

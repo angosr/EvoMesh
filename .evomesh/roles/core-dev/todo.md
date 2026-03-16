@@ -6,9 +6,9 @@
 
 ## P1
 
-(All clear)
+- Migrate smartInit() to file-based templates — BLOCKED on agent-architect drafting `~/.evomesh/templates/project-scaffold/` and `~/.evomesh/templates/roles/`. Start when templates available.
 
 ## P2
 
-- Templates (deprecated but still active Web UI fallback — remove when Central AI role creation is stable)
+- Templates (deprecated code templates — remove when Central AI role creation is stable)
 - Extract mission-control into routes-mission.ts if routes.ts grows further

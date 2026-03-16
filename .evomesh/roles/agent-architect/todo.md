@@ -8,21 +8,19 @@
 5. ✅ Assessment report: devlog/20260316_assessment-current-state.md
 6. ✅ 3 proposals sent and approved by lead
 
-## P0 — Active
-
+## P0 — Complete ✅
 - [x] Design project creation flow for Central AI → devlog written, proposal sent to lead
 - [x] Research multi-agent frameworks + optimize base-protocol (devlog written, v2 proposal sent to lead)
-- [ ] Implement base-protocol.md v2 changes (awaiting lead approval: sections 8-10)
+- [x] Implement base-protocol.md v2 changes — sections 8-10 added, .gitignore updated
 
 ## P1
 
 - [x] Heartbeat/liveness detection proposal → accepted as Phase 2 (after registry.json)
 - [x] Memory storage strategy research → hybrid B+D recommended, sent to lead
+- [x] Prompt hygiene rule — added as section 8 in base-protocol v2
+- [x] Self-evolution protocol + metrics.log spec — added as section 9 in base-protocol v2
 - [ ] Review registry closed-loop design for gaps (lead request)
-- [ ] Prompt hygiene rule — fold into base-protocol v2 (user request)
 - [ ] Append-only shared docs format spec (lead/research request)
-- [ ] Self-evolution protocol detailed design (EvoMAC-inspired)
-- [ ] metrics.log format spec (lead/research request)
 - [ ] Task acceptance criteria format for todo.md (lead/research P1)
 
 ## P2

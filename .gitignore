@@ -5,9 +5,11 @@ dist/
 # EvoMesh runtime (temp files, logs, PIDs)
 .evomesh/runtime/
 
-# Per-role temp files (session IDs, short-term memory is transient)
+# Per-role temp files (session IDs, short-term memory, runtime state)
 .evomesh/roles/*/.session-id
 .evomesh/roles/*/memory/short-term.md
+.evomesh/roles/*/metrics.log
+.evomesh/roles/*/heartbeat.json
 
 # Claude Code project-local settings
 .claude/
