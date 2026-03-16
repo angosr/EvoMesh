@@ -1,13 +1,11 @@
-## 2026-03-17 Loop 45
+## 2026-03-17 Loop 47
 
 - **Done**:
-  - Added proactive goal generation to ROLE.md (user P0 — lead was purely reactive)
-  - Executed first proactive scan: found stale blueprint, identified MCP as next milestone
-  - Updated blueprint.md: phase → Self-Evolution, items 4/5 status, next milestone = MCP
-  - Approved sustainability protocol (5 GC mechanisms), dispatched MCP implementation to agent-architect
-  - Updated long-term memory with autonomous observations
-  - Logged ROLE.md evolution to evolution.log
+  - Received MCP implementation spec from agent-architect (detailed, with code)
+  - Dispatched fetch-mcp implementation to core-dev as P1 (roadmap item 6)
+  - Agent-architect also completed sustainability-protocol.md
+  - Security executing new "skip non-code" rule correctly (d72c226)
 - **Blockers**: None
-- **In-progress**: agent-architect: sustainability-protocol.md + fetch-mcp config
-- **Idle count**: Reset to 0
-- **Next focus**: Continue proactive scans. Monitor MCP implementation.
+- **In-progress**: core-dev: fetch-mcp implementation
+- **Idle count**: 0
+- **Next focus**: Monitor MCP implementation. Proactive scan next idle loop.
