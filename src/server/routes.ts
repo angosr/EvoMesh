@@ -17,7 +17,7 @@ import {
 } from "../process/container.js";
 import { ensureTtydRunning } from "./terminal.js";
 import {
-  hasMinProjectRole, setProjectOwner, grantAccess, revokeAccess,
+  hasMinProjectRole, getProjectRole, setProjectOwner, grantAccess, revokeAccess,
   listMembers, removeProject, getAccessibleProjects, loadAcl, saveAcl,
 } from "./acl.js";
 import type { ProjectRole } from "./acl.js";
@@ -94,7 +94,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const result = accessible.map(p => {
         let hasConfig = false, roleCount = 0;
         try { const c = loadConfig(p.root); hasConfig = true; roleCount = Object.keys(c.roles).length; } catch {}
-        return { slug: p.slug, name: p.name, path: p.root, hasConfig, roleCount };
+        const myRole = session ? getProjectRole(session.username, session.role, p.root) : null;
+        return { slug: p.slug, name: p.name, path: p.root, hasConfig, roleCount, myRole };
       });
       res.json({ projects: result });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -185,7 +186,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           memory: rc.memory || null, cpus: rc.cpus || null,
         };
       });
-      res.json({ project: project.name, slug: project.slug, roles, accounts: config.accounts });
+      const session = (req as any)._session as SessionInfo | undefined;
+      const myRole = session ? getProjectRole(session.username, session.role, project.root) : null;
+      res.json({ project: project.name, slug: project.slug, roles, accounts: config.accounts, myRole });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
