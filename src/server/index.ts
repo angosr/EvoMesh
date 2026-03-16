@@ -6,7 +6,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState } from "../process/container.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
@@ -256,7 +256,7 @@ export function startServer(port: number, initialRoot?: string) {
   function writeRegistry() {
     try {
       const projects = ctx.getProjects();
-      const registry: Record<string, any> = { updated: new Date().toISOString(), projects: {} };
+      const projectEntries: Record<string, any> = {};
       for (const p of projects) {
         try {
           const config = loadConfig(p.root);
@@ -265,13 +265,25 @@ export function startServer(port: number, initialRoot?: string) {
             const running = isRoleRunning(p.root, name);
             const cname = `evomesh-${p.slug}-${name}`;
             roles[name] = {
+              configured: true,
               running,
               port: running ? getContainerPort(cname) : null,
             };
           }
-          registry.projects[p.name] = { path: p.root, slug: p.slug, roles };
+          projectEntries[p.slug] = { path: p.root, roles };
         } catch {}
       }
+      // Central AI status
+      const centralName = `evomesh-${process.env.USER || "user"}-central`;
+      const centralRunning = getContainerState(centralName) === "running";
+      const centralPort = centralRunning ? getContainerPort(centralName) : null;
+
+      const registry = {
+        timestamp: new Date().toISOString(),
+        server: { port },
+        projects: projectEntries,
+        central: { running: centralRunning, port: centralPort },
+      };
       const registryPath = path.join(os.homedir(), ".evomesh", "registry.json");
       const tmpPath = registryPath + ".tmp";
       fs.writeFileSync(tmpPath, JSON.stringify(registry, null, 2), "utf-8");
