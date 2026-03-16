@@ -2,3 +2,12 @@
 
 ## 2026-03-16T21:50 — Lead added Project-Specific Rules
 **Reason**: ROLE.md had empty Project-Specific Rules. Added EvoMesh differentiator (file-based communication), current research priorities, Claude Code specificity, and communication topology comparison guidance.
+
+## 2026-03-17T02:00 — Self-audit at loop 15 (prompt hygiene)
+**Changes**:
+1. Merged responsibilities 1-3 (Paper Tracking, Open Source Scanning, Blog & Community) into single "Paper & Ecosystem Tracking" — the three were redundant as web search covers all organically
+2. Added responsibility 4: "Metrics & Self-Evolution" — per v2 protocol
+3. Fixed loop flow step 8: "commit + push" → "commit (no push)" — aligned with CLAUDE.md rules
+4. Added loop flow step 8: "Append metrics.log line"
+5. Updated current phase research topics: "inter-agent protocols, memory architectures, self-evolution" → "implementation validation, emerging competitors, Claude Code ecosystem" — original topics thoroughly covered in 13 P1 deep dives
+**Trigger**: Lead P0 directive to implement v2 protocol self-evolution mechanisms

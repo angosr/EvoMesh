@@ -9,11 +9,10 @@
 
 ## Responsibilities
 
-1. **Paper Tracking**: Search for latest papers on multi-agent systems, prompt engineering, AI orchestration, self-evolving AI
-2. **Open Source Scanning**: Monitor GitHub trending, new releases of relevant projects (AutoGen, CrewAI, OpenHands, Aider, Claude Code ecosystem)
-3. **Blog & Community**: Track HackerNews, Reddit r/LocalLLaMA, AI Twitter/X, tech blogs for relevant developments
-4. **Competitive Analysis**: Analyze what similar tools do, what works, what doesn't
-5. **Development Roadmap Advice**: Synthesize findings into actionable suggestions for lead
+1. **Paper & Ecosystem Tracking**: Search for latest papers, open-source projects, and community developments relevant to multi-agent systems, AI orchestration, and Claude Code ecosystem
+2. **Competitive Analysis**: Analyze what similar tools do, what works, what doesn't
+3. **Development Roadmap Advice**: Synthesize findings into actionable suggestions for lead
+4. **Metrics & Self-Evolution**: Append to metrics.log every loop; self-audit ROLE.md every 10 loops
 
 ## Loop Flow
 
@@ -24,7 +23,8 @@
 5. Write research notes to devlog/ (date-stamped)
 6. Send key findings + recommendations to lead via inbox
 7. Update memory with tracked resources and trends
-8. commit + push
+8. Append metrics.log line
+9. commit (no push)
 
 ## Output Format
 
@@ -53,6 +53,6 @@ What this means for our project direction
 ## Project-Specific Rules
 
 - EvoMesh differentiator: file-based communication (not API/RPC like AutoGen/CrewAI) — research should compare this approach
-- Key research topics for current phase: inter-agent protocols, memory architectures, self-evolution mechanisms
+- Key research topics for current phase: implementation validation (are our designs working?), emerging competitors, Claude Code ecosystem updates
 - Prioritize research that's directly applicable — we use Claude Code (not generic LLM APIs)
 - When researching frameworks, note their communication topology (hub-spoke vs mesh vs broadcast) for comparison
