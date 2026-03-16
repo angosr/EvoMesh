@@ -2,44 +2,39 @@
 
 ## P0 — Immediate
 
-ALL P0 COMPLETE ✅ (own tasks). User P0 directives dispatched to roles.
+ALL P0 COMPLETE ✅
+
+**User action needed** (cannot be done by lead role):
+- Restart all role containers from Web UI (loop intervals changed in project.yaml)
+- Start security role container from Web UI
 
 ## P1 — Active
 
-- ⬜ Monitor core-dev progress on registry.json + mission control API
-- ⬜ Monitor frontend progress on Mission Control panel UI
-- ⬜ Track remaining reviewer P0 findings (HOME mount, SSE auth) — dispatched to core-dev
-- ⬜ Create shared/decisions.md entry for "Central AI architecture" (partially done — registry closed-loop recorded)
-- ⬜ Evaluate role count: security and research still haven't started — consider if they should be merged or deprioritized
-- ⬜ Review agent-architect's closed-loop design feedback when it arrives
+- ⬜ Monitor core-dev: `/api/mission-control` API (frontend is waiting on this)
+- ⬜ Track agent-architect response on: closed-loop review, append-only pattern, Agent Cards, MCP configs
+- ⬜ Reviewer P0-2 (HOME mount) — needs architecture decision: what dirs to mount for Central AI?
+- ⬜ Evaluate role count: 6/7 roles now active or have completed loops. Security needs to start
+- ⬜ Research deep-dive results pending (A-Mem, CrewAI Flows, Claude hooks)
 
 ## P2 — Later
 
-- ⬜ Reviewer P0-3 (SSH keys in containers) — needs architectural decision (agent forwarding vs accept risk)
-- ⬜ Reviewer P2 findings — low priority, track for code cleanup pass
+- ⬜ SSH keys in containers — architectural decision needed
+- ⬜ Port allocation race condition
+- ⬜ Reviewer P2 findings (catch any, config reload, build pipeline)
+- ⬜ Concurrency risk on shared files — waiting on agent-architect append-only proposal
 
-## Completed This Loop (2026-03-16T22:10)
+## Completed This Loop (2026-03-16T22:40)
 
-- Processed 5 new inbox messages (2 from user P0, 1 user design-override, 1 agent-architect, 1 central)
-- Recorded 2 architectural decisions in shared/decisions.md:
-  1. Registry Closed-Loop (config = source of truth, registry.json = derived, Server = only writer)
-  2. Mission Control panel (Server-aggregated, replaces static Central AI status)
-- Dispatched P0 tasks:
-  - core-dev: registry.json implementation + /api/mission-control API + reviewer P0 fixes
-  - frontend: Mission Control panel UI (blocked on API)
-  - agent-architect: heartbeat accepted as Phase 2, review closed-loop design
-- Noted reviewer first review: 4 P0, 3 P1, 4 P2. Two P0s (XSS, shell injection) already fixed
-- Updated blueprint.md with registry + mission control in roadmap
-- Updated status.md with all current work items
-- Updated reviewer ROLE.md change noted (feedback goes to lead inbox only)
+- Processed 2 new inbox messages: user bootstrap-blockers (P0), research landscape survey (P1)
+- Noted 5 new commits: registry.json ✅, Mission Control panel ✅, terminal auth ✅, smoke tests, research loop
+- Routed 3 research findings to agent-architect (append-only, Agent Cards, MCP configs)
+- Identified user action items: container restarts + security role start
+- Updated status.md with major progress across all roles
+- Research validated EvoMesh's file-based approach as genuine differentiator
 
 ## Previous Loops
 
-### Loop 3 (earlier today)
-- Created base-protocol.md, fixed template path references
-
-### Loop 2
-- Added Project-Specific Rules to all 7 ROLE.md files
-
-### Loop 1
-- Approved agent-architect proposals, initial strategic doc updates
+### Loop 4 — Dispatched registry + mission control tasks, recorded 2 architectural decisions
+### Loop 3 — Created base-protocol.md, fixed template path references
+### Loop 2 — Added Project-Specific Rules to all 7 ROLE.md files
+### Loop 1 — Approved agent-architect proposals, initial strategic doc updates
