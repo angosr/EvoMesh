@@ -1,9 +1,12 @@
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
+import { loadConfig } from "../config/loader.js";
+import { isRoleRunning, getContainerPort } from "../process/container.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
@@ -249,9 +252,40 @@ export function startServer(port: number, initialRoot?: string) {
     res.type("html").sendFile(path.resolve(p));
   });
 
+  // --- Registry: write role running states to file for Central AI ---
+  function writeRegistry() {
+    try {
+      const projects = ctx.getProjects();
+      const registry: Record<string, any> = { updated: new Date().toISOString(), projects: {} };
+      for (const p of projects) {
+        try {
+          const config = loadConfig(p.root);
+          const roles: Record<string, any> = {};
+          for (const [name] of Object.entries(config.roles)) {
+            const running = isRoleRunning(p.root, name);
+            const cname = `evomesh-${p.slug}-${name}`;
+            roles[name] = {
+              running,
+              port: running ? getContainerPort(cname) : null,
+            };
+          }
+          registry.projects[p.name] = { path: p.root, slug: p.slug, roles };
+        } catch {}
+      }
+      const registryPath = path.join(os.homedir(), ".evomesh", "registry.json");
+      const tmpPath = registryPath + ".tmp";
+      fs.writeFileSync(tmpPath, JSON.stringify(registry, null, 2), "utf-8");
+      fs.renameSync(tmpPath, registryPath);
+    } catch (e) {
+      console.error("Failed to write registry:", e);
+    }
+  }
+
   // --- Start ---
   ensureTtydRunning(ctx);
   setInterval(() => ensureTtydRunning(ctx), 10000);
+  writeRegistry();
+  setInterval(() => writeRegistry(), 15000);
 
   const cleanup = () => {
     // Containers keep running independently — no need to stop them on server exit
