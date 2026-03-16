@@ -131,6 +131,8 @@ export function startRole(
     // Volume mounts
     "-v", `${path.resolve(root)}:/project:rw`,
     "-v", `${configDir}:/home/evomesh/.claude:rw`,
+    // Mount credentials directly from account (rw: claude refreshes tokens)
+    "-v", `${path.join(accountPath, ".credentials.json")}:/home/evomesh/.claude/.credentials.json:rw`,
   ];
 
   // Git config (optional)
