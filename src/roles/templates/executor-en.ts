@@ -132,6 +132,16 @@ Before dispatching tasks, **do not write directly**. Follow this flow:
 ### 5.3 Evolution Log (evolution.log)
 - Format: \`## Evo-{N} | {date} | Loop #{count}\` + type/change/reason
 - ≤200 lines, archive when exceeded
+
+---
+
+## VI. Project-Specific Rules
+
+> This chapter is populated by the role during self-review cycles.
+> Rules must be high-level guiding principles (e.g. "prioritize UX"), not specific implementation constraints (e.g. "must use React").
+> Good rules improve efficiency. Bad rules hinder it — if a rule makes you hesitate, remove it.
+
+(To be filled by role self-evolution, initially empty)
 `;
 }
 
@@ -145,5 +155,6 @@ export function executorLoopMdEn(): string {
 
 Role directory: .evomesh/roles/executor/
 Skills directory: .evomesh/roles/executor/skills/
+
 `;
 }

@@ -153,6 +153,16 @@ Before dispatching tasks, **do not write directly**. Follow this flow:
 - Synthesize all role review reports to assess project direction
 - Combine with research papers and competitor analysis
 - Output strategic reports to devlog/
+
+---
+
+## VII. Project-Specific Rules
+
+> This chapter is populated by the role during self-review cycles.
+> Rules must be high-level guiding principles (e.g. "prioritize UX"), not specific implementation constraints (e.g. "must use React").
+> Good rules improve efficiency. Bad rules hinder it — if a rule makes you hesitate, remove it.
+
+(To be filled by role self-evolution, initially empty)
 `;
 }
 
@@ -167,5 +177,6 @@ export function leadLoopMdEn(): string {
 
 Role directory: .evomesh/roles/lead/
 Skills directory: .evomesh/roles/lead/skills/
+
 `;
 }
