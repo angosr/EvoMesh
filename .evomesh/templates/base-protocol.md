@@ -69,18 +69,11 @@ Each role has two memory files:
 
 ### Short-Term Memory (max 50 lines)
 
-Written every loop. Contains:
-- What was done this loop
-- Active blockers
-- In-progress work state
-- Cleared/overwritten each loop
+Overwritten each loop. Current context: what was done, blockers, in-progress, next focus. See section 4 step 6 for required format.
 
 ### Long-Term Memory (max 200 lines)
 
-Append-only. Contains:
-- Learned patterns and decisions
-- Resolved issues and their solutions
-- Role-specific knowledge that persists across loops
+Append-only. Learned patterns, resolved issues, role-specific knowledge that persists across loops.
 
 ### Archive Trigger
 
@@ -121,16 +114,10 @@ Required content:
 | chore | Build, config, tooling |
 | lead | Lead loop actions (strategic docs, task dispatch) |
 
-### Scope
-
-The area affected: `server`, `docker`, `frontend`, `roles`, `templates`, etc.
-
 ### Rules
 
-- One logical change per commit
-- Description in imperative mood ("add X", not "added X")
-- Keep description under 72 characters
-- Body (optional) explains why, not what
+- Scope = area affected: `server`, `docker`, `frontend`, `roles`, `templates`, etc.
+- One logical change per commit. Imperative mood. Under 72 chars.
 
 ---
 

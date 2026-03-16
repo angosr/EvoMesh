@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
 import { errorMessage } from "../utils/error.js";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, getContainerState } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState, startRole } from "../process/container.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
@@ -303,11 +303,54 @@ export function startServer(port: number, initialRoot?: string) {
     }
   }
 
+  // --- Auto-restart crashed containers ---
+  // Track: which roles were running last scan, and when each was last restarted
+  const prevRunning = new Map<string, boolean>();
+  const lastRestart = new Map<string, number>();
+  const RESTART_COOLDOWN = 5 * 60 * 1000; // 5 min
+
+  function autoRestartCrashed() {
+    try {
+      const projects = ctx.getProjects();
+      for (const p of projects) {
+        let config;
+        try { config = loadConfig(p.root); } catch { continue; }
+        for (const [name, rc] of Object.entries(config.roles)) {
+          const key = `${p.slug}/${name}`;
+          const running = isRoleRunning(p.root, name);
+          const wasRunning = prevRunning.get(key) ?? false;
+          prevRunning.set(key, running);
+
+          if (wasRunning && !running) {
+            // Was running, now stopped — check if user-stopped or crashed
+            const entry = ctx.ttydProcesses.get(key);
+            if (entry?.userStopped) continue;
+
+            // Cooldown check
+            const lastTime = lastRestart.get(key) || 0;
+            if (Date.now() - lastTime < RESTART_COOLDOWN) continue;
+
+            console.log(`[auto-restart] ${name} crashed in ${p.name}, restarting...`);
+            try {
+              const ttydPort = port + 1 + Math.floor(Math.random() * 200);
+              startRole(p.root, name, rc, config, ttydPort);
+              ctx.ttydProcesses.set(key, { port: ttydPort, roleName: name, projectSlug: p.slug });
+              lastRestart.set(key, Date.now());
+              console.log(`[auto-restart] ${name} restarted on port ${ttydPort}`);
+            } catch (e) {
+              console.error(`[auto-restart] Failed to restart ${name}:`, e);
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
   // --- Start ---
   ensureTtydRunning(ctx);
   setInterval(() => ensureTtydRunning(ctx), 10000);
   writeRegistry();
-  setInterval(() => writeRegistry(), 15000);
+  setInterval(() => { writeRegistry(); autoRestartCrashed(); }, 15000);
 
   const cleanup = () => {
     // Containers keep running independently — no need to stop them on server exit

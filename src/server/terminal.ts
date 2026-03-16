@@ -7,6 +7,7 @@ export interface TtydProcess {
   port: number;
   roleName: string;
   projectSlug: string;
+  userStopped?: boolean;
 }
 
 export function ensureTtydRunning(ctx: ServerContext): void {

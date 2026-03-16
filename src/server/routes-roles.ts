@@ -41,7 +41,12 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     stopRole(project.root, req.params.name);
-    ctx.ttydProcesses.delete(`${project.slug}/${req.params.name}`);
+    // Mark as user-stopped so auto-restart doesn't revive it
+    const key = `${project.slug}/${req.params.name}`;
+    const entry = ctx.ttydProcesses.get(key);
+    if (entry) { entry.userStopped = true; } else {
+      ctx.ttydProcesses.set(key, { port: 0, roleName: req.params.name, projectSlug: project.slug, userStopped: true });
+    }
     res.json({ ok: true });
   });
 
