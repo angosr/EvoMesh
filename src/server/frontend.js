@@ -604,121 +604,60 @@ const origInitResize = initResize;
   handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
 });
 
+
 // ==================== Mobile touch scroll for terminals ====================
-// tmux mouse is OFF (allows text selection/copy). Scrolling is done by
-// writing tmux key sequences directly into the terminal via ttyd's WebSocket:
-//   - Enter copy-mode: Ctrl-B [  (prefix + '[')
-//   - Scroll up/down: arrow keys or Page Up/Down in copy-mode
-//   - Exit copy-mode: 'q' (sent after a scroll-idle timeout)
-//
-// We inject touch handlers into the same-origin ttyd iframe, find the
-// WebSocket, and write raw bytes. Low-latency, no HTTP roundtrip.
-function injectTouchScroll(iframe) {
-  // WebSocket hook is injected server-side into ttyd HTML (see terminal.ts)
-  // Here we only need to wait for xterm-screen and attach touch handlers
-  const POLL_INTERVAL = 500;
-  const MAX_ATTEMPTS = 20;
-  let attempts = 0;
+// Uses server API to send tmux copy-mode scroll commands.
+// Works with tmux mouse OFF (preserves desktop text selection).
+(function() {
+  const panels = document.getElementById('panels');
+  if (!panels) return;
+  let touchStartY = 0, lastY = 0, scrolling = false, lastScrollTime = 0;
+  const THRESHOLD = 15, STEP_PX = 25, THROTTLE_MS = 100;
 
-  function tryInject() {
-    attempts++;
-    try {
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+  panels.addEventListener('touchstart', e => {
+    if (state.activePanel === 'dashboard' || state.activePanel === 'settings') return;
+    if (e.touches.length !== 1) return;
+    touchStartY = e.touches[0].clientY;
+    lastY = touchStartY;
+    scrolling = false;
+  }, { passive: true });
 
-      const xtermScreen = iframeDoc.querySelector('.xterm-screen');
-      if (!xtermScreen) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+  panels.addEventListener('touchmove', e => {
+    if (!state.openPanels[state.activePanel]) return;
+    if (e.touches.length !== 1) return;
+    const now = Date.now();
+    const currentY = e.touches[0].clientY;
+    const totalDy = Math.abs(currentY - touchStartY);
 
-      if (xtermScreen.dataset.touchScrollInjected) return;
-      xtermScreen.dataset.touchScrollInjected = 'true';
-
-      function sendToTerminal(str) {
-        try {
-          const iframeWin = iframe.contentWindow;
-          const ws = iframeWin?._evomeshWs;
-          if (!ws || ws.readyState !== 1) return false;
-          const encoder = new TextEncoder();
-          const data = encoder.encode(str);
-          const msg = new Uint8Array(data.length + 1);
-          msg[0] = 0; // ttyd input type
-          msg.set(data, 1);
-          ws.send(msg);
-          return true;
-        } catch { return false; }
-      }
-
-      let startY = 0;
-      let lastY = 0;
-      let scrolling = false;
-      let inCopyMode = false;
-      let exitTimer = null;
-      const THRESHOLD = 12;
-      const STEP_PX = 20;
-
-      function enterCopyMode() {
-        if (inCopyMode) return;
-        if (sendToTerminal('\x02[')) { inCopyMode = true; }
-      }
-      function exitCopyMode() {
-        if (!inCopyMode) return;
-        sendToTerminal('q');
-        inCopyMode = false;
-      }
-      function scrollUp(lines) {
-        enterCopyMode();
-        for (let i = 0; i < lines; i++) sendToTerminal('\x1b[A');
-        resetExitTimer();
-      }
-      function scrollDown(lines) {
-        if (!inCopyMode) return;
-        for (let i = 0; i < lines; i++) sendToTerminal('\x1b[B');
-        resetExitTimer();
-      }
-      function resetExitTimer() {
-        if (exitTimer) clearTimeout(exitTimer);
-        exitTimer = setTimeout(exitCopyMode, 3000);
-      }
-
-      xtermScreen.addEventListener('touchstart', e => {
-        if (e.touches.length !== 1) return;
-        startY = e.touches[0].clientY;
-        lastY = startY;
-        scrolling = false;
-      }, { passive: true });
-
-      xtermScreen.addEventListener('touchmove', e => {
-        if (e.touches.length !== 1) return;
-        const currentY = e.touches[0].clientY;
-        const totalDy = Math.abs(currentY - startY);
-
-        if (!scrolling && totalDy > THRESHOLD) {
-          scrolling = true;
-          lastY = currentY;
-          return;
-        }
-        if (!scrolling) return;
-
-        const dy = lastY - currentY;
-        const lines = Math.floor(Math.abs(dy) / STEP_PX);
-        if (lines < 1) return;
-
-        e.preventDefault();
-        if (dy > 0) scrollUp(lines);
-        else scrollDown(lines);
-        lastY = currentY;
-      }, { passive: false });
-
-      xtermScreen.addEventListener('touchend', () => { scrolling = false; });
-      xtermScreen.addEventListener('touchcancel', () => { scrolling = false; });
-
-    } catch {
-      if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL);
+    if (!scrolling && totalDy > THRESHOLD) {
+      scrolling = true;
+      lastY = currentY;
+      return;
     }
-  }
+    if (!scrolling || now - lastScrollTime < THROTTLE_MS) return;
 
-  iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
-  tryInject();
-}
+    const dy = lastY - currentY;
+    const lines = Math.floor(Math.abs(dy) / STEP_PX);
+    if (lines < 1) return;
+
+    lastScrollTime = now;
+    lastY = currentY;
+
+    const parts = state.activePanel.split('/');
+    if (parts.length !== 2) return;
+    const direction = dy > 0 ? 'Up' : 'Down';
+
+    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction }),
+    }).catch(() => {});
+  }, { passive: true });
+
+  panels.addEventListener('touchend', () => { scrolling = false; });
+  panels.addEventListener('touchcancel', () => { scrolling = false; });
+})();
+
 
 // ==================== Init ====================
 (async () => {
