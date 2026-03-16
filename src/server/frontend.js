@@ -738,7 +738,7 @@ const origInitResize = initResize;
   const panels = document.getElementById('panels');
   if (!panels) return;
   let lastScroll = 0;
-  const THROTTLE = 80;
+  const THROTTLE = 50;
 
   function doScroll(direction, lines) {
     const now = Date.now();
@@ -772,11 +772,11 @@ const origInitResize = initResize;
   }, { passive: true });
   document.addEventListener('touchmove', e => {
     if (!e.target.classList?.contains('touch-scroll-layer')) return;
-    const dy = touchStartY - e.touches[0].clientY;
-    if (Math.abs(dy) > 15) {
+    const dy = e.touches[0].clientY - touchStartY; // positive = finger moves down = scroll up (see older content)
+    if (Math.abs(dy) > 10) {
       touchMoved = true;
-      const lines = Math.min(Math.ceil(Math.abs(dy) / 15), 10);
-      doScroll(dy > 0 ? 'up' : 'down', lines);
+      const lines = Math.min(Math.ceil(Math.abs(dy) / 8), 15);
+      doScroll(dy > 0 ? 'up' : 'down', lines); // finger down = scroll up (natural scrolling)
       touchStartY = e.touches[0].clientY;
     }
   }, { passive: true });
