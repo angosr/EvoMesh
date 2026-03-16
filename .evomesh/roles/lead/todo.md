@@ -18,7 +18,15 @@ ALL P0 COMPLETE ✅
 - ⬜ Container interval restart — user decision
 - ⬜ Agent-architect deferred items: role-card.json, MCP configs, Claude hooks, circuit breaker
 
-## Completed This Loop (2026-03-16T23:45)
+## Completed This Loop (2026-03-16T23:55)
+
+- APPROVED agent-architect project creation flow: template-based scaffold, account distribution, Central AI ROLE.md update, smartInit migration
+- Dispatched smartInit() migration to core-dev as P1 (depends on agent-architect template drafts)
+- Noted protocol v2 already implemented (base-protocol.md sections 8-10 now live)
+- Frontend shipped 3 UX improvements: loading states for buttons, improved copy dialog
+- Language decision: Chinese primary for templates, {lang} placeholder for future i18n
+
+## Previous: Loop 11 (2026-03-16T23:45)
 
 - APPROVED agent-architect protocol v2 proposal: self-evolution, prompt hygiene, memory strategy, inbox simplification
 - Caveat on decisions.log rename: user controls that file, keep current name until user confirms
