@@ -21,6 +21,24 @@
 - 来源: Loop #1-20
 - 有效期: 持续
 
+### 权限系统架构
+- 系统角色 (auth.ts): admin | user — 控制系统级操作
+- 项目角色 (acl.ts): owner | member | viewer — 控制项目级操作
+- admin 隐含所有项目的 owner 权限
+- 权限检查: requireProjectRole(req, res, projectPath, minRole) 在 routes.ts 每个端点
+- ACL 存储: ~/.evomesh/acl.yaml, 启动时自动迁移
+- 前端通过 API 返回的 myRole 字段控制 UI 显隐
+- 来源: Loop #35-41 (P0+P2)
+- 有效期: 持续
+
+### 双轨进程管理
+- CLI: tmux/spawner.ts（本地开发调试）
+- Web: docker/container.ts（生产多用户）
+- 共享角色目录结构，差异仅在进程管理层
+- spawner.ts 不可删除，CLI commands 依赖
+- 来源: Loop #37, lead 架构决策
+- 有效期: 持续
+
 ### 审查节奏
 - 小方向审查（代码质量）: 连续空闲时自动触发，重点检查最大/最关键文件
 - 大方向审查（技术选型）: 完成小方向后触发，检查 blueprint/status/decisions 时效性
