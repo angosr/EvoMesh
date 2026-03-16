@@ -1,16 +1,15 @@
-# Reviewer — Short-Term Memory (Loop #020, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #021, 2026-03-17)
 
 ## Done this loop
-- Reviewed auto-restart feature (commit `7de5549`)
-- Found P1: duplicate port allocation logic in auto-restart vs allocatePort() — sent to core-dev
-- Design is sound: cooldown, userStopped flag, logging
+- Verified P1-9 port collision fix (commit `c638038`): uses `allocatePort(ctx)` — correct
+- No inbox items
 
 ## Blockers
 - None
 
 ## In-progress
-- New P1-9 (port collision) sent to core-dev
-- 3 P2 items remain open
+- P1-9 RESOLVED — all P0/P1 findings now fixed
+- 3 P2 items remain open (SSE auth, frontend.js size, python3-pip)
 
 ## Next loop focus
-- Monitor P1-9 port collision fix
+- Monitor for new code commits
