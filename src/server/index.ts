@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
 import { errorMessage } from "../utils/error.js";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, getContainerState, startRole } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole } from "../process/container.js";
+import { roleDir } from "../utils/paths.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
@@ -342,6 +343,24 @@ export function startServer(port: number, initialRoot?: string) {
             } catch (e) {
               console.error(`[auto-restart] Failed to restart ${name}:`, e);
             }
+          }
+
+          // Brain-dead detection: running but memory stale >30min
+          if (running) {
+            try {
+              const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
+              const stmStat = fs.statSync(stmPath);
+              const ageMs = Date.now() - stmStat.mtimeMs;
+              const lastTime = lastRestart.get(key) || 0;
+              if (ageMs > 30 * 60 * 1000 && Date.now() - lastTime > RESTART_COOLDOWN) {
+                const entry = ctx.ttydProcesses.get(key);
+                if (!entry?.userStopped) {
+                  console.log(`[brain-dead] ${name} memory stale ${Math.round(ageMs / 60000)}min, force-restarting`);
+                  stopRole(p.root, name);
+                  // Next cycle: autoRestartCrashed will detect it as crashed and restart
+                }
+              }
+            } catch {} // file doesn't exist yet — skip
           }
         }
       }
