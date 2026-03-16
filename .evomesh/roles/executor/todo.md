@@ -7,21 +7,24 @@
 
 按 Phase 1 顺序实施：
 
-### 1. auth.ts — 角色类型改造
-- [ ] `UserRole` 从 `"admin" | "viewer"` 改为 `"admin" | "user"`
-- [ ] `SessionInfo.role` 跟随变更
-- [ ] 添加迁移逻辑: 现有 `viewer` 用户自动升级为 `user`
-- [ ] 更新 `addUser()` 默认角色为 `"user"`
+### 1. auth.ts — 角色类型改造 ✅
+- [x] `UserRole` 从 `"admin" | "viewer"` 改为 `"admin" | "user"`
+- [x] `SessionInfo.role` 跟随变更
+- [x] 添加迁移逻辑: 现有 `viewer` 用户自动升级为 `user`
+- [x] 更新 `addUser()` 默认角色为 `"user"`
 
-### 2. 新建 acl.ts — 项目级访问控制
-- [ ] `ProjectRole = "owner" | "member" | "viewer"`
-- [ ] `loadAcl()` / `saveAcl()` — 读写 `~/.evomesh/acl.yaml`
-- [ ] `getProjectRole(username: string, projectPath: string): ProjectRole | null`
-- [ ] `setProjectOwner(projectPath, username)`
-- [ ] `grantAccess(projectPath, targetUser, role: "member" | "viewer")`
-- [ ] `revokeAccess(projectPath, targetUser)`
-- [ ] `listMembers(projectPath)`
-- [ ] `removeProject(projectPath)` — 清理 ACL 条目
+### 2. 新建 acl.ts — 项目级访问控制 ✅
+- [x] `ProjectRole = "owner" | "member" | "viewer"`
+- [x] `loadAcl()` / `saveAcl()` — 读写 `~/.evomesh/acl.yaml`
+- [x] `getProjectRole(username, systemRole, projectPath): ProjectRole | null`
+- [x] `setProjectOwner(projectPath, username)`
+- [x] `grantAccess(projectPath, targetUser, role: "member" | "viewer")`
+- [x] `revokeAccess(projectPath, targetUser)`
+- [x] `listMembers(projectPath)`
+- [x] `removeProject(projectPath)` — 清理 ACL 条目
+- [x] `hasMinProjectRole()` — 角色层级检查
+- [x] `getAccessibleProjects()` — 按用户过滤项目
+- [x] 24 test cases
 
 ### 3. index.ts — 中间件改造
 - [ ] 替换 `session.role === "viewer" && req.method !== "GET"` 为新授权逻辑
@@ -51,8 +54,30 @@
 - auth.test.ts 需同步更新
 - 新建 test/server/acl.test.ts
 
+## P1 — 代码工程化整理
+
+> 分派来源: lead | 2026-03-16
+
+### 1. 消除 slugify 重复（Critical）
+- [ ] 统一使用 `src/workspace/config.ts` 中的 `slugify()`
+- [ ] 删除 `src/process/container.ts:26` 的本地 slugify
+- [ ] 替换 `src/process/spawner.ts` 中 4 处内联 slugify
+- [ ] 替换 `src/server/routes.ts:445` 的内联 slugify
+
+### 2. 提取端口分配辅助函数
+- [ ] 创建 `allocatePort(basePort, ttydProcesses)` 函数
+- [ ] 替换 routes.ts 中 4 处重复的端口分配逻辑（lines 75, 138, 171, 244）
+
+### 3. 统一响应格式
+- [ ] 将 routes.ts 中 `.send("Invalid")` 统一为 `.json({ error: "Invalid" })`
+
+### 4. 判断 spawner.ts 是否仍需要
+- [ ] 检查 CLI commands (start.ts, stop.ts, attach.ts) 是否还使用 spawner.ts
+- [ ] 如已完全迁移到 container.ts，删除 spawner.ts 中的废弃代码
+
 ## 待排期
 
 - `readYaml` 运行时校验（zod）— 当前风险低，配置由 scaffold 生成
-- frontend.js 接近 1000 行阈值（802行），关注是否需要拆分
-- routes.ts feed gather 中 3 处空 catch（低优先级，5秒轮询避免日志过多）
+- frontend.js 892 行，接近 1000 行阈值，关注拆分
+- routes.ts 463 行，考虑按功能拆分为多个路由文件
+- routes.ts feed gather 中 3 处空 catch（低优先级）
