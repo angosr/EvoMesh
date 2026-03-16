@@ -1,16 +1,14 @@
 # Frontend — Short-Term Memory
 
-## Last Loop (Loop 7 — 2026-03-16)
+## Last Loop (Loop 8 — 2026-03-16)
 
 ### Done
-- Mobile Mission Control panel adaptation (P1):
-  - Full-screen overlay on mobile (100vw + 100dvh) instead of 85vw
-  - Touch-friendly tabs: larger padding (10px) and font (12px)
-  - Activity/Issues/Tasks items: no overflow, proper wrapping
-  - Central AI input: 16px font (prevents iOS zoom), safe-area-inset padding
-  - Added close button (×) in header, visible only on mobile
-- Accepted user change: removed mc-command quick-input section
-- Cache bust updated to v=1773679222
+- Added loading state for action buttons (P2):
+  - `withLoading()` helper: disables button, shows "...", adds .loading class during async ops
+  - Applied to dashboard restart buttons and MC issue restart buttons
+  - CSS: `.dash-action.loading` / `:disabled` gets opacity 0.5 + cursor wait
+  - Fixed `saveAndRestart` to await `restartRole` for proper loading state
+- Processed lead inbox (design decision sync — already addressed in loop 5)
 
 ### Blockers
 - `/api/mission-control` endpoint still pending core-dev
@@ -19,5 +17,5 @@
 - Nothing
 
 ### Next Loop Focus
-- P2: Loading spinners for dashboard action buttons
 - P1: Settings page polish
+- P2: Copy dialog improvement for mobile
