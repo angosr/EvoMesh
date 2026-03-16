@@ -12,8 +12,7 @@
 - [x] Smoke test suite (15 tests: syntax, XSS, HTML integrity, CSS, function refs)
 
 ## P1 — Current Issues
-- [ ] Mobile terminal scrolling not smooth (API-based workaround with fixed step sizes)
-- [ ] Touch scroll layer approach vs tmux mouse tradeoff
+- [x] Mobile terminal scrolling — improved with batched requests + momentum inertia
 - [ ] `/api/mission-control` endpoint pending core-dev — Tasks tab uses placeholder
 
 ## P2 — Improvements

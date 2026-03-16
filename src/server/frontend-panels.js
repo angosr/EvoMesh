@@ -199,17 +199,29 @@ function setLayout(mode) {
 (function() {
   const panels = document.getElementById('panels');
   if (!panels) return;
-  let lastScroll = 0;
-  const THROTTLE = 50;
 
-  function doScroll(direction, lines) {
-    const now = Date.now();
-    if (now - lastScroll < THROTTLE) return;
-    lastScroll = now;
+  // Batched scroll: accumulate lines and flush periodically
+  let pendingUp = 0, pendingDown = 0, flushTimer = null;
+  const FLUSH_INTERVAL = 100; // ms — send at most 10 requests/sec
+
+  function queueScroll(direction, lines) {
+    if (direction === 'up') pendingUp += lines;
+    else pendingDown += lines;
+    if (!flushTimer) flushTimer = setTimeout(flushScroll, FLUSH_INTERVAL);
+  }
+
+  function flushScroll() {
+    flushTimer = null;
     const key = state.activePanel;
-    if (!key || key === 'dashboard' || key === 'settings') return;
+    if (!key || key === 'dashboard' || key === 'settings') { pendingUp = pendingDown = 0; return; }
     const parts = key.split('/');
-    if (parts.length !== 2) return;
+    if (parts.length !== 2) { pendingUp = pendingDown = 0; return; }
+    // Net direction
+    const net = pendingDown - pendingUp;
+    pendingUp = pendingDown = 0;
+    if (net === 0) return;
+    const direction = net > 0 ? 'down' : 'up';
+    const lines = Math.min(Math.abs(net), 30);
     authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ direction, lines }),
@@ -219,30 +231,41 @@ function setLayout(mode) {
   panels.addEventListener('wheel', e => {
     if (!state.openPanels[state.activePanel]) return;
     e.preventDefault();
-    doScroll(e.deltaY > 0 ? 'down' : 'up', 3);
+    queueScroll(e.deltaY > 0 ? 'down' : 'up', 3);
   }, { passive: false });
 
   let touchStartY = 0, touchStartTime = 0, touchMoved = false;
+  let lastTouchY = 0, lastTouchTime = 0, velocity = 0, momentumTimer = null;
 
   panels.addEventListener('touchstart', e => {
     if (!state.openPanels[state.activePanel]) return;
     if (e.touches.length === 1) {
       touchStartY = e.touches[0].clientY;
+      lastTouchY = touchStartY;
       touchStartTime = Date.now();
+      lastTouchTime = touchStartTime;
       touchMoved = false;
+      velocity = 0;
+      if (momentumTimer) { cancelAnimationFrame(momentumTimer); momentumTimer = null; }
     }
   }, { passive: true });
 
   panels.addEventListener('touchmove', e => {
     if (!state.openPanels[state.activePanel]) return;
     if (e.touches.length !== 1) return;
-    const dy = e.touches[0].clientY - touchStartY;
-    if (Math.abs(dy) > 10) {
+    const currentY = e.touches[0].clientY;
+    const dy = currentY - lastTouchY;
+    const now = Date.now();
+    const dt = now - lastTouchTime;
+    if (Math.abs(currentY - touchStartY) > 10) {
       touchMoved = true;
-      const lines = Math.min(Math.ceil(Math.abs(dy) / 8), 15);
-      doScroll(dy > 0 ? 'up' : 'down', lines);
-      touchStartY = e.touches[0].clientY;
+      const lines = Math.min(Math.ceil(Math.abs(dy) / 12), 10);
+      if (lines > 0) queueScroll(dy > 0 ? 'up' : 'down', lines);
+      // Track velocity for momentum
+      if (dt > 0) velocity = dy / dt; // px/ms
     }
+    lastTouchY = currentY;
+    lastTouchTime = now;
   }, { passive: true });
 
   panels.addEventListener('touchend', e => {
@@ -250,6 +273,20 @@ function setLayout(mode) {
     const duration = Date.now() - touchStartTime;
     if (!touchMoved && duration > 500) {
       showCopyDialog();
+      return;
+    }
+    // Momentum scrolling
+    if (touchMoved && Math.abs(velocity) > 0.3) {
+      let v = velocity;
+      const decay = 0.92;
+      function momentumStep() {
+        v *= decay;
+        if (Math.abs(v) < 0.05) return;
+        const lines = Math.max(1, Math.round(Math.abs(v) * 8));
+        queueScroll(v > 0 ? 'up' : 'down', lines);
+        momentumTimer = requestAnimationFrame(momentumStep);
+      }
+      momentumTimer = requestAnimationFrame(momentumStep);
     }
   });
 })();
