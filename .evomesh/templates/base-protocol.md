@@ -133,9 +133,10 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
 
 1. `git pull --rebase` (stash if needed)
 2. Read own ROLE.md + todo.md + inbox/ + **memory/short-term.md** (restore previous loop context)
-3. Process inbox: acknowledge P0 messages, read tasks/feedback
-4. Execute role-specific work
-5. **Write `memory/short-term.md`** (MANDATORY, overwrite each loop):
+3. Read **`shared/decisions.md`** — binding architectural decisions that override local assumptions
+4. Process inbox: acknowledge P0 messages, read tasks/feedback
+5. Execute role-specific work
+6. **Write `memory/short-term.md`** (MANDATORY, overwrite each loop):
    ```
    ## YYYY-MM-DD Loop N
    - **Done**: [bullet list of what was accomplished]
@@ -143,8 +144,8 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
    - **In-progress**: [work started but not finished]
    - **Next focus**: [what to do next loop]
    ```
-6. Update todo.md (mark completed ✅, add new tasks from inbox)
-7. `git add` + `git commit` + `git push`
+7. Update todo.md (mark completed ✅, add new tasks from inbox)
+8. `git add` + `git commit` + `git push`
 
 **If you have nothing to do**: write that in short-term memory ("No pending tasks, idle"). Do NOT leave memory empty.
 
