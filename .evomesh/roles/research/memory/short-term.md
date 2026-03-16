@@ -1,14 +1,14 @@
 # Short-term Memory
 
-## Loop: 2026-03-17T00:15
+## Loop: 2026-03-17T00:30
 
 ### Done this loop
 - Check-in: git synced, read context. No inbox, no new tasks.
-- Noted agent-architect active: registry review + append-only spec (implements our research rec #1).
-- Second consecutive idle monitoring loop. Landscape stable.
+- Agent-architect now implementing circuit breaker + MCP configs (research recs #3 and #6). Lead approved append-only + task ACs + role-card.json.
+- Third consecutive idle loop. Research pipeline fully operational — recommendations flowing through and being implemented.
 
 ### Blockers
 - None
 
 ### In-progress
-- P2 monitoring, reduced frequency. Awaiting lead inbox for research requests.
+- P2 monitoring, reduced frequency. Awaiting inbox.
