@@ -160,8 +160,9 @@ function spawnTmux(
     "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", ...claudeArgs,
   ], { cwd: root, stdio: "ignore" });
 
-  // Enable mouse mode for touch scrolling on mobile
-  try { execFileSync("tmux", ["set-option", "-t", session, "mouse", "on"], { stdio: "ignore" }); } catch {}
+  // Mouse off: allows native text selection in web terminal
+  // Mobile touch scrolling handled by API-based scroll endpoint instead
+  try { execFileSync("tmux", ["set-option", "-t", session, "mouse", "off"], { stdio: "ignore" }); } catch {}
 
   // Start logging (pipe-pane captures output to file)
   // pipe-pane -o passes its argument to the shell, so logPath must be quoted
