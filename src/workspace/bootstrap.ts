@@ -1,0 +1,92 @@
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { ensureDir } from "../utils/fs.js";
+
+/**
+ * Bootstrap ~/.evomesh/ on first run.
+ * Creates skeleton directories, default workspace config, central AI role, and templates.
+ * Skips anything that already exists.
+ */
+export function bootstrapGlobalConfig(): void {
+  const evomeshDir = path.join(os.homedir(), ".evomesh");
+  if (fs.existsSync(path.join(evomeshDir, "workspace.yaml"))) return; // already bootstrapped
+
+  console.log("[bootstrap] First run detected — creating ~/.evomesh/ skeleton...");
+
+  // Core directories
+  ensureDir(evomeshDir);
+  ensureDir(path.join(evomeshDir, "central", "memory"));
+  ensureDir(path.join(evomeshDir, "central", "inbox"));
+  ensureDir(path.join(evomeshDir, "templates"));
+
+  // Empty workspace config
+  const wsFile = path.join(evomeshDir, "workspace.yaml");
+  if (!fs.existsSync(wsFile)) {
+    fs.writeFileSync(wsFile, "projects: []\n", "utf-8");
+  }
+
+  // Central AI ROLE.md — copy from repo defaults/
+  const centralRole = path.join(evomeshDir, "central", "ROLE.md");
+  if (!fs.existsSync(centralRole)) {
+    const repoDefault = findRepoFile("defaults/central-role.md");
+    if (repoDefault) {
+      fs.copyFileSync(repoDefault, centralRole);
+      console.log("[bootstrap] Created central AI ROLE.md");
+    }
+  }
+
+  // Central AI todo.md
+  const centralTodo = path.join(evomeshDir, "central", "todo.md");
+  if (!fs.existsSync(centralTodo)) {
+    fs.writeFileSync(centralTodo, "# Central AI — Tasks\n\n## P0 — Immediate\n\n(All clear)\n", "utf-8");
+  }
+
+  // Central AI memory
+  const centralStm = path.join(evomeshDir, "central", "memory", "short-term.md");
+  if (!fs.existsSync(centralStm)) {
+    fs.writeFileSync(centralStm, "# Short-term Memory\n\n(empty)\n", "utf-8");
+  }
+
+  // Copy templates from repo .evomesh/templates/ to ~/.evomesh/templates/
+  copyTemplatesIfMissing();
+
+  console.log("[bootstrap] ~/.evomesh/ skeleton created");
+}
+
+/**
+ * Copy repo templates to global ~/.evomesh/templates/ if they don't exist there.
+ */
+function copyTemplatesIfMissing(): void {
+  const globalTemplates = path.join(os.homedir(), ".evomesh", "templates");
+  const repoTemplates = findRepoFile(".evomesh/templates");
+  if (!repoTemplates || !fs.existsSync(repoTemplates)) return;
+
+  copyDirRecursive(repoTemplates, globalTemplates);
+}
+
+function copyDirRecursive(src: string, dest: string): void {
+  ensureDir(dest);
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else if (!fs.existsSync(destPath)) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
+ * Find a file relative to the repo root (walking up from this file's location).
+ */
+function findRepoFile(relPath: string): string | null {
+  let dir = path.dirname(new URL(import.meta.url).pathname);
+  for (let i = 0; i < 5; i++) {
+    const candidate = path.join(dir, relPath);
+    if (fs.existsSync(candidate)) return candidate;
+    dir = path.dirname(dir);
+  }
+  return null;
+}

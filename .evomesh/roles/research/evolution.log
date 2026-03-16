@@ -11,3 +11,10 @@
 4. Added loop flow step 8: "Append metrics.log line"
 5. Updated current phase research topics: "inter-agent protocols, memory architectures, self-evolution" → "implementation validation, emerging competitors, Claude Code ecosystem" — original topics thoroughly covered in 13 P1 deep dives
 **Trigger**: Lead P0 directive to implement v2 protocol self-evolution mechanisms
+
+## 2026-03-17T04:30 — Self-audit at loop 25 (prompt hygiene)
+**Metrics analysis**: 18/25 loops idle (72%). Active loops: 1-6 (P0+P1 research), 15 (v2 implementation).
+**Changes**:
+1. Added idle-loop optimization to Loop Flow: steps 3-4 now branch — if no tasks/inbox, skip search and only append metrics. Reduces wasted effort in monitoring mode.
+**No dead rules found**. ROLE.md at 61 lines (well within 200-line target).
+**Trigger**: Scheduled v2 protocol self-audit at 10-loop interval

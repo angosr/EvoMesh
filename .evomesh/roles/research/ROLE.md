@@ -18,8 +18,8 @@
 
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/
-3. Use web search to find new relevant resources
-4. Analyze findings — what's applicable to EvoMesh?
+3. If inbox or P1+ tasks pending → execute research (web search, analysis, devlog, lead inbox)
+4. If idle (no tasks, no inbox) → append metrics.log only, skip steps 5-7
 5. Write research notes to devlog/ (date-stamped)
 6. Send key findings + recommendations to lead via inbox
 7. Update memory with tracked resources and trends

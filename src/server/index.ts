@@ -13,6 +13,7 @@ import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
 import type { TtydProcess } from "./terminal.js";
 import { registerRoutes, allocatePort } from "./routes.js";
+import { bootstrapGlobalConfig } from "../workspace/bootstrap.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,6 +38,7 @@ export function startServer(port: number, initialRoot?: string) {
   const server = http.createServer(app);
   app.use(express.json());
 
+  bootstrapGlobalConfig();
   migrateIfNeeded();
 
   const sessions = new Map<string, SessionInfo>();
