@@ -11,58 +11,62 @@
 
 ### Framework Landscape (surveyed 2026-03-16)
 - CrewAI: role-based, ~70% enterprise adoption. Hub-spoke topology. Heaviest resource usage.
-- CrewAI Flows: event-driven pipelines, 12M exec/day, state persistence in memory/DB (NOT file-based). Not a direct competitor.
-- LangGraph: DAG-based stateful workflows. Most flexible. Checkpoint/replay.
+- CrewAI Flows: event-driven pipelines, 12M exec/day, NOT file-based. Not a direct competitor.
+- LangGraph: DAG-based stateful workflows. Checkpoint/replay.
 - AutoGen: conversational mesh. Lowest latency. No-code Studio option.
-- OpenHands/Aider: less prominent in 2026 comparisons, more specialized.
 
-### Memory Architecture Research (surveyed 2026-03-16)
-- A-Mem (arXiv:2502.12110): Zettelkasten-inspired. Structured notes with contextual descriptions, keywords, tags, auto-linking. Open-source at github.com/agiresearch/A-mem.
-  - Key insight: LLM decides what to link, making knowledge graph self-organizing.
-  - EvoMesh adoption: structured note format (frontmatter) now, defer linking until >100 entries per role.
-- Multi-agent memory consistency (arXiv:2603.10062): frames as classical CS consistency problem. CRDTs suggested.
-- Oracle comparison: file-based memory works for simple setups, faces race conditions at scale.
-- Microsoft reference arch: dual-tier (private + shared), short-term + long-term pattern.
-- Mem0 (arXiv:2504.19413): production-ready long-term memory.
+### Memory Architecture (surveyed 2026-03-16)
+- A-Mem (arXiv:2502.12110): Zettelkasten-inspired structured notes with auto-linking.
+- Multi-agent memory consistency (arXiv:2603.10062): classical CS consistency problem. CRDTs suggested.
+- Append-only log pattern: 90% of CRDT benefits at 5% cost for EvoMesh.
 
-### CRDT / Consistency (surveyed 2026-03-16)
-- CodeCRDT (arXiv:2510.18893): CRDT for multi-agent code generation. 21.1% speedup, 100% convergence, zero merge failures.
-- Full CRDTs: massive implementation cost, NOT recommended for EvoMesh.
-- Append-only log pattern: 90% of CRDT benefits at 5% cost. Git appends always merge cleanly.
-- Tree CRDTs exist for file systems but are overkill for our use case.
+### Self-Evolution Mechanisms (surveyed 2026-03-16)
+- EvoMAC (ICLR 2025): Textual backpropagation — feedback propagated as NL to update agent prompts. 26-35% improvement. Directly analogous to EvoMesh's inbox feedback system.
+- SICA: Self-improving coding agent that edits own codebase. Too risky for EvoMesh — prefer eval-then-propose pattern.
+- GEPA: Genetic-Pareto framework. Evolutionary prompt optimization.
+- Meta-prompting (APE method): generate candidate prompts → score → select best.
+- OpenAI Cookbook: eval-driven self-evolution loop (run → evaluate → reflect → revise).
+- aiXplain Evolver: commercial meta-agent for prompt/tool optimization.
+- Key design for EvoMesh: collect metrics → reflect → propose ROLE.md changes → lead approves → update. Safe because of hub-spoke governance.
 
-### A2A Agent Cards (surveyed 2026-03-16)
-- JSON capability discovery at `.well-known/agent-card.json`
-- Three discovery methods: well-known URI, agent registry, direct config.
-- A2A spec doesn't prescribe registry API — left to implementers.
-- EvoMesh adaptation: `role-card.json` per role with name, capabilities, accepted types, status, loop interval.
+### Claude Code Plugin System (surveyed 2026-03-16)
+- Plugin = .claude-plugin/ dir with plugin.json manifest
+- Bundles: slash commands, subagents, MCP servers, hooks
+- Marketplace: git repo + marketplace.json. Install via `/plugin marketplace add`
+- EvoMesh roles map to plugins: skill (loop flow) + agent (role def) + hooks (scope guard) + MCP (role-specific tools)
+- Status: design spec now, package later (~3-4 sprints when roles stabilize)
 
-### Claude Code Ecosystem (surveyed 2026-03-16)
-- Skills: procedural, 30-50 tokens, on-demand. Evolved to programmable agents in Skills 2.0.
-- Hooks: PreToolUse/PostToolUse shell scripts. Deterministic control over tool execution.
-- Subagents: custom markdown + YAML frontmatter. Own context window. Up to 10 simultaneous.
-- Plugins: bundles of skills + MCP + hooks + subagents. 9,000+ available.
-- Key automation opportunities for EvoMesh:
-  1. PreToolUse hooks for role scope enforcement (security)
-  2. Skills as role loop templates (reduce boilerplate)
-  3. Subagent-based parallel research
-  4. PostToolUse hooks for auto-staging commits
+### WMAC 2026 / Academic (surveyed 2026-03-16)
+- AAAI 2026 Bridge Program, Jan 20, Singapore
+- "Agentifying Agentic AI" (arXiv:2511.17332): explicit governance models needed. Cascading errors a top risk.
+- Themes: governance, social norms, evaluation, cascading error prevention
+- Validates EvoMesh: hub-spoke governance, reviewer safety net, base-protocol as social norms
+
+### Agent Evaluation (surveyed 2026-03-16)
+- Amazon: generic eval workflow + agent eval library. Measures tool selection, reasoning, task completion.
+- Galileo: metrics taxonomy — behavior, capabilities, reliability, safety.
+- Tools: LangSmith, Weave, DeepEval for production monitoring.
+- GAIA benchmark for general AI assistant evaluation.
+- EvoMesh-specific metrics proposed: loop completion rate, todo throughput, inbox response time, merge conflict rate, reviewer catch rate, self-evolution rate.
+- Recommendation: metrics.log per role (append-only CSV), instrument now, analyze later.
 
 ## EvoMesh Competitive Position
-- File-based comms is a genuine differentiator (git audit trail, zero infra, human-readable, offline).
-- Weaknesses: no real-time signaling, concurrency risk on shared files, no capability discovery.
-- Closest industry parallel: ACP's YAML-at-well-known-URIs pattern.
-- CrewAI Flows is NOT a direct competitor (different niche: sync pipelines vs async collaboration).
+- File-based comms is genuine differentiator (git audit, zero infra, human-readable, offline).
+- Hub-spoke governance validated by WMAC 2026 academic research.
+- Self-evolution opportunity: inbox system is already textual backpropagation.
 
-## Recommended Architecture Changes (sent to lead)
-1. Append-only shared docs (eliminates merge conflicts) — LOW effort, HIGH impact
-2. role-card.json per role (capability discovery) — LOW effort, MEDIUM impact
-3. PreToolUse hooks for role scope (security) — MEDIUM effort, HIGH impact
-4. Skills as role loop templates — MEDIUM effort, MEDIUM impact
-5. Structured memory notes (A-Mem lite) — LOW effort, MEDIUM impact
+## Recommended Architecture Changes (all sent to lead)
+1. Append-only shared docs — LOW effort, HIGH impact ✅ sent loop 2
+2. role-card.json per role — LOW effort, MEDIUM impact ✅ sent loop 2
+3. PreToolUse hooks for role scope — MEDIUM effort, HIGH impact ✅ sent loop 2
+4. Self-evolution protocol — MEDIUM effort, HIGH impact ✅ sent loop 3
+5. metrics.log per role — LOW effort, MEDIUM impact ✅ sent loop 3
+6. Circuit breaker mechanism — LOW effort, HIGH impact ✅ sent loop 3
+7. Plugin structure spec — LOW effort, future value ✅ sent loop 3
 
 ## Tracked for Follow-up
+- WMAC 2026 full paper list: not yet published, check multiagents.org periodically
 - CrewAI: monitor quarterly for file-persistence features
 - A-Mem: revisit linking when memory volume >100 entries per role
-- Claude Code hooks: watch github.com/disler/claude-code-hooks-mastery for patterns
-- awesome-claude-code: github.com/hesreallyhim/awesome-claude-code for new skills/plugins
+- Claude Code hooks: github.com/disler/claude-code-hooks-mastery
+- awesome-claude-code: github.com/hesreallyhim/awesome-claude-code

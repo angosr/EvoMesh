@@ -1,17 +1,16 @@
 # Short-term Memory
 
-## Loop: 2026-03-16T22:45
+## Loop: 2026-03-16T23:00
 
 ### Done this loop
-- Deep-dived A-Mem paper (arXiv:2502.12110): Zettelkasten-inspired agentic memory. Structured notes with auto-linking. GitHub impl available.
-- Assessed CrewAI Flows: 12M exec/day, event-driven, but no file persistence. Not a direct competitor to EvoMesh's niche.
-- Researched Claude Code hooks/skills: PreToolUse hooks for scope enforcement, skills as loop templates, up to 10 simultaneous subagents.
-- Surveyed CRDTs: CodeCRDT paper shows 100% convergence. But append-only logs give 90% benefit at 5% cost for EvoMesh.
-- Analyzed A2A Agent Cards: JSON capability discovery at well-known URIs. Maps to role-card.json concept.
-- Sent P1 report to lead with 3 low-effort/high-impact recommendations.
+- Deep-dived self-evolution: EvoMAC (textual backprop, ICLR 2025), SICA, GEPA, meta-prompting. Designed concrete self-evolution protocol for EvoMesh.
+- Researched Claude Code plugin packaging: .claude-plugin/ structure, marketplace hosting, /plugin CLI. Mapped EvoMesh roles to plugin structure.
+- Reviewed WMAC 2026 themes: governance, social norms, cascading errors. "Agentifying Agentic AI" paper validates our hub-spoke model.
+- Surveyed agent evaluation: Amazon framework, Galileo metrics, GAIA benchmark. Proposed EvoMesh-specific metrics + metrics.log pattern.
+- Sent P1 report to lead: self-evolution protocol, metrics.log, circuit breaker mechanism.
 
 ### Blockers
-- None
+- WMAC 2026 full accepted paper list not yet published on multiagents.org. Check back next cycle.
 
 ### In-progress
-- P1 tasks 1-5 complete. Moving to P2 monitoring tasks next loop.
+- All current P1 tasks complete. P2 monitoring ongoing.
