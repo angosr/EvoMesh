@@ -285,4 +285,70 @@ describe("server/routes", () => {
     const body = await res.json() as any;
     assert.deepEqual(body.messages, []);
   });
+
+  // --- GET /api/projects/:slug/members ---
+
+  it("GET /api/projects/:slug/members returns member list", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/test-project/members`);
+    assert.equal(res.status, 200);
+    const body = await res.json() as any;
+    assert.ok("owner" in body);
+    assert.ok(Array.isArray(body.members));
+  });
+
+  it("GET /api/projects/:slug/members returns 404 for unknown project", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/nonexistent/members`);
+    assert.equal(res.status, 404);
+  });
+
+  // --- POST /api/projects/:slug/members ---
+
+  it("POST /api/projects/:slug/members rejects invalid username", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/test-project/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "bad name!", role: "member" }),
+    });
+    assert.equal(res.status, 400);
+  });
+
+  it("POST /api/projects/:slug/members rejects invalid role", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/test-project/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "bob", role: "admin" }),
+    });
+    assert.equal(res.status, 400);
+  });
+
+  // --- Permission denial (non-admin user) ---
+
+  it("non-owner user gets 403 on owner-only endpoints", async () => {
+    // Create a server with a "user" session (not admin)
+    const userCtx = createMockCtx(projects);
+    const s = await startTestServer(userCtx, "user");
+    try {
+      // DELETE project requires owner
+      const res = await fetch(`${s.baseUrl}/api/projects/test-project`, { method: "DELETE" });
+      assert.equal(res.status, 403);
+    } finally {
+      await new Promise<void>(resolve => s.server.close(() => resolve()));
+    }
+  });
+
+  it("non-owner user gets 403 on chat (member-only)", async () => {
+    // "user" role without ACL entry → no project access → 403
+    const userCtx = createMockCtx(projects);
+    const s = await startTestServer(userCtx, "user");
+    try {
+      const res = await fetch(`${s.baseUrl}/api/projects/test-project/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "hello" }),
+      });
+      assert.equal(res.status, 403);
+    } finally {
+      await new Promise<void>(resolve => s.server.close(() => resolve()));
+    }
+  });
 });
