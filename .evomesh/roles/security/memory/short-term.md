@@ -1,9 +1,10 @@
-## 2026-03-16 Loop 7
+## 2026-03-16 Loop 8
 
 - **Done**:
-  - Scanned 5 new commits: templates, reviewer memory, lead loop, agent-architect inbox
-  - No changes to src/ or docker/ — all role metadata only
-  - No code to review this loop
+  - Scanned 6 new commits: registry resilience fix, reviewer/lead/agent-architect loops
+  - 1 file changed in src/: index.ts registry writer adds last-known-good cache + staleAfterMs hint
+  - No new attack surface, no auth changes, no user input handling
+  - Clean pass
 - **Blockers**: Cannot git pull (persistent unstaged changes)
 - **In-progress**: None
 - **Next focus**: Monitoring mode. 4 P2 hardening items in backlog.
