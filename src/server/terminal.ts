@@ -50,11 +50,40 @@ export function ensureTtydRunning(ctx: ServerContext): void {
   } catch {}
 }
 
-function proxyRequest(req: http.IncomingMessage, res: http.ServerResponse, targetPort: number): void {
+const COOKIE_NAME = "evomesh_terminal_auth";
+
+/**
+ * Extract and validate session token from query param, header, or cookie.
+ * Returns the valid token string, or undefined if not authenticated.
+ */
+function extractTerminalToken(ctx: ServerContext, req: { headers: Record<string, any>; url?: string }): string | undefined {
+  // 1. Query param or Authorization header
+  const token = ctx.extractToken(req as any);
+  if (token && ctx.sessions.has(token)) return token;
+
+  // 2. Cookie fallback (for ttyd sub-resources and WebSocket)
+  const cookie = (req.headers.cookie as string) || "";
+  const match = cookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+  if (match) {
+    const cookieToken = decodeURIComponent(match[1]);
+    if (ctx.sessions.has(cookieToken)) return cookieToken;
+  }
+
+  return undefined;
+}
+
+function proxyRequest(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  targetPort: number,
+  extraHeaders?: Record<string, string>,
+): void {
   const proxyReq = http.request({
     hostname: "127.0.0.1", port: targetPort, path: req.url, method: req.method, headers: req.headers,
   }, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+    const headers = { ...proxyRes.headers };
+    if (extraHeaders) Object.assign(headers, extraHeaders);
+    res.writeHead(proxyRes.statusCode || 502, headers);
     proxyRes.pipe(res);
   });
   proxyReq.on("error", () => { res.writeHead(502); res.end("Terminal not ready"); });
@@ -70,21 +99,42 @@ export function setupTerminalProxy(
   app.use((req, res, next) => {
     const match = req.url.match(/^\/terminal\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)(\/.*)?$/);
     if (!match) return next();
+
+    // Auth: token from query param, header, or cookie
+    const token = extractTerminalToken(ctx, req);
+    if (!token) {
+      res.status(401).send("Not authenticated. Please log in first.");
+      return;
+    }
+
     const key = `${match[1]}/${match[2]}`;
     const ttyd = ctx.ttydProcesses.get(key);
     if (!ttyd) { res.status(404).send("Terminal not available. Is the role running?"); return; }
+
+    // Set auth cookie so ttyd sub-resources and WebSocket get auth
+    const cookieHeader = `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/terminal/`;
+
     // Strip the /terminal/{slug}/{role} prefix — container's ttyd serves at /
     const originalUrl = req.url;
     req.url = match[3] || "/";
-    proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port);
+    proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port, { "Set-Cookie": cookieHeader });
     req.url = originalUrl; // restore for downstream middleware
   });
 
-  // WebSocket proxy (no auth needed — ttyd binds localhost only)
+  // WebSocket proxy — validate via token or cookie before upgrading
   server.on("upgrade", (req, socket, head) => {
     const url = req.url || "";
     const match = url.match(/^\/terminal\/([a-z0-9_-]+)\/([a-zA-Z0-9_-]+)\//);
     if (!match) return;
+
+    // Auth: token from query param or cookie
+    const token = extractTerminalToken(ctx, req);
+    if (!token) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+
     const key = `${match[1]}/${match[2]}`;
     const ttyd = ctx.ttydProcesses.get(key);
     if (!ttyd) { socket.destroy(); return; }
