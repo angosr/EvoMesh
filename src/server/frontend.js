@@ -157,7 +157,8 @@ function renderOpenTabs() {
     t.className = `sidebar-tab ${state.activePanel===key?'active':''}`;
     t.draggable = true;
     t.dataset.key = key;
-    t.innerHTML = `<span class="tab-icon">&#9654;</span><span>${esc(key)}</span><span class="close" onclick="event.stopPropagation();event.preventDefault();closePanel('${key.replace(/'/g, "\\'")}')">&times;</span>`;
+    t.innerHTML = `<span class="tab-icon">&#9654;</span><span>${esc(key)}</span><span class="close">&times;</span>`;
+    t.querySelector('.close').addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); closePanel(key); });
     t.onclick = () => switchTo(key);
     // Drag reorder
     t.addEventListener('dragstart', e => { t.classList.add('dragging'); e.dataTransfer.setData('text/plain', key); });
@@ -188,9 +189,9 @@ function renderDashboard() {
     const rows = p.roles.map(r => {
       const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
-      const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" onchange="switchAccount('${esc(p.slug)}','${esc(r.name)}',this)">${ao}</select>` : `<span style="color:#666">${esc(r.account)}</span>`;
+      const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:#666">${esc(r.account)}</span>`;
       const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="mem" title="Memory (e.g. 2g, 512m)"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="cpu" title="CPUs (e.g. 1.5, 2)">` : '';
-      const actCol = isOwner ? `<button class="dash-action" onclick="saveAndRestart('${esc(p.slug)}','${esc(r.name)}')">${r.running ? '↻ Restart' : '▶ Start'}</button><button class="dash-action danger" onclick="deleteRole('${esc(p.slug)}','${esc(r.name)}')">Delete</button>` : '';
+      const actCol = isOwner ? `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button><button class="dash-action danger" data-action="delete" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">Delete</button>` : '';
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span></td>
         <td>${statusBadge}${loginBadge}</td>
@@ -200,13 +201,26 @@ function renderDashboard() {
       </tr>`;
     }).join('');
     const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:#1e1b4b;color:#818cf8">${esc(p.myRole||'')}</span>`;
-    const membersBtn = isOwner ? ` <button class="dash-action" style="float:right;font-size:11px" onclick="toggleMembers('${esc(p.slug)}')">Members</button>` : '';
+    const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="float:right;font-size:11px">Members</button>` : '';
     const membersOpen = state.membersOpen === p.slug;
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"><div style="color:#888;font-size:12px">Loading...</div></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
   el.innerHTML = html;
+  // Delegated event listeners for dashboard actions (avoids inline onclick XSS risk)
+  el.querySelectorAll('.acct-select').forEach(sel => {
+    sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
+  });
+  el.querySelectorAll('.dash-action[data-action="restart"]').forEach(btn => {
+    btn.addEventListener('click', () => saveAndRestart(btn.dataset.slug, btn.dataset.role));
+  });
+  el.querySelectorAll('.dash-action[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', () => deleteRole(btn.dataset.slug, btn.dataset.role));
+  });
+  el.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
+    btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
+  });
   // If members panel is open, load its data
   if (state.membersOpen) loadMembers(state.membersOpen);
 }
@@ -227,7 +241,7 @@ async function loadMembers(slug) {
     if (data.members.length) {
       html += '<table class="members-table"><tr><th>User</th><th>Role</th><th></th></tr>';
       for (const m of data.members) {
-        html += `<tr><td>${esc(m.username)}</td><td><span class="badge" style="font-size:10px">${esc(m.role)}</span></td><td><button class="dash-action danger" style="font-size:10px;padding:2px 6px" onclick="removeMember('${esc(slug)}','${esc(m.username)}')">Remove</button></td></tr>`;
+        html += `<tr><td>${esc(m.username)}</td><td><span class="badge" style="font-size:10px">${esc(m.role)}</span></td><td><button class="dash-action danger" data-action="remove-member" data-slug="${esc(slug)}" data-username="${esc(m.username)}" style="font-size:10px;padding:2px 6px">Remove</button></td></tr>`;
       }
       html += '</table>';
     } else {
@@ -236,9 +250,14 @@ async function loadMembers(slug) {
     html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center">
       <input id="member-user-${esc(slug)}" placeholder="username" style="background:#1a1a2e;border:1px solid #333;color:#eee;padding:4px 8px;border-radius:4px;font-size:12px;width:120px">
       <select id="member-role-${esc(slug)}" style="background:#1a1a2e;border:1px solid #333;color:#eee;padding:4px 8px;border-radius:4px;font-size:12px"><option value="member">member</option><option value="viewer">viewer</option></select>
-      <button class="dash-action" style="font-size:11px" onclick="addMember('${esc(slug)}')">Add</button>
+      <button class="dash-action" data-action="add-member" data-slug="${esc(slug)}" style="font-size:11px">Add</button>
     </div>`;
     panel.innerHTML = html;
+    panel.querySelectorAll('[data-action="remove-member"]').forEach(btn => {
+      btn.addEventListener('click', () => removeMember(btn.dataset.slug, btn.dataset.username));
+    });
+    const addBtn = panel.querySelector('[data-action="add-member"]');
+    if (addBtn) addBtn.addEventListener('click', () => addMember(addBtn.dataset.slug));
   } catch { panel.innerHTML = '<div style="color:#f87171;font-size:12px">Failed to load members</div>'; }
 }
 
@@ -421,7 +440,7 @@ addInput.addEventListener('keydown', e => {
   else if (e.key==='Escape') { if (acBox.classList.contains('show')) acBox.classList.remove('show'); else hideAddForm(); }
 });
 addInput.addEventListener('blur', () => setTimeout(() => acBox.classList.remove('show'), 200));
-async function fetchCompletions(q) { try { const r = await authFetch(`${API}/complete-path?q=${encodeURIComponent(q)}`); const d = await r.json(); if (!d.suggestions.length) { acBox.classList.remove('show'); return; } acBox.innerHTML = d.suggestions.map(s => { const sp = esc(s.path).replace(/'/g, "\\'"); return `<div class="ac-item" data-path="${esc(s.path)}" onmousedown="event.preventDefault();selectCompletion('${sp}')"><span>${esc(s.path)}</span>${s.hasEvomesh?'<span class="ac-badge">evomesh</span>':''}</div>`; }).join(''); acBox.classList.add('show'); acIndex=-1; } catch { acBox.classList.remove('show'); } }
+async function fetchCompletions(q) { try { const r = await authFetch(`${API}/complete-path?q=${encodeURIComponent(q)}`); const d = await r.json(); if (!d.suggestions.length) { acBox.classList.remove('show'); return; } acBox.innerHTML = d.suggestions.map(s => `<div class="ac-item" data-path="${esc(s.path)}"><span>${esc(s.path)}</span>${s.hasEvomesh?'<span class="ac-badge">evomesh</span>':''}</div>`).join(''); acBox.querySelectorAll('.ac-item').forEach(item => { item.addEventListener('mousedown', e => { e.preventDefault(); selectCompletion(item.dataset.path); }); }); acBox.classList.add('show'); acIndex=-1; } catch { acBox.classList.remove('show'); } }
 function selectCompletion(p) { addInput.value = p; acBox.classList.remove('show'); acIndex=-1; addInput.focus(); clearTimeout(acTimer); acTimer = setTimeout(() => fetchCompletions(p), 150); }
 
 // ==================== Chat / Feed ====================

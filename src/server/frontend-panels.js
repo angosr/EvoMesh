@@ -13,7 +13,8 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
-  overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${esc(key)}')">Reconnect</button>`;
+  overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn">Reconnect</button>`;
+  overlay.querySelector('.reconnect-btn').addEventListener('click', () => reconnectPanel(key));
   const toolbar = document.createElement('div');
   toolbar.className = 'term-toolbar';
   const btns = [

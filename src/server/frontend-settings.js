@@ -65,10 +65,16 @@ async function loadUsers() {
         <td><span class="role-badge ${u.role}">${esc(u.role)}</span></td>
         <td style="color:#888;font-size:11px">${new Date(u.createdAt).toLocaleDateString()}</td>
         <td class="actions">
-          <button class="act-btn" onclick="resetUserPassword('${esc(u.username).replace(/'/g, "\\'")}')">Reset PW</button>
-          ${u.username !== currentUser ? `<button class="act-btn del" onclick="deleteUser('${esc(u.username).replace(/'/g, "\\'")}')">Delete</button>` : ''}
+          <button class="act-btn" data-action="reset-pw" data-username="${esc(u.username)}">Reset PW</button>
+          ${u.username !== currentUser ? `<button class="act-btn del" data-action="delete-user" data-username="${esc(u.username)}">Delete</button>` : ''}
         </td>
       </tr>`).join('');
+    tbody.querySelectorAll('[data-action="reset-pw"]').forEach(btn => {
+      btn.addEventListener('click', () => resetUserPassword(btn.dataset.username));
+    });
+    tbody.querySelectorAll('[data-action="delete-user"]').forEach(btn => {
+      btn.addEventListener('click', () => deleteUser(btn.dataset.username));
+    });
   } catch {}
 }
 
