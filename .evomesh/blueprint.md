@@ -1,60 +1,33 @@
-# EvoMesh — 战略蓝图
+# EvoMesh — Strategic Blueprint
 
-> 本文件仅由 Lead 角色维护，其他角色只读。
+> Maintained by Lead role. All roles read-only. Updated each loop.
 
-## 项目愿景
+## Vision
+EvoMesh is a self-evolving multi-role orchestrator. Its core goal: **make human-AI and AI-AI collaboration maximally efficient**.
 
-基于 Claude Code 的多角色自演进开发框架。不构建新 Agent，复用 Claude Code 原生能力，提供结构化角色模板、自演进协议和 Web 操作界面。
+The system centers around a **Central AI** — the user's super brain — that monitors all projects, coordinates all roles, and eventually achieves self-bootstrapping (the system improves itself).
 
-## 技术路线
+## Architecture
+- **Central AI**: User's interface to everything. Runs in its own container, has full HOME access.
+- **Roles**: Each runs in a Docker container (ttyd + tmux + claude). Lead, Executor, Reviewer, etc.
+- **Web UI**: Visualization layer. Left=project tree+tabs, Right=Central AI notifications, Main=terminals/dashboard.
+- **Templates**: Document-based role templates in `~/.evomesh/templates/`. Central AI references them to create new roles.
 
-### Phase 1 — CLI + 模板 (MVP) ✅
-- [x] CLI: init / role create|list|delete / start|stop|status|attach / serve
-- [x] 3 个内置模板: lead, executor, reviewer（中英双语）
-- [x] 进程管理: tmux + node-pty spawn + PID registry
-- [x] 多账号支持 (CLAUDE_CONFIG_DIR)
-- [x] 自举
+## Current Phase: Foundation
+Building core infrastructure — Docker containers, Central AI, Web UI, role management.
 
-### Phase 2 — 协作 + 演进 ✅
-- [x] inbox 消息机制
-- [x] 自我审查协议实现（角色 ROLE.md 中定义）
-- [x] Lead 全角色审查
-- [x] devlog 规范
-- [x] 安全加固: P0 命令注入修复
-- [x] 单元测试（48 个: utils/config/registry/manager/auth）
-- [ ] 运行时配置校验 (zod) — 低优先，配置由 scaffold 生成
+## Roadmap
+1. ✅ Multi-project workspace with Web UI
+2. ✅ Docker container backend (replace tmux on host)
+3. ✅ Central AI design and initial implementation
+4. 🔄 Central AI fully operational with Loop
+5. ⬜ Self-bootstrapping: roles collaborate to improve the system
+6. ⬜ MCP standard protocol integration
+7. ⬜ Multi-user with Linux user isolation
+8. ⬜ Mobile app
 
-### Phase 3 — Web UI ✅
-- [x] 终端桥接 (ttyd + WebSocket) — 含 scrollback、touch 支持
-- [x] 密码认证 + 登录页 + session 管理
-- [x] 多用户管理系统（admin/viewer 角色，用户增删改查）
-- [x] Dashboard 面板布局（可调节三栏、标签页终端、角色状态）
-- [x] 移动端适配（touch 事件、tmux 触摸滚动、响应式布局）
-- [x] 多项目管理（workspace.yaml）
-- [x] Claude Code 会话自动恢复（--name + session ID）
-- [x] CI: GitHub Actions (tsc + test)
-
-### Phase 4 — 加固 ← 当前
-- [x] server/index.ts 拆分重构（index 242 + routes 359 + terminal 131）
-- [x] frontend.html 拆分（html 181 + css 294 + js 670）
-- [x] Settings 面板（替换 prompt() 弹窗）
-- [x] 移动端 tmux 触摸滚动
-- [ ] WebSocket 认证刷新
-- [ ] API 安全头 / 限流
-- [ ] Session 持久化（当前服务器重启丢失）
-- [ ] 审计日志
-
-### Phase 5 — 扩展 (planned)
-- [ ] 模板导入/导出
-- [ ] 演进可视化
-- [ ] npm 发布（当前需 npm link）
-- [ ] 插件系统
-
-## 架构决策
-
-1. 单包结构，TypeScript + Express + tmux
-2. 兼容 Claude Code 原生 .claude/ 结构
-3. 所有角色同分支同目录
-4. tmux 进程管理，foreground + background 模式
-5. 认证: PBKDF2-SHA512 + 内存 session，用户数据存 ~/.evomesh/users.yaml
-6. Web UI: HTML + CSS + JS 分离，Express 内联 serve（无前端构建依赖）
+## Key Decisions
+- File-based communication (inbox/, todo.md) — simple, git-trackable, no extra infrastructure
+- Docker containers per role — isolation, resource limits, persistence
+- tmux inside container — process survives browser disconnect
+- Central AI as hub — all operations through natural language
