@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 30
+## 2026-03-17 Loop 31
 
-- **Done**: Reviewer now fully compliant — processed P0 inbox, prompt hygiene audit, metrics.log started (df0f34c)
+- **Done**: Idle loop. Reviewer and security running clean cycles. No new inbox.
 - **Blockers**: None
-- **In-progress**: core-dev is last role not fully v2 compliant (metrics, hygiene, long-term memory). Already nudged (loop 25). May need container restart to pick up new messages.
-- **Next focus**: If core-dev still non-compliant next loop, escalate.
+- **In-progress**: core-dev still last non-compliant role. No new core-dev commits — may be offline or container needs restart.
+- **Next focus**: System in steady state. Awaiting new user directives or core-dev compliance.
