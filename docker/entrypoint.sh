@@ -69,6 +69,7 @@ gosu "$TARGET_USER" ttyd \
   --writable \
   -t fontSize=14 \
   -t scrollback=10000 \
+  -t scrollOnOutput=true \
   --port 7681 \
   -- /usr/local/bin/claude $CLAUDE_ARGS &
 TTYD_PID=$!
