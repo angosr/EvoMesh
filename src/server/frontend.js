@@ -126,8 +126,8 @@ function renderDashboard() {
 function openTerminal(slug, projectName, roleName, terminalPath) {
   const key = `${slug}/${roleName}`;
   if (state.openPanels[key]) { switchTo(key); return; }
-  if (!terminalPath) { alert(`No terminal for ${projectName}/${roleName}`); return; }
-  const authPath = terminalPath + (terminalPath.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(AUTH_TOKEN);
+  if (!terminalPath) { alert(`No terminal for ${projectName}/${roleName}. Is it running?`); return; }
+  const authPath = terminalPath;
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
   // Reconnect overlay (for mobile — no keyboard Enter)
