@@ -377,14 +377,7 @@ function renderSettings() {
   document.getElementById('pw-msg').className = 'settings-msg';
   document.getElementById('pw-msg').textContent = '';
 
-  // Update sidebar button
-  const settingsBtn = document.getElementById('settings-btn');
-  if (settingsBtn) {
-    settingsBtn.classList.toggle('active', state.activePanel === 'settings');
-    settingsBtn.style.background = state.activePanel === 'settings' ? '#1a1a2e' : '';
-    settingsBtn.style.color = state.activePanel === 'settings' ? '#e94560' : '#ccc';
-    settingsBtn.style.fontWeight = state.activePanel === 'settings' ? '600' : '';
-  }
+  // Sidebar button active state is handled by switchTo() via CSS class
 }
 
 async function doChangePassword() {
