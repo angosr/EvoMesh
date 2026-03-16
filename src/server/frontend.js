@@ -126,7 +126,11 @@ function renderDashboard() {
 function openTerminal(slug, projectName, roleName, terminalPath) {
   const key = `${slug}/${roleName}`;
   if (state.openPanels[key]) { switchTo(key); return; }
-  if (!terminalPath) { alert(`No terminal for ${projectName}/${roleName}. Is it running?`); return; }
+  if (!terminalPath) {
+    // Role not running — auto-start it
+    startAndOpenTerminal(slug, projectName, roleName);
+    return;
+  }
   const authPath = terminalPath;
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
@@ -159,6 +163,54 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     switchTo(key);
   }
   renderOpenTabs(); saveLayout();
+}
+
+async function startAndOpenTerminal(slug, projectName, roleName) {
+  const key = `${slug}/${roleName}`;
+  // Show loading panel
+  const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:#888">
+    <div style="font-size:24px" class="loading-spinner">&#9881;</div>
+    <div>Starting ${esc(projectName)}/${esc(roleName)}...</div>
+  </div>`;
+  document.getElementById('panels').appendChild(panel);
+  state.openPanels[key] = { panel, iframe: null, overlay: null, reconnectTimer: null };
+  if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
+  renderOpenTabs();
+  switchTo(key);
+
+  // Start the role
+  try {
+    const res = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) {
+      panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Failed to start: ${esc(data.error || 'unknown error')}</div>`;
+      return;
+    }
+    // Wait for terminal to become available, then reload
+    let retries = 0;
+    const check = setInterval(async () => {
+      retries++;
+      try {
+        const s = await (await authFetch(`${API}/projects/${slug}/status`)).json();
+        const role = s.roles?.find(r => r.name === roleName);
+        if (role?.terminal) {
+          clearInterval(check);
+          // Remove loading panel and open real terminal
+          panel.remove();
+          delete state.openPanels[key];
+          state.tabOrder = state.tabOrder.filter(k => k !== key);
+          openTerminal(slug, projectName, roleName, role.terminal);
+        }
+      } catch {}
+      if (retries > 30) {
+        clearInterval(check);
+        panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Timeout waiting for terminal. Try refreshing.</div>`;
+      }
+    }, 2000);
+  } catch (e) {
+    panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Error: ${esc(String(e))}</div>`;
+  }
 }
 
 function reconnectPanel(key) {
