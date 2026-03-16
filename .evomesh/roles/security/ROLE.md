@@ -3,7 +3,7 @@
 > **Loop interval**: 30m
 > **Scope**: Security audit, vulnerability discovery, hardcoded values, injection, auth bypass
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 

@@ -3,7 +3,7 @@
 > **Loop interval**: 20m
 > **Scope**: Strategic direction, documentation, role management, prompt optimization
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 

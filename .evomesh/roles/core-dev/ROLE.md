@@ -3,7 +3,7 @@
 > **Loop interval**: 10m
 > **Scope**: Backend, Docker containers, API, system architecture, core features
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 

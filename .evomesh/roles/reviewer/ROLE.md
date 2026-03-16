@@ -3,7 +3,7 @@
 > **Loop interval**: 20m
 > **Scope**: Code review, quality assurance, best practices
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 

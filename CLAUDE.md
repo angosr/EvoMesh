@@ -10,7 +10,7 @@ A self-evolving multi-role orchestrator for Claude Code. Enables multiple AI rol
 
 ## Key Rules
 - Read your role's ROLE.md for specific instructions
-- Follow `~/.evomesh/templates/base-protocol.md` for universal protocols
+- Follow `.evomesh/templates/base-protocol.md` for universal protocols
 - No hardcoded values (usernames, paths, ports) — use env vars or config
 - No `rm -rf`, `git push --force`, `git reset --hard`
 - Commit message format: `{type}({scope}): {description}`

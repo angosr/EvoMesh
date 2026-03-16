@@ -3,7 +3,7 @@
 > **Loop interval**: 30m
 > **Scope**: Papers, open-source projects, blogs, industry trends, competitive analysis
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 

@@ -3,7 +3,7 @@
 > **Loop interval**: 15m
 > **Scope**: Web UI, mobile responsiveness, interaction design, frontend skills
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 

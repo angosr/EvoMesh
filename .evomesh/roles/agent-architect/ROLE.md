@@ -3,7 +3,7 @@
 > **Loop interval**: 30m
 > **Scope**: Agent communication protocols, memory architecture, prompt design, collaboration efficiency
 
-> **Foundation**: Follow `~/.evomesh/templates/base-protocol.md` for all basic protocols.
+> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
 ---
 
