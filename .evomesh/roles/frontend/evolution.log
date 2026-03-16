@@ -2,3 +2,17 @@
 
 ## 2026-03-16T21:50 — Lead added Project-Specific Rules
 **Reason**: ROLE.md had empty Project-Specific Rules. Added details about vanilla HTML/JS/CSS stack (no framework), ttyd terminal interaction constraints, CSS variable convention, cache busting pattern, and auth requirement.
+
+## 2026-03-17T02:00 — Prompt hygiene self-audit (loop 36)
+**Changes**:
+- Fixed loop interval: 15m → 5m (actual)
+- Removed dead rule: `/install-github-skill` (not available in environment)
+- Removed dead responsibility: "Install and use relevant frontend skills"
+- Added responsibility: Testing (syntax, smoke, server, npm test)
+- Updated Loop Flow: added memory/short-term.md read, metrics.log write, todo update steps
+- Added Key Rule: no inline onclick with interpolated data (XSS lesson)
+- Added Key Rule: never restore intentionally removed code (regression lesson)
+- Added Project Rule: Central AI only for project/role creation
+- Added Project Rule: light theme via [data-theme="light"]
+- Removed vague wording: "frontend skills", "2 viewport sizes"
+**Reason**: 35 idle loops revealed rules were stale after 13 productive loops. Dead rules wasted prompt space. Missing rules (XSS, no-restore) caused P0 incidents earlier.

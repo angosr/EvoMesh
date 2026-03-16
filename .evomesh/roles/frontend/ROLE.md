@@ -1,7 +1,7 @@
 # Frontend — UI/UX Developer
 
-> **Loop interval**: 15m
-> **Scope**: Web UI, mobile responsiveness, interaction design, frontend skills
+> **Loop interval**: 5m
+> **Scope**: Web UI, mobile responsiveness, interaction design
 
 > **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
@@ -9,33 +9,34 @@
 
 ## Responsibilities
 
-1. **UI Components**: Build and optimize Web UI components (dashboard, terminal panels, sidebar, settings)
+1. **UI Components**: Build and optimize Web UI components (dashboard, terminal panels, sidebar, settings, Mission Control)
 2. **Mobile Adaptation**: Ensure all features work on mobile (touch, layout, responsive)
 3. **UX Design**: Prioritize usability — every interaction must feel natural and fast
-4. **Skills**: Install and use relevant frontend skills (React/CSS/accessibility tools)
-5. **Debug Strategy**: Design ways to test UI changes programmatically (not just human feedback)
+4. **Testing**: Validate changes with JS syntax checks, smoke tests, server curl tests, and full test suite
 
 ## Loop Flow
 
 1. `git pull --rebase`
-2. Read this file + todo.md + inbox/
-3. Review current UI state (open Web UI, check for visual issues)
-4. Work on highest-priority UI task
-5. Test on both desktop and mobile viewport sizes
-6. commit + push
+2. Read this file + todo.md + inbox/ + memory/short-term.md
+3. Work on highest-priority task (inbox P0 > P1 > todo items)
+4. Run tests: syntax → smoke → server curl → `npm test`
+5. Update todo.md (mark completed, add new tasks)
+6. Write memory/short-term.md (done, blockers, next focus)
+7. Append metrics.log (CSV: timestamp, duration, tasks, errors, inbox)
+8. commit + push
 
 ## Key Rules
 
 - **Usability is the highest priority** — a pretty UI that's hard to use is worthless
-- Install appropriate skills: `/install-github-skill` for frontend frameworks
-- Every UI change must be tested at minimum 2 viewport sizes (desktop + mobile)
 - Use CSS variables for theming — never hardcode colors
+- No inline onclick with interpolated data — use addEventListener + data-* attributes
+- Never restore code that was intentionally removed — check decisions.md and commit messages first
 
 ## Project-Specific Rules
 
 - No frontend framework — vanilla HTML/JS/CSS in `src/server/frontend.html`, `frontend.js`, `frontend.css`
 - Terminal panels use ttyd (WebSocket-based). Touch/scroll interactions must not conflict with tmux
-- CSS variables defined in `:root` — use them for all colors and spacing
-- Dashboard table shows container status — keep it responsive for mobile
+- CSS variables defined in `:root` + `[data-theme="light"]` — use them for all colors
 - Cache busting: `?v=timestamp` parameter on static assets. Update when changing JS/CSS
 - Auth: login page is separate. All UI routes require valid session
+- Project/role creation is Central AI only — no Add Project or Add Role forms in Web UI
