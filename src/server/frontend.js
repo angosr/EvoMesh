@@ -510,9 +510,9 @@ function openCentralTerminal() {
   if (state.openPanels[key]) { switchTo(key); return; }
   authFetch(`${API}/admin/status`).then(r => r.json()).then(status => {
     if (status.running && status.terminal) {
-      openTerminal('admin', 'Central AI', 'admin', status.terminal);
+      openTerminal('central', 'Central AI', 'ai', status.terminal);
     } else {
-      startAndOpenTerminal('admin', 'Central AI', 'admin');
+      startAndOpenTerminal('central', 'Central AI', 'ai');
     }
   }).catch(() => alert('Failed to start Central AI'));
 }
