@@ -571,8 +571,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     try {
-      const state = getContainerState("evomesh-admin");
-      const port = state === "running" ? getContainerPort("evomesh-admin") : null;
+      const state = getContainerState(`evomesh-${process.env.USER || "user"}-central`);
+      const port = state === "running" ? getContainerPort(`evomesh-${process.env.USER || "user"}-central`) : null;
       res.json({ running: state === "running", port, terminal: state === "running" ? "/terminal/admin/admin/" : null });
     } catch { res.json({ running: false, port: null, terminal: null }); }
   });
@@ -584,7 +584,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const homeDir = os.homedir();
       const adminPort = ctx.port + 100; // Use high offset to avoid collision
       // Remove old container
-      try { execFileSync("docker", ["rm", "-f", "evomesh-admin"], { stdio: ["pipe","pipe","ignore"] }); } catch {}
+      try { execFileSync("docker", ["rm", "-f", `evomesh-${process.env.USER || "user"}-central`], { stdio: ["pipe","pipe","ignore"] }); } catch {}
 
       // Ensure central AI has its own claude config dir
       const centralConfigDir = path.join(homeDir, ".claude-central");
@@ -605,7 +605,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       // Start central AI container — mount entire HOME, host network
       const args = [
         "run", "-d",
-        "--name", "evomesh-admin",
+        "--name", `evomesh-${process.env.USER || "user"}-central`,
         "--network", "host",
         "-v", `${homeDir}:${homeDir}:rw`,
         "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
@@ -653,8 +653,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         `---\nfrom: user\npriority: high\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
 
       // Also try to send directly to central AI's tmux if running
-      const cname = "evomesh-admin";
-      const user = process.env.USER || "claudeuser";
+      const cname = `evomesh-${process.env.USER || "user"}-central`;
+      const user = process.env.USER || "user";
       try {
         execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "-l",
           `[User Command] ${message.trim()}`], { stdio: "ignore" });
@@ -673,7 +673,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     const { direction, lines } = req.body;
     if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
     const cname = `evomesh-${slugify(path.basename(project.root))}-${req.params.name}`;
-    const user = process.env.USER || "claudeuser";
+    const user = process.env.USER || "user";
     try {
       if (direction === "esc") {
         // Exit copy-mode: send 'q'
