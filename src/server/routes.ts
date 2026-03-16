@@ -451,13 +451,11 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "q"], { stdio: "ignore" });
       } else {
         const n = Math.min(Math.max(parseInt(lines) || 3, 1), 20);
-        if (direction === "up") {
-          execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "copy-mode", "-t", "claude"], { stdio: "ignore" });
-        }
         const cmd = direction === "up" ? "scroll-up" : "scroll-down";
-        for (let i = 0; i < n; i++) {
-          execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "-X", cmd], { stdio: "ignore" });
-        }
+        // Batch: enter copy-mode + scroll N times in a single shell command
+        const tmuxCmds = direction === "up" ? `tmux copy-mode -t claude 2>/dev/null; ` : "";
+        const scrollCmds = Array(n).fill(`tmux send-keys -t claude -X ${cmd}`).join("; ");
+        execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c", tmuxCmds + scrollCmds], { stdio: "ignore" });
       }
       res.json({ ok: true });
     } catch { res.status(500).json({ error: "Failed" }); }

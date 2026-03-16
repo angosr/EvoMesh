@@ -162,19 +162,39 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   // Reconnect overlay (for mobile — no keyboard Enter)
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
   overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn" onclick="reconnectPanel('${esc(key)}')">Reconnect</button>`;
-  // Terminal toolbar with quick-action buttons
+  // Terminal toolbar — long-press repeats, touch-friendly
   const toolbar = document.createElement('div');
   toolbar.className = 'term-toolbar';
-  toolbar.innerHTML = [
-    ['↑3', 'up', 3],
-    ['PgUp', 'up', 20],
-    ['PgDn', 'down', 20],
-    ['↓3', 'down', 3],
+  const btns = [
+    ['▲', 'up', 5],
+    ['⇞', 'up', 20],
+    ['⇟', 'down', 20],
+    ['▼', 'down', 5],
     ['Esc', 'esc', 0],
-    ['Copy', 'copy', 0],
-  ].map(([label, action, lines]) =>
-    `<button onclick="event.stopPropagation();termAction('${key}','${action}',${lines})" title="${label}">${label}</button>`
-  ).join('');
+    ['📋', 'copy', 0],
+  ];
+  for (const [label, action, lines] of btns) {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.title = label;
+    let holdTimer = null;
+    const fire = () => termAction(key, action, lines);
+    const startHold = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      fire();
+      if (action === 'up' || action === 'down') {
+        holdTimer = setInterval(fire, 120); // repeat every 120ms while held
+      }
+    };
+    const stopHold = () => { if (holdTimer) { clearInterval(holdTimer); holdTimer = null; } };
+    btn.addEventListener('mousedown', startHold);
+    btn.addEventListener('mouseup', stopHold);
+    btn.addEventListener('mouseleave', stopHold);
+    btn.addEventListener('touchstart', startHold, { passive: false });
+    btn.addEventListener('touchend', stopHold);
+    btn.addEventListener('touchcancel', stopHold);
+    toolbar.appendChild(btn);
+  }
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   // Auto-detect disconnection
