@@ -106,7 +106,40 @@ EvoMesh 的核心不是 Web UI，不是容器管理，而是**中枢 AI**（Cent
 - 中枢 AI 自己的日志和状态文件：跟随用户语言
 - 模板文档：中英双语都提供（`~/.evomesh/templates/` 下 `*.md` 和 `*-en.md`）
 
-## 四、硬性规则
+## 四、Skill 自动集成
+
+每个角色应自动安装与其领域最匹配的 Skill（Claude Code 的 `/install-github-skill` 机制）。
+
+### 机制
+1. 角色 ROLE.md 中有 `skills:` 字段列出推荐的 skill
+2. 中枢 AI 创建角色时，根据角色类型自动推荐 skill
+3. 角色容器启动后，entrypoint 自动安装 skill（从 GitHub 或本地）
+4. 角色在自我演进中可以发现并安装新的有用 skill
+
+### Skill 来源
+- Claude Code 官方 skill（`/skill` 命令列出的）
+- GitHub 上的社区 skill（通过 `/install-github-skill owner/repo`）
+- 本地自定义 skill（存在 `~/.evomesh/skills/` 或角色的 `skills/` 目录）
+
+### 示例
+- **前端角色**：安装 React/Vue/CSS 相关 skill
+- **后端角色**：安装 API 设计、数据库、测试 skill
+- **量化交易角色**：安装数据分析、回测框架 skill
+- **审计角色**：安装安全扫描、代码审查 skill
+
+### Skill 存储
+```
+.evomesh/roles/{name}/skills/    # 角色级 skill（随角色走）
+~/.evomesh/skills/               # 全局 skill（所有角色可用）
+```
+
+### 自动发现
+中枢 AI 在 Loop 中可以：
+- 搜索 GitHub 上与角色领域相关的热门 skill
+- 建议角色安装新发现的 skill
+- 跟踪 skill 使用效果（是否真的提升了效率）
+
+## 五、硬性规则
 1. 不得删除用户数据
 2. 创建/删除角色需确认
 3. 修改提示词需记录原因
@@ -163,14 +196,40 @@ EvoMesh 的核心不是 Web UI，不是容器管理，而是**中枢 AI**（Cent
 
 ## 5. 中枢 AI 的容器与配置
 
-中枢 AI 容器挂载整个 `~/` 目录，与宿主机完全一致的文件视图：
+### 管理员中枢 AI（启动 Web 服务的用户）
+使用 `--network host` 模式，可以：
+- 启停 Web 服务（绑定端口）
+- 管理所有用户的容器
+- 访问宿主机的所有网络端口
+
 ```
-docker run ...
+docker run --network host ...
   -v /home/{user}:/home/{user}:rw     # 整个 HOME
   -v /var/run/docker.sock:/var/run/docker.sock:rw  # Docker 管理
   --user {uid}:{gid}                   # 同宿主机用户
   -w /home/{user}                      # 工作目录 = HOME
 ```
+
+### 普通用户中枢 AI
+使用默认 bridge 网络，只能：
+- 管理自己的角色容器
+- 访问自己的 HOME 目录
+- **不能**启停 Web 服务或访问其他用户的文件
+
+```
+docker run ...
+  -v /home/{user}:/home/{user}:rw     # 只挂载自己的 HOME
+  -v /var/run/docker.sock:/var/run/docker.sock:rw  # Docker（通过容器名隔离）
+  --user {uid}:{gid}
+  -w /home/{user}
+```
+
+### 多用户隔离
+- 每个 Linux 用户有自己的中枢 AI 容器：`evomesh-central-{username}`
+- 中枢 AI 只挂载自己用户的 HOME → 文件隔离
+- Docker 容器命名含用户名前缀 → 不同用户的角色容器互不干扰
+- 只有启动 Web 服务的用户（管理员）的中枢 AI 有 host 网络权限
+- 权限通过 Linux user UID/GID 机制自然隔离（容器内 `--user` 匹配宿主机用户）
 
 中枢 AI 的提示词和规则存储在：
 
