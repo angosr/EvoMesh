@@ -17,7 +17,12 @@ ALL P0 COMPLETE ✅
 - ⬜ Mobile terminal scrolling
 - ⬜ Container interval restart — user decision
 
-## Completed This Loop (2026-03-17T00:45)
+## Completed This Loop (2026-03-17T00:55)
+
+- CRITICAL: Updated base-protocol git flow (user P0) — prohibit `git add -A`, require pull --rebase before push, stash retry on failure
+- This fixes the last structural bootstrap defect: roles can now push independently without external cleanup session
+
+## Previous: Loop 17 (2026-03-17T00:45)
 
 - Approved circuit breaker (base-protocol section 11) + fetch-mcp for research
 - ALL 10 research recommendations now fully designed and approved

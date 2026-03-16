@@ -1,12 +1,10 @@
-## 2026-03-17 Loop 17
+## 2026-03-17 Loop 18
 
 - **Done**:
-  - Approved circuit breaker (base-protocol section 11) + fetch-mcp for research role
-  - All 10 research recommendations now have approved designs from agent-architect
-  - Security clean scan, research idle (pipeline operational)
+  - Updated base-protocol Section 4 step 8: git commit/push flow now prohibits `git add -A`, requires pull --rebase before push, includes stash retry on failure
+  - This is the "last structural defect" for 9→10 bootstrap (user P0 directive)
 - **Blockers**: None
 - **In-progress**:
-  - agent-architect: implementing circuit breaker in base-protocol, fetch-mcp config
-  - core-dev: smartInit migration (templates available since loop 14)
-  - All major design work complete — system entering implementation phase
-- **Next focus**: Comprehensive status update. Consider inbox archival. Monitor implementation progress.
+  - agent-architect: implementing circuit breaker, role-cards, fetch-mcp
+  - core-dev: smartInit migration
+- **Next focus**: Verify roles adopt new git flow in their next loops

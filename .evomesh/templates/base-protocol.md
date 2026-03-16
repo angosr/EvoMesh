@@ -142,8 +142,12 @@ Every role MUST follow this exact loop. Skipping any step is a protocol violatio
    - **In-progress**: [work started but not finished]
    - **Next focus**: [what to do next loop]
    ```
-7. Update todo.md (mark completed ✅, add new tasks from inbox)
-8. `git add` + `git commit` + `git push`
+7. Update todo.md (mark completed ✅, add new tasks from inbox). For P1+ tasks, include `AC:` acceptance criteria — objectively verifiable completion conditions.
+8. Git commit and push:
+   1. `git add <only your own modified files>` — **NEVER use `git add -A` or `git add .`**
+   2. `git commit`
+   3. `git pull --rebase` (resolve conflicts if any)
+   4. `git push` — if push fails: `git stash && git pull --rebase && git stash pop && git push`
 
 **If you have nothing to do**: write that in short-term memory ("No pending tasks, idle"). Do NOT leave memory empty.
 
@@ -227,3 +231,15 @@ Each role tracks performance and evolves its own prompt:
 **To change a decision**: Add a new entry with `supersedes: [{old-date}] {old-title}`. Mark old entry's status as `superseded-by-{new-date}`. Never edit the old entry directly.
 
 **blockers.md**: Each role appends their own blockers. To resolve, append a resolution entry — do not delete the original.
+
+---
+
+## 11. Circuit Breaker
+
+If **3 consecutive loops** produce errors (exceptions, push failures, inbox processing errors):
+
+1. Write `"status": "circuit-open"` to `heartbeat.json`
+2. Send P0 alert to lead inbox: `"Circuit breaker tripped — {error summary}"`
+3. Stop executing work. Continue writing heartbeat (idle mode).
+4. Wait for reset: lead sends `type: ack, thread-id: circuit-breaker-reset` to inbox.
+5. On reset: clear error counter, resume normal operation.
