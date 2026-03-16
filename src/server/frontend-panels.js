@@ -9,7 +9,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     startAndOpenTerminal(slug, projectName, roleName);
     return;
   }
-  const authPath = terminalPath;
+  const authPath = terminalPath + (terminalPath.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(AUTH_TOKEN);
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
   const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
   const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
