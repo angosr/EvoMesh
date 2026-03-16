@@ -104,6 +104,8 @@ export function startServer(port: number, initialRoot?: string) {
     if (req.path === "/login" || req.path === "/") return next();
     // Allow static assets (CSS, JS) without auth
     if (req.path.endsWith(".css") || req.path.endsWith(".js") || req.path.endsWith(".ico")) return next();
+    // Terminal proxy handles its own auth via token query param
+    if (req.path.startsWith("/terminal/")) return next();
     const session = getSession(req);
     if (!session) { return res.status(401).json({ error: "Not authenticated" }); }
     if (session.role === "viewer" && req.method !== "GET") {
@@ -231,6 +233,7 @@ export function startServer(port: number, initialRoot?: string) {
   app.get("/app.js", (_req, res) => {
     const p = resolveAsset("frontend.js");
     if (!p) { res.status(404).send("Not found"); return; }
+    res.set("Cache-Control", "no-store");
     res.type("js").sendFile(path.resolve(p));
   });
 
