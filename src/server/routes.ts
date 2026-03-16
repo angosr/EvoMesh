@@ -70,7 +70,7 @@ function ensureAclMigration(ctx: ServerContext): void {
 export function registerRoutes(app: import("express").Express, ctx: ServerContext): void {
 
   // Run ACL migration on startup
-  ensureAclMigration(ctx);
+  try { ensureAclMigration(ctx); } catch {}
 
   // --- Projects ---
 

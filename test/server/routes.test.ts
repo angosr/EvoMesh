@@ -44,9 +44,14 @@ function createMockCtx(projects: ProjectEntry[] = []): ServerContext {
   };
 }
 
-async function startTestServer(ctx: ServerContext): Promise<{ baseUrl: string; server: http.Server }> {
+async function startTestServer(ctx: ServerContext, sessionRole: "admin" | "user" = "admin"): Promise<{ baseUrl: string; server: http.Server }> {
   const app = express();
   app.use(express.json());
+  // Inject mock session (simulates auth middleware)
+  app.use((req, _res, next) => {
+    (req as any)._session = { username: "testadmin", role: sessionRole };
+    next();
+  });
   registerRoutes(app, ctx);
   const server = http.createServer(app);
   await new Promise<void>(resolve => server.listen(0, resolve));
