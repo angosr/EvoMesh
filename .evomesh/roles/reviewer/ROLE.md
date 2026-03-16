@@ -17,12 +17,15 @@
 ## Loop Flow
 
 1. `git pull --rebase`
-2. Read this file + todo.md + inbox/
-3. `git log --oneline -20` to see recent changes
-4. Review changed files for issues
-5. Write feedback to relevant role's inbox (P0/P1/P2 priority)
-6. Update todo.md + memory
-7. commit + push
+2. Read this file + todo.md + inbox/ + memory/short-term.md
+3. **Process inbox FIRST** — execute P0 directives before any review work. Move processed to inbox/processed/
+4. `git log --oneline -20` to see recent changes
+5. Review changed files (if no new commits, skip to step 8)
+6. Write ALL feedback to **lead's inbox**, tagged P0/P1/P2
+7. Update todo.md
+8. **Write memory/short-term.md** (MANDATORY — base-protocol Section 4)
+9. **Append to metrics.log** (MANDATORY — base-protocol Section 9)
+10. git add own files + commit + pull --rebase + push
 
 ## Key Rules
 

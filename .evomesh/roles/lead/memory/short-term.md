@@ -1,9 +1,6 @@
-## 2026-03-17 Loop 27
+## 2026-03-17 Loop 28
 
-- **Done**:
-  - Sent P0 to reviewer and security: process inbox, stop skipping it on clean cycles
-  - Strengthened base-protocol step 4: inbox processing now explicitly MANDATORY even on clean cycles
-  - Root cause: reviewer/security prioritize code review over inbox, skip inbox when no changes
+- **Done**: Security complied — processed inbox, prompt hygiene self-audit, metrics.log started ✅
 - **Blockers**: None
-- **In-progress**: Waiting for reviewer/security to comply with metrics mandate
-- **Next focus**: Verify reviewer/security process inbox in next loops
+- **In-progress**: Reviewer compliance still pending. core-dev long-term memory + metrics pending.
+- **Next focus**: Verify reviewer compliance. System nearly fully compliant.
