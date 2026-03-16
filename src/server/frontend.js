@@ -732,6 +732,95 @@ const origInitResize = initResize;
 
 
 
+// ==================== Terminal scroll + copy ====================
+(function() {
+  const panels = document.getElementById('panels');
+  if (!panels) return;
+  let lastScroll = 0;
+  const THROTTLE = 50;
+
+  function doScroll(direction, lines) {
+    const now = Date.now();
+    if (now - lastScroll < THROTTLE) return;
+    lastScroll = now;
+    const key = state.activePanel;
+    if (!key || key === 'dashboard' || key === 'settings') return;
+    const parts = key.split('/');
+    if (parts.length !== 2) return;
+    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction, lines }),
+    }).catch(() => {});
+  }
+
+  // Desktop: scroll wheel
+  panels.addEventListener('wheel', e => {
+    if (!state.openPanels[state.activePanel]) return;
+    e.preventDefault();
+    doScroll(e.deltaY > 0 ? 'down' : 'up', 3);
+  }, { passive: false });
+
+  // Mobile: touch scroll + long-press copy
+  let touchStartY = 0, touchStartTime = 0, touchMoved = false;
+
+  panels.addEventListener('touchstart', e => {
+    if (!state.openPanels[state.activePanel]) return;
+    if (e.touches.length === 1) {
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+      touchMoved = false;
+    }
+  }, { passive: true });
+
+  panels.addEventListener('touchmove', e => {
+    if (!state.openPanels[state.activePanel]) return;
+    if (e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - touchStartY;
+    if (Math.abs(dy) > 10) {
+      touchMoved = true;
+      const lines = Math.min(Math.ceil(Math.abs(dy) / 8), 15);
+      doScroll(dy > 0 ? 'up' : 'down', lines);
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  panels.addEventListener('touchend', e => {
+    if (!state.openPanels[state.activePanel]) return;
+    const duration = Date.now() - touchStartTime;
+    // Long press (>500ms) without movement → show copy dialog
+    if (!touchMoved && duration > 500) {
+      showCopyDialog();
+    }
+  });
+})();
+
+// Copy dialog: fetch terminal content as plain text for easy copy
+async function showCopyDialog() {
+  const key = state.activePanel;
+  if (!key) return;
+  const parts = key.split('/');
+  if (parts.length !== 2) return;
+  try {
+    const res = await authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/log`);
+    const text = await res.text();
+    // Strip ANSI codes
+    const clean = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[^\x20-\x7e\n\r\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '');
+    const last500 = clean.split('\n').slice(-100).join('\n');
+    // Show modal with selectable text
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML = `<div style="background:#111;border:1px solid #333;border-radius:8px;padding:16px;max-width:90vw;max-height:80vh;overflow:auto;width:600px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:#e94560;font-size:13px;font-weight:600">Terminal Output (select to copy)</span>
+        <button onclick="this.closest('div').parentElement.remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:16px">&times;</button>
+      </div>
+      <pre style="color:#ccc;font-size:11px;line-height:1.4;white-space:pre-wrap;word-break:break-all;user-select:text;-webkit-user-select:text">${last500.replace(/</g,'&lt;')}</pre>
+    </div>`;
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  } catch {}
+}
+
 // ==================== Init ====================
 (async () => {
   // Validate auth before starting the app

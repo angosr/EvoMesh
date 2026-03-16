@@ -70,9 +70,9 @@ echo "[evomesh] Starting as $TARGET_USER (uid=$TARGET_UID)..."
 gosu "$TARGET_USER" tmux new-session -d -s claude -x 120 -y 40 \
   "/usr/local/bin/claude $CLAUDE_ARGS; exec bash"
 
-# tmux mouse ON: native scroll wheel + touch scroll (zero latency)
-# Desktop text selection: Shift+click to bypass tmux
-gosu "$TARGET_USER" tmux set-option -t claude mouse on 2>/dev/null || true
+# tmux mouse OFF: allows text selection + long-press copy on mobile
+# Scroll: desktop wheel via xterm.js, mobile touch via API scroll endpoint
+gosu "$TARGET_USER" tmux set-option -t claude mouse off 2>/dev/null || true
 
 # ttyd attaches to tmux session (browser disconnect won't kill claude)
 gosu "$TARGET_USER" ttyd \
