@@ -187,7 +187,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.post("/api/projects/:slug/roles/:name/start", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
@@ -207,7 +207,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.post("/api/projects/:slug/roles/:name/stop", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     stopRole(project.root, req.params.name);
     ctx.ttydProcesses.delete(`${project.slug}/${req.params.name}`);
@@ -216,7 +216,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.post("/api/projects/:slug/roles/:name/restart", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
@@ -244,7 +244,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.get("/api/projects/:slug/roles/:name/log", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "viewer")) return;
     const logs = getRoleLogs(project.root, req.params.name);
     res.type("text").send(logs);
@@ -273,7 +273,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.delete("/api/projects/:slug/roles/:name", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
@@ -290,7 +290,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.post("/api/projects/:slug/roles/:name/config", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
@@ -323,7 +323,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   app.post("/api/projects/:slug/roles/:name/account", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
     try {
@@ -596,10 +596,10 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   // --- Scroll: tmux copy-mode scroll via docker exec ---
   app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
     const project = ctx.getProject(req.params.slug);
-    if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).send("Invalid"); return; }
+    if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
-    if (!["up", "down", "esc"].includes(direction)) { res.status(400).send("Bad direction"); return; }
+    if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
     const cname = `evomesh-${slugify(path.basename(project.root))}-${req.params.name}`;
     const user = process.env.USER || "claudeuser";
     try {
