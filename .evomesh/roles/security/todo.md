@@ -29,7 +29,7 @@
 - [ ] SEC-007: Add session expiry/rotation
 - [ ] SEC-008: Add login rate limiting
 - [ ] SEC-009: Move token from localStorage to httpOnly cookie
-- [ ] SEC-013: Remove dead /api/complete-path endpoint (path traversal) → sent to core-dev
+- [x] SEC-013: Remove dead /api/complete-path endpoint → FIXED (endpoint removed)
 
 ## P2 — Fixed/Closed
 
