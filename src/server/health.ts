@@ -23,6 +23,54 @@ const NUDGE_COOLDOWN = 5 * 60 * 1000;
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
 
+// --- Desired state persistence: which roles SHOULD be running ---
+const DESIRED_STATE_FILE = path.join(os.homedir(), ".evomesh", "running-roles.json");
+
+function loadDesiredState(): Record<string, boolean> {
+  try {
+    if (fs.existsSync(DESIRED_STATE_FILE)) return JSON.parse(fs.readFileSync(DESIRED_STATE_FILE, "utf-8"));
+  } catch {}
+  return {};
+}
+
+function saveDesiredState(state: Record<string, boolean>): void {
+  try { fs.writeFileSync(DESIRED_STATE_FILE, JSON.stringify(state, null, 2), "utf-8"); } catch {}
+}
+
+export function markRoleRunning(key: string): void {
+  const state = loadDesiredState();
+  state[key] = true;
+  saveDesiredState(state);
+}
+
+export function markRoleStopped(key: string): void {
+  const state = loadDesiredState();
+  delete state[key];
+  saveDesiredState(state);
+}
+
+/** On server startup, restart all roles that were running before restart. */
+export function restoreDesiredRoles(ctx: ServerContext): void {
+  const desired = loadDesiredState();
+  for (const [key, shouldRun] of Object.entries(desired)) {
+    if (!shouldRun) continue;
+    const [slug, roleName] = key.split("/");
+    if (!slug || !roleName) continue;
+    const project = ctx.getProject(slug);
+    if (!project) continue;
+    try {
+      const config = loadConfig(project.root);
+      const rc = config.roles[roleName];
+      if (!rc) continue;
+      if (isRoleRunning(project.root, roleName)) continue; // already running
+      const ttydPort = allocatePort(ctx);
+      startRole(project.root, roleName, rc, config, ttydPort);
+      ctx.ttydProcesses.set(key, { port: ttydPort, roleName, projectSlug: slug });
+      console.log(`[restore] Started ${roleName} in ${project.name} (port ${ttydPort})`);
+    } catch (e) { console.error(`[restore] Failed to start ${roleName}:`, e); }
+  }
+}
+
 export function writeRegistry(ctx: ServerContext, port: number): void {
   try {
     const projects = ctx.getProjects();

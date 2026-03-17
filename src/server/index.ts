@@ -13,7 +13,7 @@ import { roleDir } from "../utils/paths.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
-import { writeRegistry, autoRestartCrashed, verifyLoopCompliance, statsCache } from "./health.js";
+import { writeRegistry, autoRestartCrashed, verifyLoopCompliance, statsCache, restoreDesiredRoles, markRoleRunning, markRoleStopped } from "./health.js";
 import type { TtydProcess } from "./terminal.js";
 import { registerRoutes, allocatePort } from "./routes.js";
 import { bootstrapGlobalConfig } from "../workspace/bootstrap.js";
@@ -312,6 +312,7 @@ export function startServer(port: number, initialRoot?: string) {
   (ctx as any).statsCache = statsCache;
 
   // --- Start ---
+  restoreDesiredRoles(ctx);  // Restart roles that were running before server restart
   ensureTtydRunning(ctx);
   setInterval(() => ensureTtydRunning(ctx), 10000);
   writeRegistry(ctx, port);

@@ -11,6 +11,7 @@ import {
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
 import { ROLE_NAME_RE, requireProjectRole, allocatePort } from "./routes.js";
+import { markRoleRunning, markRoleStopped } from "./health.js";
 
 export function registerRoleRoutes(app: import("express").Express, ctx: ServerContext): void {
 
@@ -31,6 +32,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
 
       const result = startRole(project.root, roleName, rc, config, ttydPort);
       ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
+      markRoleRunning(`${project.slug}/${roleName}`);
       res.json({ ok: true, ...result });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
@@ -40,6 +42,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     stopRole(project.root, req.params.name);
+    markRoleStopped(`${project.slug}/${req.params.name}`);
     // Mark as user-stopped so auto-restart doesn't revive it
     const key = `${project.slug}/${req.params.name}`;
     const entry = ctx.ttydProcesses.get(key);
