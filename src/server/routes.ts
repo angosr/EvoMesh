@@ -202,11 +202,24 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         const key = `${project.slug}/${name}`;
         const ttyd = ctx.ttydProcesses.get(key);
         const accountDir = expandHome(config.accounts[rc.account] || "~/.claude");
+        let actualMem: string | null = null, actualCpu: string | null = null;
+        if (running) {
+          try {
+            const cname = `evomesh-${slugify(path.basename(project.root))}-${name}`;
+            const stats = execFileSync("docker", [
+              "stats", "--no-stream", "--format", "{{.MemUsage}}|{{.CPUPerc}}", cname,
+            ], { encoding: "utf-8", timeout: 5000 }).trim();
+            const parts = stats.split("|");
+            actualMem = parts[0]?.split("/")[0]?.trim() || null;
+            actualCpu = parts[1]?.trim() || null;
+          } catch {}
+        }
         return {
           name, type: rc.type, loop_interval: rc.loop_interval, description: rc.description,
           running, terminal: ttyd ? `/terminal/${project.slug}/${name}/` : null,
           account: rc.account, needsLogin: ctx.checkNeedsLogin(accountDir),
           memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
+          actualMem, actualCpu,
         };
       });
       const session = (req as any)._session as SessionInfo | undefined;
