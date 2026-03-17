@@ -4,24 +4,27 @@
 
 ALL P0 COMPLETE ✅
 
-## P1 — Active
+## P1 — Blocked
 
 - ⬜ Multi-user FINAL security review — BLOCKED (security offline)
 
-## P2 — Completed
+## P2 — All Online Backlog Cleared ✅
 
-- ✅ ~~AGENTS.md auto-generate~~ DONE by core-dev
-- ✅ ~~frontend.js file split~~ DONE (00674e2: 372+174)
-- ✅ ~~Self-healing audit~~ DONE by agent-architect — NO BUGS FOUND
-- ✅ ~~Mobile touch targets~~ DONE by frontend (aef3341)
+- ✅ ~~routes.ts split~~ DONE (a872763: 499→366+144)
+- ✅ ~~AGENTS.md auto-generate~~ DONE
+- ✅ ~~frontend.js split~~ DONE (372+174)
+- ✅ ~~Self-healing audit~~ DONE — no bugs
+- ✅ ~~Mobile touch targets~~ DONE (≥44px)
+- ✅ ~~SEC-018/019~~ DONE
+- ✅ ~~health.ts refactor~~ DONE
 
-## P2 — Remaining
+## P2 — Remaining (blocked/low)
 
 - ⬜ MS Agent Framework GA — STUCK (research offline)
-- ⬜ Account concentration risk
-- ⬜ SEC-023: latent path traversal (low risk)
+- ⬜ Account concentration risk — low priority
+- ⬜ SEC-023: latent path traversal — low risk, not exploitable
 
-## Completed This Loop (2026-03-18 — Loop 165)
+## Completed This Loop (2026-03-18 — Loop 170)
 
-- Self-healing audit: clean — architecture sound, no bugs
-- System in maintenance mode — all major work delivered
+- routes.ts split committed ✅
+- All online role P2 backlog exhausted — system in maintenance mode
