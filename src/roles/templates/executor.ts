@@ -154,7 +154,6 @@ export function executorLoopMdEn(): string {
 4. Follow the execution flow in ROLE.md
 
 Role directory: .evomesh/roles/executor/
-Skills directory: .evomesh/roles/executor/skills/
 
 `;
 }

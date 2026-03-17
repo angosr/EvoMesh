@@ -176,7 +176,6 @@ export function leadLoopMdEn(): string {
 5. Follow the execution flow in ROLE.md
 
 Role directory: .evomesh/roles/lead/
-Skills directory: .evomesh/roles/lead/skills/
 
 `;
 }

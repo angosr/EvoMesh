@@ -138,7 +138,6 @@ export function reviewerLoopMdEn(): string {
 4. Follow the execution flow in ROLE.md
 
 Role directory: .evomesh/roles/reviewer/
-Skills directory: .evomesh/roles/reviewer/skills/
 
 `;
 }

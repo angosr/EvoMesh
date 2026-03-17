@@ -26,7 +26,6 @@ export function createRole(
   ensureDir(dir);
   ensureDir(path.join(dir, "inbox", "processed"));
   ensureDir(path.join(dir, "memory"));
-  ensureDir(path.join(dir, "skills"));
 
   // Write role files
   writeFile(path.join(dir, "ROLE.md"), template.roleMd(config.name));
