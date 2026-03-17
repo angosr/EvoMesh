@@ -191,7 +191,7 @@ function renderDashboard() {
       const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
       const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:#666">${esc(r.account)}</span>`;
-      const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="mem" title="Memory (e.g. 2g, 512m)"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="cpu" title="CPUs (e.g. 1.5, 2)">` : '';
+      const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="${esc(r.actualMem||'mem')}" title="Memory limit (e.g. 2g). Current: ${esc(r.actualMem||'?')}"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="${esc(r.actualCpu||'cpu')}" title="CPU limit (e.g. 1.5). Current: ${esc(r.actualCpu||'?')}">` : '';
       const startRestartBtn = `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button>`;
       const stopBtn = r.running ? ` <button class="dash-action danger" data-action="stop" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">■ Stop</button>` : '';
       const launchMode = r.launch_mode || 'docker';
