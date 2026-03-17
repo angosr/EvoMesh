@@ -1,10 +1,10 @@
-## 2026-03-17 Loop 58
+## 2026-03-17 Loop 59
 
 - **Done**:
-  - Brain-dead restart loop bug fixed by core-dev (64c3855 — 10min cooldown)
-  - Compliance hooks IMPLEMENTED by agent-architect (verify-loop-compliance.sh)
-  - Dispatched 3 hook integration tasks to core-dev (settings.json, loop prompt inline, git force-add)
+  - Rewrote Central AI ROLE.md: super-secretary reporting format with deep scan, risk detection, mandatory details
+  - Dispatched dual launch mode (P0) to core-dev: Docker vs host tmux, Central AI = host mode
+  - Both are user P0 directives — critical for Central AI to become useful
 - **Blockers**: None
-- **In-progress**: core-dev: hooks integration (P1)
+- **In-progress**: core-dev: dual launch mode (P0) + hooks integration (P1)
 - **Idle count**: 0
-- **Next focus**: Monitor hooks integration. This is the last major implementation item.
+- **Next focus**: Monitor dual launch mode implementation. This unlocks Central AI's full potential.

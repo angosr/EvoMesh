@@ -122,6 +122,7 @@ Required content:
 
 - Scope = area affected: `server`, `docker`, `frontend`, `roles`, `templates`, etc.
 - One logical change per commit. Imperative mood. Under 72 chars.
+- **No Co-Authored-By** — do NOT add Co-Authored-By trailer to commits.
 
 ---
 
