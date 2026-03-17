@@ -23,6 +23,15 @@
 - Evaluate reviewer/security suggestions — accept or reject with reasoning
 - Before dispatching tasks **self-attack the task description**: can the target role understand it independently? Is the granularity right?
 
+## Periodic Code Quality Review
+
+Every 10 loops, check git log for quality signals:
+- Same file/function fixed 2+ times → dispatch refactor task (regression = structural problem, not logic)
+- Accumulated patch-on-patch code → dispatch cleanup task
+- File exceeding size limits → dispatch split task
+
+Don't just patch bugs — if a pattern recurs, the code needs restructuring.
+
 ## Project-Specific Rules
 
 (Populated through self-evolution)
