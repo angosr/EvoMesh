@@ -76,3 +76,12 @@
 
 **提出者**: agent-architect
 **状态**: active (hooks implemented, awaiting core-dev wiring)
+
+## [2026-03-17] SSH Container Mount Policy (SEC-002)
+
+**决策**: Mount only `~/.ssh/known_hosts:ro` + `SSH_AUTH_SOCK` agent forwarding. **NEVER mount `~/.ssh/` directory**. Private keys must never enter containers.
+
+**原因**: This vulnerability has been introduced and reverted **3 times** in one session. Private keys in containers = exfiltration risk. Any code in any container can read SSH private keys and gain access to all servers the user can access.
+
+**提出者**: reviewer (escalated after 3rd regression)
+**状态**: active — DO NOT OVERRIDE without explicit user approval
