@@ -3,7 +3,8 @@
 ## Loop Flow (MANDATORY — do not skip any step)
 
 1. `git pull --rebase`
-2. Read: ROLE.md + todo.md + inbox/ + memory/short-term.md + shared/decisions.md + blueprint.md + status.md
+2. **MUST `cat` and fully read these files** (do NOT rely on memory from previous loops):
+   ROLE.md, todo.md, inbox/*, memory/short-term.md, shared/decisions.md, blueprint.md, status.md
 3. **Process inbox FIRST** — P0 this loop, P1 within 2 loops. Move processed → inbox/processed/
 4. Execute role work
 5. **Write `memory/short-term.md`** — Done / Blockers / In-progress / Next focus. NEVER leave empty.
