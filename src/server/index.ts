@@ -13,6 +13,7 @@ import { roleDir } from "../utils/paths.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";
 import { setupTerminalProxy, ensureTtydRunning } from "./terminal.js";
+import { ensureCentralAI } from "./routes-admin.js";
 import type { TtydProcess } from "./terminal.js";
 import { registerRoutes, allocatePort } from "./routes.js";
 import { bootstrapGlobalConfig } from "../workspace/bootstrap.js";
@@ -359,7 +360,7 @@ export function startServer(port: number, initialRoot?: string) {
         centralRestartFails = fails;
         if (fails <= 3) {
           console.log(`[central-ai] Not running, attempting restart (attempt ${fails}/3)...`);
-          // ensureCentralAI is called from admin status check which triggers on fetchAll
+          try { ensureCentralAI(ctx); } catch (e) { console.error("[central-ai] Auto-restart failed:", e); }
         } else {
           centralError = true;
           console.error(`[central-ai] 3 consecutive restart failures — marking error in registry`);
@@ -392,6 +393,7 @@ export function startServer(port: number, initialRoot?: string) {
 
   function autoRestartCrashed() {
     try {
+      const now = Date.now();
       const projects = ctx.getProjects();
       for (const p of projects) {
         let config;
@@ -423,36 +425,35 @@ export function startServer(port: number, initialRoot?: string) {
             }
           }
 
-          // Brain-dead detection: DISABLED.
-          // Previous implementation had false positives: idle roles in adaptive
-          // throttle (light mode) don't commit or update memory (gitignored),
-          // triggering brain-dead restart on healthy idle roles.
-          // TODO: re-enable with a reliable signal (e.g., heartbeat.json written
-          // by the role every loop, including light-mode loops).
-          if (false && running) {
+          // Brain-dead detection via heartbeat.json
+          // Role writes heartbeat.json every loop (including light mode).
+          // If heartbeat stale > 2× loop_interval AND no recent commits → restart.
+          if (running) {
             try {
-              const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
-              const stmStat = fs.statSync(stmPath);
-              const memAgeMs = Date.now() - stmStat.mtimeMs;
+              const hbPath = path.join(roleDir(p.root, name), "heartbeat.json");
+              const hbStat = fs.statSync(hbPath);
+              const hbAgeMs = now - hbStat.mtimeMs;
+              const intervalMin = parseInt(rc.loop_interval) || 10;
+              const hbThreshold = intervalMin * 2 * 60 * 1000; // 2× loop interval
               const lastTime = lastRestart.get(key) || 0;
-              const timeSinceRestart = Date.now() - lastTime;
-              if (memAgeMs > 30 * 60 * 1000 && timeSinceRestart > 10 * 60 * 1000) {
-                // Dual signal: also check git commits — if role committed recently, it's alive
+              if (hbAgeMs > hbThreshold && (now - lastTime) > 10 * 60 * 1000) {
+                // Double-check with git commits
                 let hasRecentCommit = false;
                 try {
-                  const gitLog = execFileSync("git", ["log", "--oneline", "--since=30 minutes ago", `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
+                  const since = `${intervalMin * 2} minutes ago`;
+                  const gitLog = execFileSync("git", ["log", "--oneline", `--since=${since}`, `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
                   hasRecentCommit = gitLog.trim().length > 0;
                 } catch {}
                 if (!hasRecentCommit) {
                   const entry = ctx.ttydProcesses.get(key);
                   if (!entry?.userStopped) {
-                    console.log(`[brain-dead] ${name} memory stale ${Math.round(memAgeMs / 60000)}min AND no recent commits, force-restarting`);
+                    console.log(`[brain-dead] ${name} heartbeat ${Math.round(hbAgeMs / 60000)}min stale (threshold: ${intervalMin * 2}min), restarting`);
                     stopRole(p.root, name);
-                    // Next cycle: autoRestartCrashed will detect it as crashed and restart
+                    lastRestart.set(key, now);
                   }
                 }
               }
-            } catch {} // file doesn't exist yet — skip
+            } catch {} // no heartbeat.json yet — skip (role hasn't looped yet)
           }
         }
       }

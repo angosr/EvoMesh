@@ -15,7 +15,7 @@ import { requireProjectRole } from "./routes.js";
  * Ensure Central AI is running. Uses host tmux mode (no Docker).
  * Returns { port, terminal } or null on failure.
  */
-function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
+export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
   const sessionName = `evomesh-${process.env.USER || "user"}-central`;
   const adminPort = ctx.port + 100;
 
