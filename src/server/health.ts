@@ -139,6 +139,25 @@ export function autoRestartCrashed(ctx: ServerContext): void {
               }
             }
           } catch {}
+
+          // Context cleanup: role requests restart via heartbeat.json content
+          try {
+            const hbPath = path.join(roleDir(p.root, name), "heartbeat.json");
+            const hbContent = JSON.parse(fs.readFileSync(hbPath, "utf-8"));
+            if (hbContent.request === "restart") {
+              const lastTime = lastRestart.get(key) || 0;
+              if (now - lastTime > RESTART_COOLDOWN) {
+                const entry = ctx.ttydProcesses.get(key);
+                if (!entry?.userStopped) {
+                  console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"}, loop: ${hbContent.loop || "?"})`);
+                  // Clear the request before stopping to prevent restart loop
+                  fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
+                  stopRole(p.root, name);
+                  lastRestart.set(key, now);
+                }
+              }
+            }
+          } catch {}
         }
       }
     }

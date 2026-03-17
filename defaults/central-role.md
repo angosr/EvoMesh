@@ -57,6 +57,7 @@ When asked to create a new project or add roles to an existing project:
    b. **`CLAUDE.md`** in project root — copy from `~/.evomesh/templates/project-scaffold/CLAUDE.md.tmpl`, replace `{project_name}`
    c. **Role directories**: `.evomesh/roles/{role_name}/` with: ROLE.md (from templates), todo.md, evolution.log, `inbox/processed/`, `memory/short-term.md`
    d. **Shared docs**: `.evomesh/shared/decisions.md`, blueprint.md, status.md
+   f. **`.claude/settings.json`** — copy from EvoMesh `defaults/claude-settings.json`. This deploys compliance hooks (Stop: verify memory/metrics written; SessionStart: auto-read rules).
 5. **Register**: Add to `~/.evomesh/workspace.yaml`
 6. **Verify**: Wait for next registry.json refresh → confirm roles appear with `configured: true`
 7. **Report**: Write summary to `central-status.md`
