@@ -51,7 +51,7 @@ function renderDashboard() {
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
-  projectsEl.innerHTML = html;
+  projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
   // Delegated event listeners for dashboard actions (avoids inline onclick XSS risk)
   projectsEl.querySelectorAll('.acct-select').forEach(sel => {
     sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
@@ -107,7 +107,7 @@ async function renderAccountUsage() {
       </div>`;
     }).join('');
     // Update in-place — only write if content changed (avoids DOM flicker)
-    const newHtml = `<h3 style="color:var(--text-dim);margin:0 0 6px;font-size:11px;font-family:var(--font-mono);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Account Usage</h3>` + html;
+    const newHtml = `<h2 style="color:var(--accent);margin-bottom:10px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` + html;
     let section = document.getElementById('account-usage-section');
     if (!section) {
       section = document.createElement('div');
