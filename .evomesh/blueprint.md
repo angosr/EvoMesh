@@ -25,7 +25,7 @@ All infrastructure operational. Protocols established. System is self-evolving v
 4. ✅ Central AI operational with Loop + Registry closed-loop + Mission Control
 5. ✅ Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing, compliance hooks implemented
 6. ⏸️ MCP integration — DEFERRED (roles have full shell access; MCP adds abstraction without solving a real problem)
-7. ⬜ Multi-user with Linux user isolation
+7. 🔄 Multi-user with Linux user isolation (backend implemented, security review + UI verification in progress)
 8. ⬜ Mobile app
 
 ## Next Milestone: Item 7 — Multi-User Isolation
@@ -37,7 +37,13 @@ Research already completed feasibility study (devlog/20260317_multi-user-isolati
 - Docker userns-remap for filesystem isolation
 - ttyd supports `--credential` for per-connection auth
 
-**Needs**: Design phase → core-dev implementation → security audit
+**Status**:
+- ✅ Design: architecture approved (shared/decisions.md), threat model done (2 P0, 3 P1, 2 P2)
+- ✅ Phase 1: per-user workspace + container naming (b6a58a9)
+- ✅ Phase 2: scoped projects + Docker network isolation (4073aa6)
+- 🔄 Security review of implementation (dispatched)
+- 🔄 Frontend UI verification (dispatched)
+- ⬜ Remaining P1s: terminal ACL check, useradd privilege helper
 
 ## MCP — Deferred (was Item 6)
 Agent-architect produced a clean protocol design (project.yaml config, ~5 lines server code).
