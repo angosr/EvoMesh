@@ -163,7 +163,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
             if (prevMtime > 0) {
               const status = fs.readFileSync(statusPath, "utf-8");
               // Status is compact by design (max 10 lines). Send meaningful content, skip headers.
-              const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('#') && !l.startsWith('```'));
+              const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('# ') && !l.startsWith('```'));
               const summary = lines.slice(0, 8).join('\n');
               broadcastFeed({ type: "central", text: summary });
             }
