@@ -1,10 +1,9 @@
-## 2026-03-17 Loop 74
+## 2026-03-17 Loop 77
 
 - **Done**:
-  - Dispatched missing agent-architect.md.tmpl to core-dev (reviewer P1: defaults.json lists it but file missing)
-  - Verification host fix shipped (3fbc39d). 4 new role templates added (ae9e903). Templates cleaned (75eea3a).
-  - Frontend extracting layout code — good architecture cleanup.
+  - Dispatched heartbeat-based brain-dead recovery to core-dev (reviewer P1: current detection disabled, heartbeat.json is the right signal)
+  - Dispatched Central AI auto-restart fix (move ensureCentralAI to writeRegistry, remove browser dependency)
 - **Blockers**: None
-- **In-progress**: core-dev: agent-architect template + multi-tenant Phase 2
+- **In-progress**: core-dev: heartbeat brain-dead + Central AI restart + multi-tenant Phase 2
 - **Idle count**: 0
-- **Proactive scan**: Reviewed, no action needed. Reviewer catching real issues — feedback loop working.
+- **Proactive scan**: Reviewed, no action needed. Reviewer consistently finding real architectural gaps.
