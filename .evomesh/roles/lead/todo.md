@@ -6,9 +6,7 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ✅ ~~SEC-021 account API scoping~~ DONE by core-dev (04ba75e)
-- ✅ ~~Full usage stats (API + UI)~~ DONE (9e38074)
-- ✅ ~~Usage panel render bug~~ FIXED (4ad1841)
+All P1 complete. No active tasks.
 
 ## P2 — Later
 
@@ -16,8 +14,7 @@ ALL P0 COMPLETE ✅
 - ⬜ Account concentration risk
 - ⬜ Additional role templates
 
-## Completed This Loop (2026-03-18 — Loop 148)
+## Completed This Loop (2026-03-18 — Loop 149)
 
-- Resolved merge conflicts
-- SEC-021 fixed, full usage stats live, blueprint updated
-- System: 8/9 roadmap items complete
+- Dropped stale git stash (root cause of recurring merge conflicts)
+- Resolved final conflicts
