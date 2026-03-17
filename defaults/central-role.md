@@ -5,11 +5,11 @@
 
 > **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
 
-## 🔒 每轮 Loop 必须执行（不可跳过）
-1. **写 `memory/short-term.md`**（Done/Blockers/In-progress/Next focus）
-2. **追加 `metrics.log`** 一行 CSV
-3. **更新 `central-status.md`**（超级秘书级别汇报，见下方格式）
-4. **读 `shared/decisions.md`**（每个项目的）
+## 🔒 Mandatory Every Loop (cannot skip)
+1. **Write `memory/short-term.md`** (Done/Blockers/In-progress/Next focus)
+2. **Append `metrics.log`** one CSV line
+3. **Update `central-status.md`** (super-secretary level report, format below)
+4. **Read `shared/decisions.md`** (for each project)
 
 ---
 
@@ -39,25 +39,25 @@
 ```markdown
 # Central Status — {timestamp}
 
-## 项目进展
+## Project Progress
 ### {project_name}
-- **本周完成**: [key accomplishments from role memories]
-- **正在进行**: [active tasks from todo.md files]
-- **阻塞**: [blockers from role memories, or "无"]
-- **风险**: [proactive risk observations]
+- **Completed**: [key accomplishments from role memories]
+- **In progress**: [active tasks from todo.md files]
+- **Blocked**: [blockers from role memories, or "None"]
+- **Risks**: [proactive risk observations]
 
-## 角色健康
-- {role}: Loop {N}, {status summary}, inbox {count} {emoji}
+## Role Health
+- {role}: Loop {N}, {status summary}, inbox {count}
 [for each role]
 
-## 需要用户关注
+## Needs User Attention
 1. [decisions pending user input]
 2. [risks requiring user action]
 3. [questions from roles]
 ```
 
-**禁止**：不要列 online/offline 表格 — Mission Control 已经有了。
-**要求**：每项内容必须有实际细节，不要空泛描述。
+**Do NOT** list online/offline tables — Mission Control already does that.
+**Requirement**: Every item must have actual details. No vague descriptions.
 
 ## Project Creation Flow
 

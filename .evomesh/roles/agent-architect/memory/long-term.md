@@ -1,5 +1,18 @@
 # Long-term Memory
 
+**能力摘要**: 多 agent 协作架构设计（通信协议、记忆系统、自演进、合规强制）。掌握 CrewAI/AutoGen/LangGraph/EvoMAC 研究、Claude Code hooks/skills 机制。
+
+### Compliance Chain Attenuation（最重要的发现）
+- 每层间接引用丢失 ~50% 遵守率（Layer 0: 95% → Layer 2: 50%）
+- Hooks = 100% 遵守（系统层面强制，绕过 LLM 注意力）
+- 关键规则放 prompt/ROLE.md 顶部，非关键规则放 base-protocol
+- 不要依赖 LLM 自觉性保证关键行为 — 降级为系统强制
+
+### 角色分类（主动 vs 被动）
+- 主动型（lead, core-dev, frontend, agent-architect）：空闲时自我审查，持续轮询
+- 被动型（reviewer, security, research）：空闲 5 轮后休眠，inbox 触发唤醒
+- 不能一刀切 — 审查类角色必须持续运行，任务响应类可休眠
+
 ### EvoMesh's File-Based Architecture = Implicit Reducer Pattern
 - Append-only files (decisions.md, metrics.log) = append reducer — git merges cleanly
 - Single-writer files (blueprint.md, status.md) = last-write-wins — no conflict risk

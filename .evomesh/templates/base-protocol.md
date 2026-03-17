@@ -17,9 +17,14 @@
 7. 更新 todo.md
 8. `git add <仅自己的文件>` → commit → `git pull --rebase` → push
 
-**空闲时**：写 "无任务, idle"。连续 3 轮空闲 → 轻量模式（仅查 inbox + 写 memory/metrics）。
+**角色运行模式**（在 ROLE.md 中声明）：
 
-> **为什么**：统一流程保证角色状态可追踪，memory 是角色间唯一的状态观测窗口。
+| 模式 | 空闲行为 | 适用角色 |
+|---|---|---|
+| **主动型** | 空闲时执行自我审查（代码质量、架构、技术路线），持续轮询 | lead, core-dev, frontend, agent-architect |
+| **被动型** | 连续 5 轮空闲 → 休眠（仅查 inbox + 写 memory/metrics）。有新 inbox 时恢复全量 loop | reviewer, security, research |
+
+> **为什么**：统一流程保证角色状态可追踪。主动型角色持续审查保证质量，被动型角色节省资源等待任务。
 
 ---
 
@@ -44,7 +49,11 @@
 
 **归档**：long-term > 200 行 → 删除最旧的条目，保留最有价值的经验。
 
-> **为什么**：short-term 是其他角色和 Mission Control 观测你状态的唯一方式。空 memory = 角色失联。
+**long-term 第一行**：一句话能力摘要（方便 lead 快速扫描所有角色的知识状态）。
+
+**跨角色知识**：如果某个经验对多个角色都有用（如安全模式、架构决策），写入 `shared/decisions.md`，long-term.md 中引用而非复制。
+
+> **为什么**：short-term 是其他角色和 Mission Control 观测你状态的唯一方式。空 memory = 角色失联。long-term 第一行让 lead 7 行内掌握全局知识状态。
 
 ---
 
@@ -79,6 +88,7 @@ date: YYYY-MM-DDTHH:MM
 - P0 直通（安全/稳定性问题直达相关角色 + lead）
 - Bug 修复直通（reviewer/security → core-dev/frontend，抄送 lead）
 - ack 直接回复发送者
+- P2 自主执行：lead 授权的角色可直接实施 P2 级别的协议/模板变更（无需审批，事后通知 lead）
 
 > **为什么**：lead 单点协调防止冲突。直通例外避免紧急问题延迟。
 

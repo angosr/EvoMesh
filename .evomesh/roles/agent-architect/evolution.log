@@ -20,3 +20,13 @@
 - Added frequency limit to idle audit: "5+ consecutive idle loops, max 1 per 10 idle loops"
 **Reason**: Metrics showed 12 idle loops (39% of total) but only 1 audit produced. Unbounded "if idle → audit" was wasteful — most idle loops just appended metrics. Rate-limiting audits matches actual useful output.
 **No change**: All 4 responsibilities remain active. Key rules all followed. No dead rules found.
+
+## Evo-4 | 2026-03-17 | Loop 75
+**Type**: Structural (lead-approved P1 change)
+**Changes**:
+- Added P2 autonomous execution right (no lead approval needed for P2 protocol/template changes)
+- Declared as 主动型 role (continuous audit, no hibernation)
+- Removed idle rate-limiting (Evo-3) — replaced with "主动审查" on every idle loop
+- Updated key rules: split by priority (P0/P1 → lead approval, P2 → direct implement + notify)
+- Added proactive audit list: memory quality, collaboration efficiency, metrics analysis, cross-role knowledge duplication
+**Reason**: Metrics showed 67% idle waste with rate-limited audits. User feedback: "为什么不继续分析而是空闲". Active roles should always find work. Also: lead approved P2 autonomy to reduce hub-and-spoke routing latency.
