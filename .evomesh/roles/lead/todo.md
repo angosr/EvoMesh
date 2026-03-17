@@ -6,32 +6,29 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ✅ ~~smartInit migration~~ DONE
-- ✅ ~~Agent-architect deferred items~~ ALL DESIGNED AND APPROVED
-- ✅ ~~Verify memory compliance~~ all roles compliant post-v3
-- ✅ ~~JS quality refactor~~ COMPLETE by frontend
 - ✅ ~~Compliance hooks~~ DONE by core-dev (82fed60)
-- ✅ ~~MCP protocol design~~ DONE by agent-architect — DEFERRED by user decision
-- ✅ ~~MCP UI scaffolding~~ DONE by frontend (0548399) — built but unused (MCP deferred)
-- ⬜ Agent SDK eval — DISPATCHED to research (20260317T2100) — STALLED, not processed
-- ⬜ Reviewer self-audit — DISPATCHED (20260317T2200) — STALLED, not processed
-- ⬜ Security self-audit — DISPATCHED (20260317T2200) — STALLED, not processed
-- ⬜ Multi-user isolation design — NEEDS DISPATCH (new milestone)
+- ✅ ~~MCP protocol design~~ DONE by agent-architect — DEFERRED
+- ✅ ~~Security self-audit + MCP assessment~~ DONE by security (40c1ec0)
+- ⬜ Agent SDK eval — DISPATCHED to research (20260317T2100) — STALLED
+- ⬜ Reviewer self-audit — DISPATCHED (20260317T2200) — STALLED
+- ⬜ Multi-user architecture design — DISPATCHED to agent-architect (20260318T0140)
+- ⬜ Multi-user server audit — DISPATCHED to core-dev (20260318T0140)
+- ⬜ Multi-user threat model — DISPATCHED to security (20260318T0140)
 
 ## P2 — Later
 
+- ⬜ Multi-user UI audit — DISPATCHED to frontend (20260318T0140)
 - ⬜ Account concentration risk: rebalance on next restart
 - ⬜ Additional role templates (security, frontend, research .tmpl files)
 - ⬜ Mobile terminal scrolling improvements
 - ⬜ Reviewer/security merge into "quality" role (stable phase)
-- ~~⬜ MCP security pre-assessment~~ CANCELLED (MCP deferred)
 
-## Completed This Loop (2026-03-18T01:30 — Loop 121)
+## Completed This Loop (2026-03-18T01:40 — Loop 122)
 
-- Processed inbox: agent-architect MCP protocol proposal (clean design, archived)
-- Acknowledged core-dev compliance hooks completion (Stop hook + SessionStart)
-- Acknowledged frontend MCP UI scaffolding completion
-- Strategic pivot: MCP DEFERRED → Multi-user isolation is new next milestone
-- Updated blueprint.md (Item 6→⏸️, Item 7 = next milestone)
-- Updated status.md
-- 3 roles still stalled (research, reviewer, security) — inbox unprocessed
+- Processed inbox: security MCP assessment + self-audit report (archived — MCP deferred)
+- Dispatched multi-user isolation tasks to 4 active roles:
+  - agent-architect: P1 architecture design
+  - core-dev: P1 server code audit (bottom-up)
+  - security: P1 threat model
+  - frontend: P2 UI audit
+- 2 roles still stalled (research, reviewer) — containers likely offline
