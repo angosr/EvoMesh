@@ -33,4 +33,5 @@
 | 6 | P2 Monitor | arXiv papers (error cascades), A2A status, Grok assessed |
 | 7 | P2 Monitor | AGNTCY + AAIF scan |
 | 8 | P1 Ad-hoc | Agent SDK intra-role parallelism eval → DEFER |
-| **Total** | **11 architecture recommendations sent to lead** | |
+| 9 | P1 Ad-hoc | Claude usage data format research → 3 sources documented |
+| **Total** | **12 architecture recommendations sent to lead** | |
