@@ -65,14 +65,15 @@ export function bootstrapGlobalConfig(): void {
 }
 
 /**
- * Copy repo templates to global ~/.evomesh/templates/ if they don't exist there.
+ * Copy bundled templates from defaults/templates/ to ~/.evomesh/templates/.
+ * defaults/ ships with the tool — not project-specific.
  */
 function copyTemplatesIfMissing(): void {
   const globalTemplates = path.join(os.homedir(), ".evomesh", "templates");
-  const repoTemplates = findRepoFile(".evomesh/templates");
-  if (!repoTemplates || !fs.existsSync(repoTemplates)) return;
+  const bundledTemplates = findRepoFile("defaults/templates");
+  if (!bundledTemplates || !fs.existsSync(bundledTemplates)) return;
 
-  copyDirRecursive(repoTemplates, globalTemplates);
+  copyDirRecursive(bundledTemplates, globalTemplates);
 }
 
 function copyDirRecursive(src: string, dest: string): void {

@@ -1,0 +1,40 @@
+# EvoMesh 项目配置
+# 由 Central AI 或 smartInit() 生成
+name: {project_name}
+created: {created_date}
+repo: "{repo_url}"
+lang: {lang}
+
+# Claude 账号映射
+# 键 = 别名, 值 = 配置目录路径
+# 多账号时建议 lead 和 executor 用不同账号以避免限速
+accounts:
+  default: {default_account}
+
+# 角色定义
+# 每个角色运行在独立 Docker 容器中
+roles:
+  lead:
+    type: lead
+    loop_interval: 20m
+    account: default
+    evolution_upgrade_every: 30
+    scope:
+      - .evomesh/blueprint.md
+      - .evomesh/status.md
+      - .evomesh/roles/*/inbox/
+      - docs/
+    description: "项目总控 — 战略、文档、角色协调"
+  executor:
+    type: worker
+    loop_interval: 10m
+    account: default
+    scope:
+      - src/
+      - tests/
+    description: "代码执行 — 功能开发、测试、提交"
+
+git:
+  branch: main
+  conflict_resolution: auto
+  auto_push: true
