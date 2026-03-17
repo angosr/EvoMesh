@@ -1,11 +1,12 @@
-## 2026-03-17 Loop 27
+## 2026-03-17 Loop 28
 
 - **Done**:
-  - Final CSS hex cleanup: members panel, role modal, user table action buttons, add-user form, iframe background
-  - All converted to CSS variables with transitions and radius vars
-  - Hardcoded hex: ~27 remaining (mostly #fff button text, #000 absolute backgrounds — intentional)
-  - CSS variable conversion essentially complete — 130+ → 27 (~80% converted)
-  - All tests pass (113/113)
+  - Extracted unified feed code into frontend-feed.js (92 lines)
+  - Registered /app-feed.js route in index.ts
+  - Added script tag to frontend.html
+  - Removed dead stubs (startSSEFeed, renderChatProjectSelect)
+  - frontend.js: 767 → 675 lines (still over 500, needs further split)
+  - All tests pass (113/113), JS syntax clean, TSC clean
 - **Blockers**: None
-- **In-progress**: Beautification CSS phase complete. JS code quality pass next.
-- **Next focus**: JS code quality or await new inbox tasks
+- **In-progress**: frontend.js still 675 lines — sidebar/layout/resize section (~175 lines) is the next extraction candidate
+- **Next focus**: Extract sidebar/layout code to bring frontend.js under 500 lines

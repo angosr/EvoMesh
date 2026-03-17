@@ -512,8 +512,6 @@ async function saveLaunchMode(slug, roleName, mode) {
 // ==================== Chat / Feed ====================
 let lastRoleStates = {}, serverConnected = true;
 function addFeedMessage(html, cls='status') { console.log(`[${cls}] ${html.replace(/<[^>]*>/g,'')}`); }
-function renderChatProjectSelect() { /* removed — admin terminal replaces chat */ }
-function startSSEFeed() { /* removed — admin terminal replaces status feed */ }
 
 // ==================== Metrics ====================
 async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
@@ -655,96 +653,6 @@ async function startAndOpenCentral() {
   }
 }
 
-// ==================== Unified Feed ====================
-const ROLE_COLORS = { lead: '#ef4444', 'core-dev': '#22c55e', frontend: '#3b82f6', reviewer: '#a855f7', security: '#f97316', research: '#06b6d4', 'agent-architect': '#ec4899' };
-
-function initFeed() {
-  const feed = document.getElementById('feed');
-  if (!feed) return;
-
-  // SSE stream for role updates
-  try {
-    const es = new EventSource(`${API}/feed/stream?token=${encodeURIComponent(AUTH_TOKEN)}`);
-    es.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        // Skip user-message from SSE (already displayed locally when sent)
-        if (msg.type === 'user-message') return;
-        appendFeedMessage(msg);
-      } catch {}
-    };
-  } catch {}
-
-  // Central AI status is now pushed via SSE (no polling needed)
-
-  // Send button
-  const sendBtn = document.getElementById('feed-send');
-  const msgInput = document.getElementById('feed-msg');
-  if (sendBtn) sendBtn.addEventListener('click', sendFeedMsg);
-  if (msgInput) msgInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFeedMsg(); }
-  });
-
-  // Try to start central AI if not running
-  authFetch(`${API}/admin/status`).then(r => r.json()).then(s => {
-    if (!s.running) authFetch(`${API}/admin/start`, { method: 'POST' }).catch(() => {});
-  }).catch(() => {});
-}
-
-function appendFeedMessage(msg) {
-  const feed = document.getElementById('feed');
-  if (!feed) return;
-  const div = document.createElement('div');
-  div.className = `feed-item feed-${msg.type || 'system'}`;
-
-  const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-  if (msg.type === 'role') {
-    const color = ROLE_COLORS[msg.role] || '#888';
-    const proj = msg.project ? `<span class="feed-project">${esc(msg.project)}</span>` : '';
-    div.innerHTML = `${proj}<span class="feed-role" style="color:${color}">${esc(msg.role || '')}</span>
-      <span class="feed-time">${esc(time)}</span>
-      <div class="feed-text">${esc(msg.text || '')}</div>`;
-  } else if (msg.type === 'central') {
-    div.innerHTML = `<span class="feed-role" style="color:#ef4444">Central AI</span>
-      <span class="feed-time">${esc(time)}</span>
-      <div class="feed-text">${esc(msg.text || '')}</div>`;
-  } else if (msg.type === 'user-message') {
-    div.innerHTML = `<div class="feed-text">${esc(msg.text || '')}</div>`;
-  } else {
-    div.innerHTML = `<div class="feed-text feed-system-text">${esc(msg.text || '')}</div>`;
-  }
-
-  feed.appendChild(div);
-  feed.scrollTop = feed.scrollHeight;
-  while (feed.children.length > 200) feed.removeChild(feed.firstChild);
-}
-
-// refreshCentralStatus removed — Central AI pushes via SSE now
-
-async function sendFeedMsg() {
-  const input = document.getElementById('feed-msg');
-  const text = input?.value?.trim();
-  if (!text) return;
-  const btn = document.getElementById('feed-send');
-  if (btn) { btn.disabled = true; btn.textContent = '...'; }
-  appendFeedMessage({ type: 'user-message', text, time: new Date().toISOString() });
-  input.value = '';
-  try {
-    const res = await authFetch(`${API}/admin/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
-    });
-    const data = await res.json();
-    if (!data.ok) {
-      appendFeedMessage({ type: 'system', text: `Error: ${data.error}`, time: new Date().toISOString() });
-    }
-  } catch { appendFeedMessage({ type: 'system', text: 'Failed to send', time: new Date().toISOString() }); }
-  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
-  input.focus();
-}
-
 // ==================== Init ====================
 (async () => {
   if (!AUTH_TOKEN) { location.href = '/login'; return; }
@@ -755,7 +663,7 @@ async function sendFeedMsg() {
     if (d.username) { localStorage.setItem('evomesh-user', JSON.stringify({username:d.username, role:d.role})); state.systemRole = d.role || 'user'; }
   } catch { location.href = '/login'; return; }
   restoreLayout();
-  fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000); startSSEFeed();
+  fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000);
   // Subscribe to refresh events from central AI operations
   try {
     const refreshEs = new EventSource(`${API}/refresh/subscribe?token=${encodeURIComponent(AUTH_TOKEN)}`);
