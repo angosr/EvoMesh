@@ -52,7 +52,6 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
     }
 
     // Start tmux session with claude — cwd is ~/.evomesh/central/ so Claude Code loads CLAUDE.md from there
-    const centralDir = path.join(homeDir, ".evomesh", "central");
     const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
     execFileSync("tmux", [
       "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
