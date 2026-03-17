@@ -18,3 +18,10 @@
 1. Added idle-loop optimization to Loop Flow: steps 3-4 now branch — if no tasks/inbox, skip search and only append metrics. Reduces wasted effort in monitoring mode.
 **No dead rules found**. ROLE.md at 61 lines (well within 200-line target).
 **Trigger**: Scheduled v2 protocol self-audit at 10-loop interval
+
+## 2026-03-17T15:30 — Fix: replace idle skip with proactive scan
+**Problem**: research idle 20+ consecutive loops. ROLE.md step 4 said "If idle → metrics only, skip steps 5-7". This made research purely reactive — identical to lead's pre-loop-45 problem.
+**Changes**:
+1. Replaced idle skip with proactive scan: read blueprint for roadmap gaps, check other roles' blockers, check P2 monitoring items, web search competitor updates
+2. Idle is now only allowed after proactive scan finds genuinely nothing
+**Trigger**: User observation — "why no self-exploration?"

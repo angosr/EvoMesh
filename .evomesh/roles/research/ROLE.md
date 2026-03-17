@@ -19,7 +19,13 @@
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/
 3. If inbox or P1+ tasks pending → execute research (web search, analysis, devlog, lead inbox)
-4. If idle (no tasks, no inbox) → append metrics.log only, skip steps 5-7
+4. If no inbox → **proactive scan** (do NOT just idle):
+   - Read blueprint.md → any roadmap items that need research? (e.g. MCP, multi-user, mobile)
+   - Read other roles' todo.md → anyone blocked on something research could help?
+   - Check long-term memory → any P2 monitoring items overdue?
+   - Web search: check competitor updates (CrewAI, AutoGen, LangGraph releases)
+   - If found opportunity → execute research (steps 5-7)
+   - If genuinely nothing → write "proactive scan: no actionable findings" in memory, metrics only
 5. Write research notes to devlog/ (date-stamped)
 6. Send key findings + recommendations to lead via inbox
 7. Update memory with tracked resources and trends
