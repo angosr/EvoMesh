@@ -2,8 +2,6 @@
 
 A self-evolving multi-role orchestrator for [Claude Code](https://claude.com/claude-code). Multiple AI roles collaborate on projects autonomously through file-based communication and git-native workflows.
 
-[中文文档](README.zh-CN.md)
-
 ## What is EvoMesh?
 
 EvoMesh doesn't build a new agent framework. Instead, it leverages Claude Code's native capabilities — running multiple instances with different roles (lead, core-dev, reviewer, security, etc.) that collaborate through structured protocols, shared documents, and inbox-based messaging. All coordination artifacts are git-tracked, providing full auditability.
