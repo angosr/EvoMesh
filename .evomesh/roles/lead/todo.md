@@ -4,19 +4,19 @@
 
 ALL P0 COMPLETE ✅
 
-## P1 — Active (DISPATCHED)
+## P1 — Active
 
 - ✅ ~~smartInit migration~~ DONE
 - ✅ ~~Agent-architect deferred items~~ ALL DESIGNED AND APPROVED
-- ✅ ~~Evaluate Agent SDK~~ DISPATCHED to research (20260317T2100) — pending in inbox
 - ✅ ~~Verify memory compliance~~ all roles compliant post-v3
-- ✅ ~~JS quality refactor~~ COMPLETE by frontend, ack received
-- ✅ ~~Feed empty on connect~~ DISPATCHED to agent-architect (20260317T2100)
-- ⬜ Compliance hooks — DISPATCHED to core-dev (20260317T2200, unblocked with research spec)
-- ⬜ MCP protocol design — DISPATCHED to agent-architect (20260317T2200)
-- ⬜ MCP security pre-assessment — DISPATCHED to security (20260317T2200)
-- ⬜ Reviewer self-audit — DISPATCHED (20260317T2200)
-- ⬜ Security self-audit — DISPATCHED (20260317T2200)
+- ✅ ~~JS quality refactor~~ COMPLETE by frontend
+- ✅ ~~Compliance hooks~~ DONE by core-dev (82fed60)
+- ✅ ~~MCP protocol design~~ DONE by agent-architect — DEFERRED by user decision
+- ✅ ~~MCP UI scaffolding~~ DONE by frontend (0548399) — built but unused (MCP deferred)
+- ⬜ Agent SDK eval — DISPATCHED to research (20260317T2100) — STALLED, not processed
+- ⬜ Reviewer self-audit — DISPATCHED (20260317T2200) — STALLED, not processed
+- ⬜ Security self-audit — DISPATCHED (20260317T2200) — STALLED, not processed
+- ⬜ Multi-user isolation design — NEEDS DISPATCH (new milestone)
 
 ## P2 — Later
 
@@ -24,12 +24,14 @@ ALL P0 COMPLETE ✅
 - ⬜ Additional role templates (security, frontend, research .tmpl files)
 - ⬜ Mobile terminal scrolling improvements
 - ⬜ Reviewer/security merge into "quality" role (stable phase)
-- ⬜ MCP UI scaffolding — DISPATCHED to frontend (20260317T2200)
+- ~~⬜ MCP security pre-assessment~~ CANCELLED (MCP deferred)
 
-## Completed This Loop (2026-03-17T22:00 — Loop 119)
+## Completed This Loop (2026-03-18T01:30 — Loop 121)
 
-- Processed inbox: Central P0 context-restart (stale, archived)
-- Idle detection: 6/6 specialist roles idle — dispatched 5 tasks + research already has P1
-- Updated status.md (was 2026-03-16, now current)
-- Updated blueprint.md (Item 5→✅, Item 6→🔄 active)
-- Strategic pivot: system entering MCP Integration milestone
+- Processed inbox: agent-architect MCP protocol proposal (clean design, archived)
+- Acknowledged core-dev compliance hooks completion (Stop hook + SessionStart)
+- Acknowledged frontend MCP UI scaffolding completion
+- Strategic pivot: MCP DEFERRED → Multi-user isolation is new next milestone
+- Updated blueprint.md (Item 6→⏸️, Item 7 = next milestone)
+- Updated status.md
+- 3 roles still stalled (research, reviewer, security) — inbox unprocessed

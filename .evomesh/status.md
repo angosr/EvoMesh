@@ -1,46 +1,39 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-17T22:00
+> Last updated: 2026-03-18T01:30
 
 ## Current Phase: Self-Evolution (Stable)
 
-All infrastructure operational. Protocols v2 implemented. Self-evolution mechanisms active (metrics, prompt hygiene, self-audits). System entering MCP Integration milestone.
+All infrastructure operational. Compliance hooks deployed. MCP deferred — pivoting to multi-user isolation.
 
 ## System Health
 
-- **lead**: Loop 119 — active, dispatching MCP milestone tasks + self-audits
-- **core-dev**: Idle (5 loops) — P1 compliance hooks dispatched, research spec ready
-- **frontend**: Idle — JS quality refactor COMPLETE (767→492 lines, XSS safe). All 20 tasks done. MCP UI prep dispatched.
-- **reviewer**: Idle — 7 review cycles complete, all P0/P1/P2 findings resolved. Self-audit dispatched.
-- **security**: Idle — P0/P1 all clear. SEC-016 (no TLS) pending. Self-audit + MCP security assessment dispatched.
-- **research**: Idle — 13 deep-dive topics complete, 10 architecture recommendations. Agent SDK eval P1 pending in inbox.
-- **agent-architect**: Idle — protocol v2 + base-protocol sections 8-11 complete. MCP protocol design P1 dispatched.
+- **lead**: Loop 121 — active, processing progress + strategic pivot
+- **core-dev**: ACTIVE — Compliance hooks DONE ✅ (Stop hook + SessionStart compact re-injection). Context cleanup restart feature in progress.
+- **frontend**: DONE — MCP UI scaffolding complete ✅ (119/119 tests pass). Idle, awaiting new tasks.
+- **agent-architect**: DONE — MCP protocol design delivered ✅. Loop 156, idle.
+- **research**: STALLED — Agent SDK eval P1 in inbox since 21:00 (unprocessed). Short-term memory unchanged since 16:05.
+- **reviewer**: STALLED — Self-audit P1 in inbox since 22:00 (unprocessed). Still at loop 101.
+- **security**: STALLED — Self-audit + MCP assessment P1 in inbox since 22:00 (unprocessed). Still at loop 82.
 
-## Completed Milestones
+## Recent Completions (Loop 119-121)
 
-1. ✅ Protocol v2 — implemented in base-protocol.md (self-evolution, prompt hygiene, memory strategy, frontmatter)
-2. ✅ Central AI project creation flow — designed + templates created
-3. ✅ Compliance Chain Attenuation — decision made, hooks spec ready, awaiting core-dev wiring
-4. ✅ File-Based Architecture validated as Implicit Reducer Pattern (LangGraph comparison)
-5. ✅ JS Quality Refactor — frontend.js 767→492 lines, 6 files, 0 duplication
-6. ✅ Stop Hook deployed — `750f240`
-7. ✅ Health monitoring extracted — `df77acb`
-8. ✅ Feed SSE fix — show current state on connect — `e74103b`
+1. ✅ Compliance Stop hook — blocks Claude from finishing without memory/metrics writing
+2. ✅ SessionStart compact hook — re-injects base-protocol after context compaction
+3. ✅ MCP protocol design — clean, minimal (project.yaml config, ~5 lines code). DEFERRED by user decision.
+4. ✅ MCP UI scaffolding — Settings section with per-role MCP display. Built but unused (MCP deferred).
+5. ✅ Frontend JS quality refactor — 767→492 lines, XSS safe
 
-## Current Work Items (Loop 119 Dispatch)
+## Strategic Pivot: MCP → Multi-User
 
-1. **core-dev**: P1 — Wire compliance hooks (research spec ready)
-2. **research**: P1 — Agent SDK evaluation for intra-role parallelism
-3. **agent-architect**: P1 — MCP integration protocol design
-4. **frontend**: P2 — MCP server management UI scaffolding
-5. **reviewer**: P1 — Self-audit + architecture audit
-6. **security**: P1 — Self-audit + MCP security pre-assessment
+User assessment: MCP adds abstraction without value since roles have full shell/CLI access.
+Next milestone changed from MCP Integration (Item 6) to Multi-User Isolation (Item 7).
+Research feasibility study already complete — 80% infrastructure exists.
 
-## Architecture Validated
+## Current Work Items
 
-- File-based communication = unique differentiator (research confirmed)
-- Anthropic Agent SDK validates lead+sub-agent topology
-- Git persistence = competitive moat (Agent SDK is ephemeral)
-- Academic papers (EvoMAC, WMAC 2026) validate hub-spoke governance + self-evolution
-- File conventions = implicit reducer pattern (append-only, single-writer, partitioned)
+1. **research**: P1 — Agent SDK evaluation (STALLED — inbox unprocessed)
+2. **reviewer**: P1 — Self-audit (STALLED — inbox unprocessed)
+3. **security**: P1 — Self-audit (STALLED — inbox unprocessed)
+4. **core-dev/frontend/agent-architect**: Idle, tasks complete — need new dispatch aligned to multi-user milestone

@@ -1,17 +1,16 @@
-## 2026-03-17 Loop 120
+## 2026-03-18 Loop 121
 
 - **Done**:
-  - Verified all 6 dispatched tasks from loop 119 still pending in role inboxes
-  - No role has updated short-term memory or committed since loop 119
-  - Proactive scan: no new research devlogs, blueprint/status current, no new commits
-  - Diagnosis: roles are not running their loops (containers likely stopped)
-- **Blockers**: All 6 specialist roles appear offline — no loop execution since dispatch
-- **In-progress**: 6 dispatched tasks awaiting role execution:
-  - core-dev: P1 compliance hooks (inbox since 22:00)
-  - agent-architect: P1 MCP protocol design (inbox since 22:00)
-  - security: P1 self-audit + MCP assessment (inbox since 22:00)
-  - reviewer: P1 self-audit (inbox since 22:00)
-  - frontend: P2 MCP UI prep (inbox since 22:00)
-  - research: P1 Agent SDK eval (inbox since 21:00!)
-- **Idle count**: 1 (tasks dispatched, nothing to do until roles execute)
-- **Next focus**: Check if roles have started executing. If still no movement next loop, escalate — consider whether containers need restart or user intervention.
+  - Processed agent-architect inbox: MCP protocol design (clean — project.yaml config, ~5 lines). Archived.
+  - Acknowledged core-dev: compliance hooks COMPLETE (Stop hook + SessionStart compact re-injection, 82fed60)
+  - Acknowledged frontend: MCP UI scaffolding COMPLETE (119/119 tests pass, 0548399)
+  - Strategic pivot per user input: MCP DEFERRED — roles have full shell access, MCP solves a non-problem
+  - Updated blueprint.md: Item 6→⏸️ deferred, Item 7 multi-user isolation = new next milestone
+  - Updated status.md: reflects 3 completions + pivot + 3 stalled roles
+- **Blockers**: research/reviewer/security not processing inbox — containers may need restart
+- **In-progress**:
+  - research: Agent SDK eval P1 (STALLED — inbox since 21:00 yesterday)
+  - reviewer: self-audit P1 (STALLED — inbox since 22:00)
+  - security: self-audit P1 (STALLED — inbox since 22:00)
+- **Idle count**: 0 (active loop with inbox + strategic updates)
+- **Next focus**: Dispatch multi-user isolation design tasks to active roles (core-dev, agent-architect, frontend). Escalate stalled roles if still no movement.

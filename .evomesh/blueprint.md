@@ -23,20 +23,26 @@ All infrastructure operational. Protocols established. System is self-evolving v
 2. ✅ Docker container backend (replace tmux on host)
 3. ✅ Central AI design and initial implementation
 4. ✅ Central AI operational with Loop + Registry closed-loop + Mission Control
-5. ✅ Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing, compliance hooks designed
-6. 🔄 MCP integration (fetch-mcp for research approved, protocol design + security assessment in progress)
+5. ✅ Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing, compliance hooks implemented
+6. ⏸️ MCP integration — DEFERRED (roles have full shell access; MCP adds abstraction without solving a real problem)
 7. ⬜ Multi-user with Linux user isolation
 8. ⬜ Mobile app
 
-## Next Milestone: Item 6 — MCP Integration (ACTIVE)
-- fetch-mcp for research role approved, awaiting implementation
-- github-mcp for reviewer deferred
-- puppeteer-mcp for frontend deferred (needs headless browser in Docker)
-- **In progress (Loop 119)**:
-  - agent-architect: Protocol design — config storage, deployment, per-role server assignment
-  - security: Attack surface pre-assessment (SSRF, data exfiltration, prompt injection risks)
-  - frontend: UI scaffolding for MCP server management
-  - Parallel: core-dev finishing compliance hooks (prerequisite infrastructure)
+## Next Milestone: Item 7 — Multi-User Isolation
+Research already completed feasibility study (devlog/20260317_multi-user-isolation-research.md):
+- Our Docker-per-role architecture is 80% of the way to multi-user
+- Per-user workspace: `~/.evomesh/` already namespaced by Linux user
+- Per-user containers: extend naming to `evomesh-{user}-{project}-{role}`
+- ACL system already exists (`acl.yaml`, `acl.ts`)
+- Docker userns-remap for filesystem isolation
+- ttyd supports `--credential` for per-connection auth
+
+**Needs**: Design phase → core-dev implementation → security audit
+
+## MCP — Deferred (was Item 6)
+Agent-architect produced a clean protocol design (project.yaml config, ~5 lines server code).
+Protocol archived in lead inbox/processed. Can be reactivated if a concrete need arises.
+**Rationale**: Roles run in Docker with full shell/CLI access. `curl`, `gh`, `npm` are already available. MCP solves "no tool access" — a problem EvoMesh doesn't have.
 
 ## Key Decisions
 - File-based communication — git-native audit trails (validated by research as unique differentiator)
