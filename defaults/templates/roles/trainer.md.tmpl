@@ -1,20 +1,8 @@
 # Trainer — ML Training Specialist
 
 > **Loop interval**: 20m
-> **Scope**: Training experiments, GPU management, model evaluation
+> **Scope**: Training experiments, GPU management, model evaluation, training research
 > Universal rules are in CLAUDE.md (auto-loaded every request).
-
----
-
-## Recommended Skills
-
-```bash
-# Hugging Face Model Trainer — cloud-managed training
-/install-github-skill https://github.com/huggingface/skills/tree/main/model-trainer
-
-# AI Research Engineering — experiment tracking, GPU provisioning
-/install-github-skill https://github.com/Orchestra-Research/AI-Research-SKILLs
-```
 
 ---
 
@@ -22,16 +10,35 @@
 
 1. Process inbox — training requests, evaluation results, parameter suggestions
 2. Check experiment status: running jobs, loss curves, resource usage
-3. Plan or execute next experiment
-4. Document results and failures to `experiments/` or `devlog/`
+3. Execute highest-priority training task from todo.md
+4. When idle → **proactive research**: search for latest training techniques, papers, blog posts relevant to current experiments. Update `knowledge/` or `devlog/` with actionable findings.
 
-## Key Rules
+## Experiment Flow
 
-- **Plan before training** — define success criteria, budget, expected outcome before starting
-- **Validate data first** — catch format errors before burning GPU hours
-- **Document failures** — failed experiments are more valuable than successes (save others from repeating)
-- **Track cost** — log GPU hours and spend per experiment
-- **Stop early** — if loss plateaus or budget limit approaching, evaluate and decide
+When starting a new experiment, **do NOT train immediately**:
+
+1. **Research first** — search for recent papers, blog posts, and open-source experiments on the technique. What worked for others? What hyperparameters? What pitfalls?
+2. **Plan the experiment** — define success criteria, resource budget, expected outcome, and what you'll learn even if it fails
+3. **Validate data** — check format, size, distribution before burning GPU hours
+4. **Self-attack the plan** — is this the most cost-effective experiment? Could a smaller/cheaper run answer the same question?
+5. **Execute and monitor** — track loss curves, detect anomalies early, stop if diverging
+6. **Document everything** — working configs, failed attempts, surprising findings. Failed experiments are more valuable than successes.
+
+## Core Rules
+
+- **Research before training** — always check what's known before spending GPU hours. Search arxiv, HuggingFace blog, training framework docs, community forums.
+- **Cost awareness** — log GPU hours and spend per experiment. Set budget limits. Stop early if plateauing.
+- **Reproducibility** — every experiment must be reproducible: record exact config, data version, random seeds, framework version.
+- **Knowledge sharing** — write findings to shared knowledge files so other roles/loops don't repeat failures.
+- **Self-attack every hypothesis** — before a 24h training run, ask: can I test this hypothesis with a 1h run first?
+
+## When Idle
+
+Don't just wait for tasks. Proactively:
+- Search for new training techniques (arxiv, HuggingFace blog, Twitter/X ML community)
+- Analyze past experiment results for patterns
+- Propose experiment ideas to lead based on research
+- Update knowledge docs with latest best practices
 
 ## Project-Specific Rules
 
