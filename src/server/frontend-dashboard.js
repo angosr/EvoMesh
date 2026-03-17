@@ -5,13 +5,21 @@
 
 function renderDashboard() {
   const el = document.getElementById('dash-content');
+  // Ensure projects render into a sub-container so account-usage-section is not destroyed
+  let projectsEl = document.getElementById('dash-projects');
+  if (!projectsEl) {
+    projectsEl = document.createElement('div');
+    projectsEl.id = 'dash-projects';
+    el.appendChild(projectsEl);
+  }
   if (!state.projects.length) {
-    el.innerHTML = `<div class="card onboarding"><h3>Welcome to EvoMesh</h3>
+    projectsEl.innerHTML = `<div class="card onboarding"><h3>Welcome to EvoMesh</h3>
       <p>Tell Central AI what project you want to work on:</p>
       <ol><li>Open the right panel (Mission Control)</li>
       <li>Type: "Create a project for /path/to/my-project"</li>
       <li>Central AI will analyze your code and set up roles</li></ol>
       <p style="color:var(--text-faint)">Or add an existing project by path or GitHub URL.</p></div>`;
+    renderAccountUsage();
     return;
   }
   const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
@@ -43,21 +51,21 @@ function renderDashboard() {
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
-  el.innerHTML = html;
+  projectsEl.innerHTML = html;
   // Delegated event listeners for dashboard actions (avoids inline onclick XSS risk)
-  el.querySelectorAll('.acct-select').forEach(sel => {
+  projectsEl.querySelectorAll('.acct-select').forEach(sel => {
     sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
   });
-  el.querySelectorAll('.dash-action[data-action="restart"]').forEach(btn => {
+  projectsEl.querySelectorAll('.dash-action[data-action="restart"]').forEach(btn => {
     btn.addEventListener('click', () => withLoading(btn, () => saveAndRestart(btn.dataset.slug, btn.dataset.role)));
   });
-  el.querySelectorAll('.dash-action[data-action="stop"]').forEach(btn => {
+  projectsEl.querySelectorAll('.dash-action[data-action="stop"]').forEach(btn => {
     btn.addEventListener('click', () => withLoading(btn, () => stopRole(btn.dataset.slug, btn.dataset.role)));
   });
-  el.querySelectorAll('.mode-select').forEach(sel => {
+  projectsEl.querySelectorAll('.mode-select').forEach(sel => {
     sel.addEventListener('change', () => saveLaunchMode(sel.dataset.slug, sel.dataset.role, sel.value));
   });
-  el.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
+  projectsEl.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
   });
   // If members panel is open, load its data
