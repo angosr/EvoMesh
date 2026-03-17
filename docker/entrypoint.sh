@@ -74,7 +74,7 @@ TTYD_PID=$!
 # Send /loop command via tmux send-keys (much more reliable than WS)
 (
   ROLE_ROOT="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME}}"
-  LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/"
+  LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} 你是 ${ROLE_NAME} 角色。先处理inbox再做其他事。执行 ${ROLE_ROOT}/ROLE.md 工作目录: ${ROLE_ROOT}/ 完成后必须：写memory/short-term.md、追加metrics.log、更新todo.md"
 
   # Minimum wait: let Claude Code TUI fully initialize
   MIN_WAIT=12
