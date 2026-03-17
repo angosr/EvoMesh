@@ -12,6 +12,8 @@ function initFeed() {
   const feed = document.getElementById('feed');
   if (!feed) return;
 
+  const seenMessages = new Set();
+
   // SSE stream for role updates — auto-reconnect on disconnect
   function connectFeed() {
     const es = new EventSource(`${API}/feed/stream?token=${encodeURIComponent(AUTH_TOKEN)}`);
@@ -19,6 +21,10 @@ function initFeed() {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'user-message') return;
+        // Dedup: skip if we already have this message (by role+text+time)
+        const key = `${msg.role||''}:${(msg.text||'').slice(0,50)}:${msg.time||''}`;
+        if (seenMessages.has(key)) return;
+        seenMessages.add(key);
         appendFeedMessage(msg);
       } catch {}
     };
