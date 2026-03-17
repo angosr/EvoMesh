@@ -262,7 +262,7 @@ async function renderAccountUsage() {
           <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
           <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
           <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
-          <span title="Active sessions (24h)">sess <b>${a.activeSessions||0}</b></span>
+          <span title="Total tokens (24h)">total <b>${fmtNum(u.total||0)}</b></span>
           <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>
         </div>
       </div>`;
