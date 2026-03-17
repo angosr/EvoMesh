@@ -235,6 +235,11 @@ export function startRole(
     args.push("--network", "host");
     args.push("-e", `TTYD_PORT=${ttydPort}`);
   } else {
+    // Per-user Docker network for isolation
+    const netUser = process.env.USER || "user";
+    const netName = `evomesh-net-${netUser}`;
+    try { execFileSync("docker", ["network", "create", netName], { stdio: "ignore" }); } catch {} // already exists = ok
+    args.push("--network", netName);
     args.push("-p", `127.0.0.1:${ttydPort}:7681`);
   }
 

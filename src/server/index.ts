@@ -150,16 +150,16 @@ export function startServer(port: number, initialRoot?: string) {
   // --- Shared context ---
   const ttydProcesses: Map<string, TtydProcess> = new Map();
 
-  function getProjects(): ProjectEntry[] {
+  function getProjects(linuxUser?: string): ProjectEntry[] {
     if (initialRoot) ensureInWorkspace(initialRoot);
-    const ws = loadWorkspace();
+    const ws = loadWorkspace(linuxUser);
     return ws.projects
       .filter(p => p.active)
       .map(p => ({ slug: slugify(p.name), name: p.name, root: path.resolve(p.path) }));
   }
 
-  function getProject(slug: string): ProjectEntry | undefined {
-    return getProjects().find(p => p.slug === slug);
+  function getProject(slug: string, linuxUser?: string): ProjectEntry | undefined {
+    return getProjects(linuxUser).find(p => p.slug === slug);
   }
 
   function checkNeedsLogin(accountDir: string): boolean {
