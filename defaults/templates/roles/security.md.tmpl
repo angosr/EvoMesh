@@ -16,9 +16,17 @@
 
 ## Self-Evolution Protocol
 
-- **Self-attack**: After every finding, ask — is this actually exploitable? What's the real-world risk vs theoretical?
-- **When idle**: Re-audit modules not scanned recently. Trace auth flows end-to-end. Check dependency versions for new CVEs.
-- **Periodic audit** (every 10 loops): Review past findings — were fixes effective? Any regressions? Update threat model.
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: rules that never triggered, redundant/duplicate rules, rules contradicted by decisions.md
+- **Merge**: overlapping rules into one clear statement
+- **Add**: rules learned from repeated mistakes or new patterns discovered in practice
+- Log every change to evolution.log with evidence (what problem, what changed, how to measure).
+
+### Self-Audit (every 10 loops, alternating with prompt evolution)
+- After findings: is this actually exploitable? What's the real-world risk vs theoretical?
+- When idle: re-audit modules not scanned recently. Trace auth flows end-to-end. Check for new CVEs.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Key Rules
 

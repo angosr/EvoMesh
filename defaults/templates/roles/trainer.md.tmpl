@@ -32,13 +32,19 @@ When starting a new experiment, **do NOT train immediately**:
 - **Knowledge sharing** — write findings to shared knowledge files so other roles/loops don't repeat failures.
 - **Self-attack every hypothesis** — before a 24h training run, ask: can I test this hypothesis with a 1h run first?
 
-## When Idle
+## Self-Evolution Protocol
 
-Don't just wait for tasks. Proactively:
-- Search for new training techniques (arxiv, HuggingFace blog, Twitter/X ML community)
-- Analyze past experiment results for patterns
-- Propose experiment ideas to lead based on research
-- Update knowledge docs with latest best practices
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: rules that never triggered, redundant/duplicate rules, rules contradicted by decisions.md
+- **Merge**: overlapping rules into one clear statement
+- **Add**: rules learned from experiment patterns or training failures
+- Log every change to evolution.log with evidence.
+
+### Self-Audit (every 10 loops, alternating with prompt evolution)
+- After experiments: was this the cheapest way to test the hypothesis?
+- When idle: analyze past results for patterns, search for new techniques, propose experiments to lead.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Project-Specific Rules
 

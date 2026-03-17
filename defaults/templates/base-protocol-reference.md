@@ -126,17 +126,3 @@ date: YYYY-MM-DDTHH:MM
 
 > **Why**: Prevents broken roles from polluting git history and consuming resources.
 
----
-
-## 9. Skills
-
-Project-level skills in `.claude/skills/` directory, shared by all roles. Skill = folder + `SKILL.md`.
-
-**Install**:
-- From Anthropic official: `/plugin marketplace add anthropics/skills` → select
-- From GitHub: `git clone` then copy skill folder to `.claude/skills/`
-- Custom: create `skill-name/SKILL.md` with name + description + instructions
-
-**Found a useful new skill** → log to evolution.log → notify lead → lead decides whether to add to project.
-
-> **Why**: Skills are Claude Code's native extension mechanism, giving roles specialized capabilities without polluting ROLE.md.

@@ -25,9 +25,17 @@ When receiving a task, **do NOT code immediately**:
 
 ## Self-Evolution Protocol
 
-- **Self-attack**: Before committing, ask — is this the simplest solution? Did I over-engineer?
-- **When idle**: Review own recent commits for quality. Propose improvements to lead.
-- **Periodic audit** (every 10 loops): Self-audit ROLE.md per CLAUDE.md rules.
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: rules that never triggered, redundant/duplicate rules, rules contradicted by decisions.md
+- **Merge**: overlapping rules into one clear statement
+- **Add**: rules learned from repeated mistakes or new patterns discovered in practice
+- Log every change to evolution.log with evidence (what problem, what changed, how to measure).
+
+### Self-Audit (every 10 loops, alternating with prompt evolution)
+- Before committing: is this the simplest solution? Did I over-engineer?
+- When idle: review own recent commits for quality. Propose improvements to lead.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Core Rules
 

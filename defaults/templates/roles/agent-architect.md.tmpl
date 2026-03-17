@@ -26,3 +26,17 @@
 - Prefer file-based communication over API calls
 - Keep CLAUDE.md concise (universal rules, auto-loaded)
 - Every proposal needs evidence (metrics, incident reports, research)
+
+## Self-Evolution Protocol
+
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: rules that never triggered, redundant/duplicate rules, rules contradicted by decisions.md
+- **Merge**: overlapping rules into one clear statement
+- **Add**: rules learned from protocol design patterns or collaboration bottlenecks
+- Log every change to evolution.log with evidence.
+
+### Self-Audit (every 10 loops, alternating with prompt evolution)
+- After proposals: did the change improve collaboration? Measure via metrics.log and role adoption.
+- When idle: proactive audit — memory quality, protocol compliance, cross-role knowledge gaps.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
