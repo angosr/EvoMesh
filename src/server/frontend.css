@@ -168,7 +168,7 @@
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; visibility: hidden; z-index: 0; opacity: 0; }
   .panel.active { visibility: visible; z-index: 1; opacity: 1; animation: fadeIn 0.15s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-  .panel iframe { width: 100%; height: 100%; border: none; background: #000; }
+  .panel iframe { width: 100%; height: 100%; border: none; background: var(--bg-base); }
   .panel .reconnect-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .panel .reconnect-overlay.show { display: flex; }
   .panel .reconnect-overlay .reconnect-btn { padding: 14px 28px; background: var(--accent); border: none; color: #fff; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
@@ -307,32 +307,32 @@
   .user-table .role-badge.admin { background: rgba(251, 191, 36, 0.12); color: var(--yellow); }
   .user-table .role-badge.user { background: rgba(129, 140, 248, 0.12); color: var(--blue); }
   .user-table .actions { display: flex; gap: 6px; }
-  .user-table .act-btn { background: none; border: 1px solid #333; color: #888; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; }
-  .user-table .act-btn:hover { border-color: #888; color: #e0e0e0; }
+  .user-table .act-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; transition: all 0.15s; }
+  .user-table .act-btn:hover { border-color: var(--text-dim); color: var(--text); }
   .user-table .act-btn.del:hover { border-color: var(--red); color: var(--red); }
-  .add-user-form { display: none; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 8px; padding: 12px; background: var(--bg-hover); border-radius: 6px; border: 1px solid var(--border); }
+  .add-user-form { display: none; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 8px; padding: 12px; background: var(--bg-hover); border-radius: var(--radius-md); border: 1px solid var(--border); }
   .add-user-form.show { display: flex; }
-  .members-panel { margin-top: 12px; padding: 10px; background: #0d0d1a; border: 1px solid #222; border-radius: 6px; }
+  .members-panel { margin-top: 12px; padding: 10px; background: var(--bg-active); border: 1px solid var(--border); border-radius: var(--radius-md); }
   .members-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-  .members-table th { text-align: left; padding: 4px 8px; color: #888; font-size: 9px; text-transform: uppercase; border-bottom: 1px solid #222; }
-  .members-table td { padding: 4px 8px; font-size: 12px; border-bottom: 1px solid #1a1a2e; }
+  .members-table th { text-align: left; padding: 4px 8px; color: var(--text-faint); font-size: 9px; text-transform: uppercase; font-family: var(--font-mono); border-bottom: 1px solid var(--border); }
+  .members-table td { padding: 4px 8px; font-size: 12px; border-bottom: 1px solid var(--border); }
   .add-user-form .field { display: flex; flex-direction: column; gap: 4px; }
-  .add-user-form label { color: #888; font-size: 10px; }
-  .add-user-form input, .add-user-form select { padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-size: 12px; }
+  .add-user-form label { color: var(--text-dim); font-size: 10px; }
+  .add-user-form input, .add-user-form select { padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: 12px; transition: border-color 0.15s; }
   .add-user-form input:focus, .add-user-form select:focus { outline: none; border-color: var(--accent); }
 
   /* Role modal */
   #role-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
   #role-modal-overlay.show { display: flex; }
-  #role-modal { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 340px; }
-  #role-modal h3 { color: #e94560; margin-bottom: 12px; font-size: 15px; }
-  #role-modal label { display: block; color: #888; font-size: 11px; margin-bottom: 4px; margin-top: 10px; }
-  #role-modal input, #role-modal select { width: 100%; padding: 8px; background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; border-radius: 4px; font-size: 13px; }
-  #role-modal input:focus, #role-modal select:focus { outline: none; border-color: #e94560; }
+  #role-modal { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; width: 340px; }
+  #role-modal h3 { color: var(--accent); margin-bottom: 12px; font-size: 15px; font-family: var(--font-display); }
+  #role-modal label { display: block; color: var(--text-dim); font-size: 11px; margin-bottom: 4px; margin-top: 10px; }
+  #role-modal input, #role-modal select { width: 100%; padding: 8px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: 13px; transition: border-color 0.15s; }
+  #role-modal input:focus, #role-modal select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 4px var(--accent-glow); }
   #role-modal .modal-btns { display: flex; gap: 8px; margin-top: 16px; }
-  #role-modal .modal-btns button { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-  #role-modal .btn-create { background: #e94560; color: #fff; }
-  #role-modal .btn-close { background: #333; color: #888; }
+  #role-modal .modal-btns button { flex: 1; padding: 8px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  #role-modal .btn-create { background: var(--accent); color: #fff; }
+  #role-modal .btn-close { background: var(--bg-hover); color: var(--text-dim); }
 
   /* === Mobile responsive === */
   @media (max-width: 768px) {
