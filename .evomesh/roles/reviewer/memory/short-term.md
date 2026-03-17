@@ -1,15 +1,16 @@
-# Reviewer — Short-Term Memory (Loop #058, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #061, 2026-03-17)
 
 ## Done this loop
-- Reviewed 2 new code commits:
-  - `39d88ef`: multi-tenant Phase 1 — linuxUser field in auth. Clean. P2: linuxUser exposed in listUsers.
-  - `9010ad4`: frontend-feed.js extraction. Clean refactor. frontend.js 767→675 (still >500).
-- No P0/P1 findings
-- Idle count: 0
-- Architecture reviews done: none yet. Next idle: self-healing audit (#1)
+- No new code commits. Performed **Architecture Review #1: Self-Healing Audit**
+- Traced 4 self-healing mechanisms in index.ts
+- P1 sent to lead: brain-dead recovery is DISABLED (if false &&). Dead code since dual-signal fix was reverted.
+- P2 sent to lead: Central AI restart depends on browser polling /api/admin/status
+- Suggested: heartbeat.json for brain-dead signal, direct ensureCentralAI() in writeRegistry()
+- Idle count: 0 (architecture review counts as work)
+- Architecture reviews completed: 1 (self-healing). Next: #2 data flow audit
 
 ## Blockers
 - None
 
 ## Next loop focus
-- If no code commits: architecture review #1 (self-healing audit)
+- If code: review. If idle: architecture review #2 (data flow audit — "user sends message to Central AI")
