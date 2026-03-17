@@ -26,25 +26,16 @@ All infrastructure operational. Protocols established. System is self-evolving v
 5. ✅ Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing, compliance hooks implemented
 6. ⏸️ MCP integration — DEFERRED (roles have full shell access; MCP adds abstraction without solving a real problem)
 7. ✅ Multi-user with Linux user isolation (all code done + security reviewed)
-8. ✅ Account usage monitor (API beb6c3d + UI 359540e)
-9. ⬜ Mobile app
+8. ✅ Account usage monitor (API beb6c3d + UI 359540e + login detection a30e7c3)
+9. ⬜ Mobile app (research recommends CSS-first path, ~2h)
 
-## Next Milestone: Item 7 — Multi-User Isolation
-Research already completed feasibility study (devlog/20260317_multi-user-isolation-research.md):
-- Our Docker-per-role architecture is 80% of the way to multi-user
-- Per-user workspace: `~/.evomesh/` already namespaced by Linux user
-- Per-user containers: extend naming to `evomesh-{user}-{project}-{role}`
-- ACL system already exists (`acl.yaml`, `acl.ts`)
-- Docker userns-remap for filesystem isolation
-- ttyd supports `--credential` for per-connection auth
-
-**Status**:
-- ✅ Design: architecture approved (shared/decisions.md), threat model done (2 P0, 3 P1, 2 P2)
+## Multi-User Isolation — COMPLETE
+- ✅ Design: architecture approved (shared/decisions.md), threat model done
 - ✅ Phase 1: per-user workspace + container naming (b6a58a9)
 - ✅ Phase 2: scoped projects + Docker network isolation (4073aa6)
-- 🔄 Security review of implementation (dispatched)
-- 🔄 Frontend UI verification (dispatched)
-- ⬜ Remaining P1s: terminal ACL check, useradd privilege helper
+- ✅ Wiring: session.linuxUser into all routes (508a2be + 08061aa)
+- ✅ Frontend UI: verified compatible, user badge added (bc3af8d)
+- 🔄 SEC-021: account API user-scoping (dispatched)
 
 ## MCP — Deferred (was Item 6)
 Agent-architect produced a clean protocol design (project.yaml config, ~5 lines server code).

@@ -11,14 +11,13 @@ ALL P0 COMPLETE ✅
 
 ## P2 — Later
 
-- ⬜ Mobile app — research recommends starting with CSS media queries (~2h, "Low" path)
+- ⬜ Mobile app — research recommends CSS media queries (~2h, "Low" path)
 - ⬜ Account concentration risk
 - ⬜ Additional role templates
 - ⬜ Mobile terminal scrolling
 - ⬜ Live usage endpoint (OAuth, stretch)
 
-## Completed This Loop (2026-03-18 — Loop 146)
+## Completed This Loop (2026-03-18 — Loop 147)
 
-- Core-dev login monitoring DONE ✅ (a30e7c3): health check credentials + accountDown marking
-- Processed SEC-021: account API not user-scoped → dispatched fix to core-dev
-- Processed research proactive scan: mobile roadmap research done (3 paths identified, recommend Low first)
+- Resolved merge conflicts from stash pop
+- Core-dev ddf5fb3: auto-restart markRoleRunning fix
