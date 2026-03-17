@@ -54,7 +54,7 @@ export function startServer(port: number, initialRoot?: string) {
       for (const [token, info] of Object.entries(data)) {
         const s = info as SessionInfo & { createdAt?: string };
         if (s.createdAt && Date.now() - new Date(s.createdAt).getTime() > maxAge) continue;
-        sessions.set(token, { username: s.username, role: s.role });
+        sessions.set(token, { username: s.username, role: s.role, linuxUser: s.linuxUser });
       }
       if (sessions.size > 0) console.log(`[auth] Restored ${sessions.size} sessions`);
     }
@@ -99,7 +99,7 @@ export function startServer(port: number, initialRoot?: string) {
     try {
       setupAdmin(name, password);
       const token = generateSessionToken();
-      sessions.set(token, { username: name, role: "admin" });
+      sessions.set(token, { username: name, role: "admin", linuxUser: process.env.USER || "user" });
       persistSessions();
       res.json({ ok: true, token, username: name, role: "admin" });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
@@ -111,7 +111,7 @@ export function startServer(port: number, initialRoot?: string) {
     const user = verifyUser(username, password);
     if (!user) { res.status(401).json({ error: "Invalid username or password" }); return; }
     const token = generateSessionToken();
-    sessions.set(token, { username: user.username, role: user.role });
+    sessions.set(token, { username: user.username, role: user.role, linuxUser: user.linuxUser });
     persistSessions();
     res.json({ ok: true, token, username: user.username, role: user.role });
   });

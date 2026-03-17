@@ -16,6 +16,7 @@ export interface User {
   salt: string;
   role: UserRole;
   createdAt: string;
+  linuxUser?: string;  // OS user whose ~/.evomesh/ this user owns
 }
 
 interface UsersConfig {
@@ -25,13 +26,14 @@ interface UsersConfig {
 export interface SessionInfo {
   username: string;
   role: UserRole;
+  linuxUser?: string;  // OS user namespace for project filtering
 }
 
 function hashPassword(password: string, salt: string): string {
   return crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
 }
 
-function createUser(username: string, password: string, role: UserRole): User {
+function createUser(username: string, password: string, role: UserRole, linuxUser?: string): User {
   const salt = crypto.randomBytes(32).toString("hex");
   return {
     username,
@@ -39,6 +41,7 @@ function createUser(username: string, password: string, role: UserRole): User {
     salt,
     role,
     createdAt: new Date().toISOString(),
+    linuxUser: linuxUser || process.env.USER || "user",
   };
 }
 
@@ -128,16 +131,16 @@ export function changePassword(username: string, oldPassword: string, newPasswor
   return true;
 }
 
-export function listUsers(): Array<{ username: string; role: UserRole; createdAt: string }> {
-  return loadUsers().users.map(u => ({ username: u.username, role: u.role, createdAt: u.createdAt }));
+export function listUsers(): Array<{ username: string; role: UserRole; createdAt: string; linuxUser?: string }> {
+  return loadUsers().users.map(u => ({ username: u.username, role: u.role, createdAt: u.createdAt, linuxUser: u.linuxUser }));
 }
 
-export function addUser(username: string, password: string, role: UserRole): void {
+export function addUser(username: string, password: string, role: UserRole, linuxUser?: string): void {
   const config = loadUsers();
   if (config.users.find(u => u.username === username)) {
     throw new Error(`User "${username}" already exists`);
   }
-  config.users.push(createUser(username, password, role));
+  config.users.push(createUser(username, password, role, linuxUser));
   saveUsers(config);
 }
 
