@@ -53,9 +53,10 @@ function appendFeedMessage(msg) {
       <span class="feed-time">${esc(time)}</span>
       <div class="feed-text">${esc(msg.text || '')}</div>`;
   } else if (msg.type === 'central') {
+    const lines = (msg.text || '').split('\n').map(l => esc(l)).join('<br>');
     div.innerHTML = `<span class="feed-role" style="color:#ef4444">Central AI</span>
       <span class="feed-time">${esc(time)}</span>
-      <div class="feed-text">${esc(msg.text || '')}</div>`;
+      <div class="feed-text feed-central-text">${lines}</div>`;
   } else if (msg.type === 'user-message') {
     div.innerHTML = `<div class="feed-text">${esc(msg.text || '')}</div>`;
   } else {
