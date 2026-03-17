@@ -71,6 +71,16 @@ export function bootstrapGlobalConfig(): void {
   // Copy templates from repo .evomesh/templates/ to ~/.evomesh/templates/
   copyTemplatesIfMissing();
 
+  // Deploy Claude Code hooks (.claude/settings.json) for compliance enforcement
+  const claudeDir = path.join(process.cwd(), ".claude");
+  const hooksFile = path.join(claudeDir, "settings.json");
+  const defaultHooks = findRepoFile("defaults/claude-settings.json");
+  if (defaultHooks && (!fs.existsSync(hooksFile) || fs.statSync(defaultHooks).mtimeMs > fs.statSync(hooksFile).mtimeMs)) {
+    ensureDir(claudeDir);
+    fs.copyFileSync(defaultHooks, hooksFile);
+    console.log("[bootstrap] Deployed Claude Code hooks (.claude/settings.json)");
+  }
+
   console.log("[bootstrap] ~/.evomesh/ skeleton created");
 }
 
