@@ -2,13 +2,13 @@
 
 > **Loop 周期**: 20m
 > **职责边界**: 战略蓝图、项目现况、全角色审查、任务分配
-> **基础协议**: `.evomesh/templates/base-protocol.md`（loop 流程、记忆、inbox、git 规则全在里面）
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ---
 
 ## Loop 流程（角色特定部分）
 
-base-protocol 定义了通用 loop 步骤（pull → 读文件 → 处理 inbox → 工作 → 写 memory → 写 metrics → 更新 todo → commit+push）。以下是 Lead 在"执行角色工作"步骤中做的事：
+CLAUDE.md 定义了通用 loop 步骤。以下是 Lead 在"执行角色工作"步骤中做的事：
 
 1. 扫描所有角色：todo.md、short-term.md → 了解全局状态
 2. 更新 `blueprint.md`（战略方向）和 `status.md`（当前状态）

@@ -1,49 +1,47 @@
 # EvoMesh — Universal Rules (auto-loaded every request)
 
-## Loop Flow (MANDATORY — do not skip any step)
+## Loop Flow (MANDATORY)
 
 1. `git pull --rebase`
-2. **MUST `cat` and fully read these files** (do NOT rely on memory from previous loops):
-   ROLE.md, todo.md, inbox/*, memory/short-term.md, shared/decisions.md, blueprint.md, status.md
-3. **Process inbox FIRST** — P0 this loop, P1 within 2 loops. Move processed → inbox/processed/
+2. **`cat` and read**: ROLE.md, inbox/*, memory/short-term.md (EVERY loop, do NOT rely on memory)
+   Also read (every 5 loops or when notified): blueprint.md, status.md, shared/decisions.md
+3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/
 4. Execute role work
-5. **Write `memory/short-term.md`** — Done / Blockers / In-progress / Next focus. NEVER leave empty.
-6. **Append `metrics.log`** — one CSV line: `timestamp,duration_s,tasks_done,errors,inbox_processed`
-7. Update todo.md
-8. `git add <own files only>` → commit → `git pull --rebase` → push
+5. Write outputs (ALL mandatory, do in one step):
+   - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
+   - `metrics.log` — append CSV: `timestamp,duration_s,tasks_done,errors,inbox_processed`
+   - `todo.md` — mark completed, add new
+6. `git add <own files only>` → commit → `git pull --rebase` → push
 
 Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics only).
 
-## Git Rules
+## Git
 
 - Commit: `{type}({scope}/{role}): {description}`
-- **NEVER** `git add -A` or `git add .` — only your own modified files
-- **NEVER** `rm -rf`, `git push --force`, `git reset --hard`
-- **NEVER** start background processes (servers, watchers, daemons)
-- All committed content in English. User-facing replies may use user's language.
-- No Co-Authored-By trailer.
+- **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`
+- **NEVER** start background processes
+- All committed content English. User-facing replies follow user's language.
 - File > 500 lines → split
 
 ## Communication
 
-- Inbox filename: `YYYYMMDDTHHMM_from_topic.md`
-- Frontmatter: from, to, priority (P0/P1/P2), type, date
-- P0/P1 completion → send `type: ack, status: done` to sender
-- Cross-role messages go through lead (except P0 direct + bug fix direct to core-dev)
+- Inbox: `YYYYMMDDTHHMM_from_topic.md`, frontmatter: from/to/priority/type/date
+- P0/P1 done → `type: ack, status: done` to sender
+- Cross-role via lead (except P0 direct + bug fix direct)
 
 ## Shared Docs
 
-- `blueprint.md` / `status.md`: lead writes, others read-only
-- `shared/decisions.md`: append-only, never edit existing entries
-- `project.yaml`: Server API writes, roles do not edit
+- blueprint.md / status.md: lead only writes
+- shared/decisions.md: append-only
+- project.yaml: Server API only writes
 
 ## Self-Evolution
 
-Every 10 loops: self-audit ROLE.md — remove dead rules, merge duplicates.
-Send change proposal to lead with metrics evidence. Log to `evolution.log`.
+Every 10 loops: self-audit ROLE.md — delete dead rules, merge duplicates.
+Proposal → lead inbox with metrics evidence → log to evolution.log.
 
-## Project
+## EvoMesh Project-Specific
 
 - TypeScript + Express + Docker. Vanilla HTML/JS/CSS frontend.
 - `src/` code, `docker/` containers, `.evomesh/` config, `~/.evomesh/` global
-- Central AI at `~/.evomesh/central/`, templates at `~/.evomesh/templates/`
+- **All prompt/rule improvements must be reflected in role templates** (`defaults/templates/roles/*.tmpl`) and CLAUDE.md template (`defaults/templates/project-scaffold/CLAUDE.md.tmpl`) so they apply to ALL future projects, not just this one.
