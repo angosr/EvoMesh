@@ -61,9 +61,24 @@ When asked to create a new project or add roles to an existing project:
 6. **Verify**: Wait for next registry.json refresh → confirm roles appear with `configured: true`
 7. **Report**: Write summary to `central-status.md`
 
+   e. **`.gitignore`** — append EvoMesh runtime entries if not present:
+      ```
+      .evomesh/project.yaml
+      .evomesh/project.yaml.bak
+      .evomesh/runtime/
+      .evomesh/templates/
+      .evomesh/roles/*/.session-id
+      .evomesh/roles/*/memory/short-term.md
+      .evomesh/roles/*/metrics.log
+      .evomesh/roles/*/heartbeat.json
+      .evomesh/roles/*/role-card.json
+      .evomesh/roles/*/inbox/processed/
+      ```
+
 ### Checklist (must ALL pass before reporting "done")
 - [ ] `.evomesh/project.yaml` exists with all roles listed
 - [ ] `CLAUDE.md` exists in project root
+- [ ] `.gitignore` has EvoMesh runtime entries
 - [ ] Each role has complete directory structure
 - [ ] Project in `~/.evomesh/workspace.yaml`
 - [ ] Accounts assigned (different accounts for roles that run simultaneously)

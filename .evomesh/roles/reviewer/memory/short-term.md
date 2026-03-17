@@ -1,1 +1,1 @@
-# Reviewer (Loop #081) — Reviewed `bf4c4d5`: feed header filter fix. 1 char change. Clean. Idle count: reset.
+# Reviewer (Loop #082) — Reviewed `2c6dd3f`: Markdown rendering in feed. esc() before regex = XSS safe. Clean. Idle reset.
