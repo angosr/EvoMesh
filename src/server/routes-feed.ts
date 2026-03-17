@@ -162,9 +162,11 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
             lastMtime.set("central", stat.mtimeMs);
             if (prevMtime > 0) {
               const status = fs.readFileSync(statusPath, "utf-8");
-              // Status is compact by design (max 10 lines). Send meaningful content, skip headers.
-              const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('# ') && !l.startsWith('```'));
-              const summary = lines.slice(0, 8).join('\n');
+              // Send meaningful content — skip only the first title line and code fences
+              const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('```'));
+              // Remove first line if it's a top-level title (# Central Status — ...)
+              if (lines.length && /^# [^#]/.test(lines[0])) lines.shift();
+              const summary = lines.slice(0, 12).join('\n');
               broadcastFeed({ type: "central", text: summary });
             }
           }

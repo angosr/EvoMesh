@@ -60,10 +60,14 @@ function appendFeedMessage(msg) {
   } else if (msg.type === 'central') {
     const lines = (msg.text || '').split('\n').map(l => {
       let s = esc(l);
-      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');  // bold
-      s = s.replace(/^## (.+)/, '<div class="feed-section-title">$1</div>');  // ## headers
-      s = s.replace(/^⚠️/, '<span style="color:var(--yellow)">⚠️</span>');  // warning emoji color
-      s = s.replace(/^- /, '• ');  // bullets
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/^### (.+)/, '<div class="feed-section-title" style="font-size:11px">$1</div>');
+      s = s.replace(/^## (.+)/, '<div class="feed-section-title">$1</div>');
+      s = s.replace(/^# (.+)/, '<div class="feed-section-title" style="font-size:13px">$1</div>');
+      s = s.replace(/^- \[x\] (.+)/, '<span style="color:var(--green)">✓</span> <s style="color:var(--text-faint)">$1</s>');
+      s = s.replace(/^- \[ \] (.+)/, '<span style="color:var(--text-faint)">○</span> $1');
+      s = s.replace(/^  - /, '&nbsp;&nbsp;• ');
+      s = s.replace(/^- /, '• ');
       return s;
     }).join('<br>');
     div.innerHTML = `<span class="feed-role" style="color:#ef4444">Central AI</span>
