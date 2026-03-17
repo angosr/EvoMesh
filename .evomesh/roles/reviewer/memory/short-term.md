@@ -1,4 +1,13 @@
-# Reviewer — Short-Term Memory (Loop #046, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #047, 2026-03-17)
 
-- Light mode check: inbox empty, no new code. Idle count: 1.
-- Next: light mode if idle persists 2 more loops.
+## Done this loop
+- Reviewed `a0ee259` dual launch mode (Docker vs host tmux) — 87 lines added to container.ts
+- No P0. P1 shell injection safe (upstream ROLE_NAME_RE validates). Two P2 (ttyd pkill regex, tmux-first in getContainerState)
+- Notable: loop prompt now embeds memory/metrics reminders — addresses compliance attenuation
+- Idle count: reset to 0
+
+## Blockers
+- None
+
+## Next loop focus
+- Monitor for new code commits
