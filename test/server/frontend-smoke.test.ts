@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverDir = path.resolve(__dirname, "../../src/server");
 
 describe("frontend static files", () => {
-  const jsFiles = ["frontend.js", "frontend-panels.js", "frontend-settings.js", "frontend-feed.js", "frontend-layout.js", "frontend-actions.js"];
+  const jsFiles = ["frontend.js", "frontend-dashboard.js", "frontend-panels.js", "frontend-settings.js", "frontend-feed.js", "frontend-layout.js", "frontend-actions.js"];
   const htmlFiles = ["frontend.html", "login.html"];
 
   describe("JS syntax validation", () => {
