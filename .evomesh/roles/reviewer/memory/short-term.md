@@ -1,5 +1,4 @@
-# Reviewer — Short-Term Memory (Loop #071, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #072, 2026-03-17)
 
-- No inbox, no new code. Idle count: 1.
-- Next idle (#2): start architecture review #5 (compliance audit).
-- If idle count hits 3: enter light mode.
+- Reviewed `ffe2300`: removed duplicate centralDir declaration that crashed server. 1-line fix. Clean.
+- Idle count: 0
