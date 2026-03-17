@@ -32,9 +32,16 @@ fi
 
 IS_RESUME=false
 if [ -n "$SESSION_ID" ]; then
-  CLAUDE_ARGS="--resume $SESSION_ID $CLAUDE_ARGS"
-  IS_RESUME=true
-  echo "[evomesh] Resuming session: $SESSION_ID"
+  # Verify session exists before resuming (avoids "No conversation found" on account switch)
+  if CLAUDE_CONFIG_DIR="${CONFIG_DIR}" claude --resume "$SESSION_ID" --dangerously-skip-permissions --print-session-id 2>/dev/null | grep -q "$SESSION_ID"; then
+    CLAUDE_ARGS="--resume $SESSION_ID $CLAUDE_ARGS"
+    IS_RESUME=true
+    echo "[evomesh] Resuming session: $SESSION_ID"
+  else
+    echo "[evomesh] Session $SESSION_ID not found (account changed?), starting fresh"
+    rm -f "$ROLE_SESSION_FILE"
+    CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
+  fi
 else
   CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
   echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
