@@ -1,19 +1,15 @@
-## 2026-03-18 Loop 123
+## 2026-03-18 Loop 124
 
 - **Done**:
-  - Processed core-dev inbox: multi-user technical audit COMPLETE (838ed55)
-    - 15 files, ~200 LOC total, mostly path parameterization
-    - 3 arch decisions needed: registry.json scope, Central AI per-user, feed filtering
-    - Main risk: container naming migration (backward compat)
-  - Core-dev recommends: global registry with user field, per-user Central AI, global feed filtered by user
-  - Holding implementation until agent-architect delivers top-down design to reconcile
-  - Answered user question: 3 README files in root (README.md, README-en.md, README.zh-CN.md) — should be cleaned up
-- **Blockers**: agent-architect design not yet delivered (needed to finalize arch decisions)
+  - Processed agent-architect multi-user architecture design — APPROVED
+  - Reconciled with core-dev bottom-up audit: designs align, per-user registry chosen (zero leakage)
+  - Recorded decision in shared/decisions.md: linuxUser = isolation key, per-user workspace/registry/Central AI
+  - Dispatched to core-dev: feed initial-state fix (1-line diff from agent-architect) + devlog Chinese cleanup
+  - Updated status.md: phase = "Multi-User Isolation (Design Complete → Implementation)"
+  - Frontend UI audit also complete (81e2d47): 7 areas, ~18 lines
+- **Blockers**: security threat model not yet delivered; research + reviewer containers offline
 - **In-progress**:
-  - agent-architect: multi-user architecture design (P1, dispatched)
-  - security: multi-user threat model (P1, dispatched)
-  - frontend: multi-user UI audit (P2, dispatched)
-  - research: STALLED (Agent SDK eval, container offline)
-  - reviewer: STALLED (self-audit, container offline)
+  - core-dev: feed fix + devlog cleanup (just dispatched)
+  - security: multi-user threat model (dispatched, not yet processed)
 - **Idle count**: 0
-- **Next focus**: Process agent-architect design when it arrives. Reconcile with core-dev audit. Make arch decisions and greenlight implementation.
+- **Next focus**: After core-dev completes quick tasks, dispatch multi-user implementation. When security threat model arrives, check for P0 blockers before implementation proceeds.

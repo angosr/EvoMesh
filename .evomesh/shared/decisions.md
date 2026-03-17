@@ -87,3 +87,21 @@
 
 **提出者**: user (overriding reviewer SEC-002 recommendation)
 **状态**: active — supersedes reviewer's known_hosts-only position
+
+## [2026-03-18] Multi-User Isolation Architecture
+
+**Decision**: `linuxUser` is the single isolation key. ALL paths, containers, and permissions derive from it.
+
+**Architecture**:
+- Container naming: `evomesh-{linuxUser}-{projectSlug}-{roleName}`
+- Workspace: per-user at `/home/{linuxUser}/.evomesh/` (workspace.yaml, registry.json, central/)
+- Registry: **per-user** `registry.json` (not global — zero cross-user data exposure)
+- Central AI: per-user (`evomesh-{linuxUser}-central`)
+- Feed: global SSE stream, filtered by `session.linuxUser`'s visible projects
+- Auth: `User.linuxUser` field maps to Linux user home directory
+- Migration: existing users get `process.env.USER` as linuxUser (zero disruption)
+
+**Scope**: 9-15 files, ~200 LOC, ~7 hours core-dev + 1 hour frontend
+
+**Sources**: agent-architect top-down design + core-dev bottom-up audit (reconciled by lead)
+**Status**: APPROVED — awaiting implementation

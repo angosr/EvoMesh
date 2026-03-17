@@ -1,39 +1,37 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-18T01:30
+> Last updated: 2026-03-18T02:10
 
-## Current Phase: Self-Evolution (Stable)
+## Current Phase: Multi-User Isolation (Design Complete → Implementation)
 
-All infrastructure operational. Compliance hooks deployed. MCP deferred — pivoting to multi-user isolation.
+Architecture approved. Both top-down (agent-architect) and bottom-up (core-dev) designs reconciled. Decision recorded in shared/decisions.md. Implementation ready to begin.
 
 ## System Health
 
-- **lead**: Loop 121 — active, processing progress + strategic pivot
-- **core-dev**: ACTIVE — Compliance hooks DONE ✅ (Stop hook + SessionStart compact re-injection). Context cleanup restart feature in progress.
-- **frontend**: DONE — MCP UI scaffolding complete ✅ (119/119 tests pass). Idle, awaiting new tasks.
-- **agent-architect**: DONE — MCP protocol design delivered ✅. Loop 156, idle.
-- **research**: STALLED — Agent SDK eval P1 in inbox since 21:00 (unprocessed). Short-term memory unchanged since 16:05.
-- **reviewer**: STALLED — Self-audit P1 in inbox since 22:00 (unprocessed). Still at loop 101.
-- **security**: STALLED — Self-audit + MCP assessment P1 in inbox since 22:00 (unprocessed). Still at loop 82.
+- **lead**: Loop 124 — active, architecture decisions made, dispatching implementation
+- **core-dev**: Idle (1) — multi-user audit DONE ✅. Feed fix + devlog cleanup dispatched.
+- **frontend**: Idle — multi-user UI audit DONE ✅ (7 areas, ~18 lines). Awaiting arch design.
+- **agent-architect**: Idle (loop 161) — multi-user architecture DONE ✅.
+- **security**: Awaiting — multi-user threat model P1 dispatched (not yet processed).
+- **research**: STALLED — Agent SDK eval P1 unprocessed since 2026-03-17T21:00.
+- **reviewer**: STALLED — self-audit P1 unprocessed since 2026-03-17T22:00.
 
-## Recent Completions (Loop 119-121)
+## Multi-User Architecture (APPROVED)
 
-1. ✅ Compliance Stop hook — blocks Claude from finishing without memory/metrics writing
-2. ✅ SessionStart compact hook — re-injects base-protocol after context compaction
-3. ✅ MCP protocol design — clean, minimal (project.yaml config, ~5 lines code). DEFERRED by user decision.
-4. ✅ MCP UI scaffolding — Settings section with per-role MCP display. Built but unused (MCP deferred).
-5. ✅ Frontend JS quality refactor — 767→492 lines, XSS safe
+- `linuxUser` = single isolation key
+- Per-user workspace: `/home/{linuxUser}/.evomesh/`
+- Per-user registry.json (zero cross-user exposure)
+- Per-user Central AI
+- Container naming: `evomesh-{user}-{project}-{role}`
+- Scope: 9-15 files, ~200 LOC, ~7h core-dev + 1h frontend
+- Decision: shared/decisions.md [2026-03-18]
 
-## Strategic Pivot: MCP → Multi-User
+## Recent Completions
 
-User assessment: MCP adds abstraction without value since roles have full shell/CLI access.
-Next milestone changed from MCP Integration (Item 6) to Multi-User Isolation (Item 7).
-Research feasibility study already complete — 80% infrastructure exists.
-
-## Current Work Items
-
-1. **research**: P1 — Agent SDK evaluation (STALLED — inbox unprocessed)
-2. **reviewer**: P1 — Self-audit (STALLED — inbox unprocessed)
-3. **security**: P1 — Self-audit (STALLED — inbox unprocessed)
-4. **core-dev/frontend/agent-architect**: Idle, tasks complete — need new dispatch aligned to multi-user milestone
+1. ✅ Compliance hooks (Stop + SessionStart compact)
+2. ✅ MCP protocol design (deferred — roles have shell access)
+3. ✅ Multi-user server audit (core-dev: 15 files, ~200 LOC)
+4. ✅ Multi-user architecture design (agent-architect: reconciled with audit)
+5. ✅ Multi-user UI audit (frontend: 7 areas, ~18 lines)
+6. ✅ Security self-audit + MCP assessment
