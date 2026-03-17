@@ -128,3 +128,4 @@ timestamp,loop_duration_s,tasks_completed,errors,inbox_processed
 2026-03-18T06:00,120,1,0,0
 2026-03-18T06:10,120,2,0,0
 2026-03-18T06:20,60,1,0,0
+2026-03-18T06:30,180,3,0,2
