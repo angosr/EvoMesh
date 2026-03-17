@@ -86,6 +86,29 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
   // --- SSE Feed: real-time role updates ---
   const feedSubscribers: Set<import("express").Response> = new Set();
   (ctx as any)._feedSubscribers = feedSubscribers;
+  const FEED_FILE = path.join(os.homedir(), ".evomesh", "feed.jsonl");
+  const FEED_MAX_LINES = 500;
+
+  function appendFeedLine(msg: Record<string, unknown>) {
+    const line = JSON.stringify({ ...msg, time: msg.time || new Date().toISOString() });
+    try {
+      fs.appendFileSync(FEED_FILE, line + "\n");
+      // Truncate if too long
+      const content = fs.readFileSync(FEED_FILE, "utf-8");
+      const lines = content.trim().split("\n");
+      if (lines.length > FEED_MAX_LINES) {
+        fs.writeFileSync(FEED_FILE, lines.slice(-250).join("\n") + "\n");
+      }
+    } catch {}
+  }
+
+  function broadcastFeed(msg: Record<string, unknown>) {
+    appendFeedLine(msg);
+    const data = `data: ${JSON.stringify(msg)}\n\n`;
+    for (const sub of feedSubscribers) { try { sub.write(data); } catch {} }
+  }
+  // Expose for admin message broadcast
+  (ctx as any)._broadcastFeed = broadcastFeed;
 
   app.get("/api/feed/stream", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
@@ -95,6 +118,16 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
+
+    // Send history first
+    try {
+      if (fs.existsSync(FEED_FILE)) {
+        const lines = fs.readFileSync(FEED_FILE, "utf-8").trim().split("\n").slice(-50);
+        for (const line of lines) {
+          if (line.trim()) res.write(`data: ${line}\n\n`);
+        }
+      }
+    } catch {}
 
     const lastMtime = new Map<string, number>();
 
@@ -116,9 +149,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
                 const stm = fs.readFileSync(stmPath, "utf-8");
                 const doneMatch = stm.match(/^\s*-\s*\*\*Done\*\*:\s*(.+)$/m);
                 const text = doneMatch ? doneMatch[1] : (stm.match(/^- .+$/m)?.[0]?.replace(/^- /, "") || "updated");
-                res.write(`data: ${JSON.stringify({
-                  type: "role", role: name, project: p.slug, text: text.slice(0, 200),
-                })}\n\n`);
+                broadcastFeed({ type: "role", role: name, project: p.slug, text: text.slice(0, 200) });
               }
             } catch {}
           }
@@ -133,9 +164,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
               const status = fs.readFileSync(statusPath, "utf-8");
               const progressMatch = status.match(/正在进行[^]*?(?=\n-\s\*\*|$)/m);
               const summary = (progressMatch?.[0] || "status updated").slice(0, 200);
-              res.write(`data: ${JSON.stringify({
-                type: "central", text: summary,
-              })}\n\n`);
+              broadcastFeed({ type: "central", text: summary });
             }
           }
         } catch {}

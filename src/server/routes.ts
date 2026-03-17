@@ -206,7 +206,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           name, type: rc.type, loop_interval: rc.loop_interval, description: rc.description,
           running, terminal: ttyd ? `/terminal/${project.slug}/${name}/` : null,
           account: rc.account, needsLogin: ctx.checkNeedsLogin(accountDir),
-          memory: rc.memory || null, cpus: rc.cpus || null,
+          memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
         };
       });
       const session = (req as any)._session as SessionInfo | undefined;

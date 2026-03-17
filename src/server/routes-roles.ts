@@ -133,9 +133,12 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
-      const { memory, cpus } = req.body;
+      const { memory, cpus, launch_mode } = req.body;
       rc.memory = memory || undefined;
       rc.cpus = cpus || undefined;
+      if (launch_mode === "docker" || launch_mode === "host") {
+        rc.launch_mode = launch_mode;
+      }
       writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
       // Restart container with new limits if running

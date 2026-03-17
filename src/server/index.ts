@@ -218,6 +218,7 @@ export function startServer(port: number, initialRoot?: string) {
       for (const [token, info] of sessions) {
         if (info.username === target) sessions.delete(token);
       }
+      persistSessions();
       deleteUser(target);
       res.json({ ok: true });
     } catch (e: unknown) { res.status(404).json({ error: errorMessage(e) }); }
@@ -232,6 +233,7 @@ export function startServer(port: number, initialRoot?: string) {
       for (const [token, info] of sessions) {
         if (info.username === req.params.username) sessions.delete(token);
       }
+      persistSessions();
       res.json({ ok: true });
     } catch (e: unknown) { res.status(404).json({ error: errorMessage(e) }); }
   });
