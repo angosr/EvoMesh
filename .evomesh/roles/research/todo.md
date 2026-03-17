@@ -12,7 +12,7 @@
 5. Monitor awesome-claude-code repo for new patterns
 6. Check WMAC 2026 accepted papers list when published
 7. Monitor DeepMind delegation framework adoption/implementations
-8. Monitor Anthropic Agent SDK for persistence features (critical)
+8. Monitor Anthropic Agent SDK for persistence features (critical) ← deep-dived for intra-role parallelism, DEFER recommendation sent
 9. Track Grok-4.20 Multi-Agent Beta development ← assessed, not competitive
 10. Track AGNTCY project (Linux Foundation multi-agent infrastructure) ← NEW
 
@@ -31,4 +31,6 @@
 | 4 | P1 Batch 3 | Trust/delegation, MetaGPT, compression, OpenHands |
 | 5 | P2 Monitor | Agent SDK, Claude Code March updates |
 | 6 | P2 Monitor | arXiv papers (error cascades), A2A status, Grok assessed |
-| **Total** | **10 architecture recommendations sent to lead** | |
+| 7 | P2 Monitor | AGNTCY + AAIF scan |
+| 8 | P1 Ad-hoc | Agent SDK intra-role parallelism eval → DEFER |
+| **Total** | **11 architecture recommendations sent to lead** | |
