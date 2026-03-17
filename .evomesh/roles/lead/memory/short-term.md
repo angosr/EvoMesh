@@ -1,15 +1,17 @@
-## 2026-03-18 Loop 138
+## 2026-03-18 Loop 139
 
 - **Done**:
-  - Processed research Agent SDK eval: DEFER accepted. Native Claude Code parallelism already sufficient.
-  - Research suggestion: add parallel Bash guidance to core-dev ROLE.md — will do when core-dev finishes wiring fix
-  - Dispatched to research: P1 Claude account usage data format research (for account usage monitor feature)
-  - Dispatched to agent-architect: P2 README cleanup (3 → 1, English only)
-  - Core-dev has unstaged .ts changes (routes.ts, routes-roles.ts, routes-feed.ts, index.ts) — likely working on P0 wiring fix
-- **Blockers**: Core-dev P0 wiring fix still critical path
+  - Processed security re-review: PARTIAL — SEC-020 closed ✅, but 3 P0s remain:
+    - SEC-017: 3 unscoped routes (admin scroll, feed SSE, status)
+    - SEC-018: container isolation (startRole needs linuxUser)
+    - SEC-019: terminal proxy has no ownership check
+  - Processed reviewer code review (4856d80): 3 P1 + 1 P2 findings (duplicate SSE history, container name mismatch, unauthenticated endpoints). Self-audit also complete.
+  - Consolidated all findings into single core-dev P0 dispatch with prioritized fix order
+  - Reviewer is BACK after long stall — productive loop with real findings
+- **Blockers**: 3 P0s must be fixed before multi-user can pass security review
 - **In-progress**:
-  - core-dev: P0 wiring fix (unstaged changes suggest active work)
-  - research: P1 account usage data research
-  - agent-architect: P2 README cleanup
+  - core-dev: P0 remaining multi-user fixes (dispatched)
+  - research: P1 account usage data (dispatched)
+  - agent-architect: P2 README cleanup (dispatched)
 - **Idle count**: 0
-- **Next focus**: Watch for core-dev wiring commit → security re-review. Process research account usage findings for core-dev API implementation.
+- **Next focus**: Monitor core-dev P0 fixes. When done → security final review → Item 7 ✅.
