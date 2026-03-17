@@ -97,7 +97,7 @@
         <div class="settings-section" id="users-section" style="display:none">
           <h3>User Management</h3>
           <table class="user-table">
-            <thead><tr><th>User</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+            <thead><tr><th>User</th><th>Role</th><th>Linux User</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody id="users-tbody"></tbody>
           </table>
           <button class="settings-btn secondary" id="add-user-toggle" onclick="toggleAddUser()">+ Add User</button>
@@ -112,7 +112,11 @@
             </div>
             <div class="field">
               <label>Role</label>
-              <select id="new-role"><option value="user">user</option><option value="admin">admin</option></select>
+              <select id="new-role"><option value="user">user</option><option value="owner">owner</option><option value="admin">admin</option></select>
+            </div>
+            <div class="field">
+              <label>Linux User</label>
+              <input id="new-linuxuser" placeholder="linux username" />
             </div>
             <button class="settings-btn primary" onclick="doAddUser()">Add</button>
             <button class="settings-btn secondary" onclick="toggleAddUser()">Cancel</button>

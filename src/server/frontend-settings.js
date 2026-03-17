@@ -65,9 +65,10 @@ async function loadUsers() {
     const tbody = document.getElementById('users-tbody');
     tbody.innerHTML = d.users.map(u => `
       <tr>
-        <td><strong>${esc(u.username)}</strong>${u.username === currentUser ? ' <span style="color:#888;font-size:10px">(you)</span>' : ''}</td>
+        <td><strong>${esc(u.username)}</strong>${u.username === currentUser ? ' <span style="color:var(--text-faint);font-size:10px">(you)</span>' : ''}</td>
         <td><span class="role-badge ${u.role}">${esc(u.role)}</span></td>
-        <td style="color:#888;font-size:11px">${new Date(u.createdAt).toLocaleDateString()}</td>
+        <td style="color:var(--text-dim);font-size:11px;font-family:var(--font-mono)">${esc(u.linuxUser || '-')}</td>
+        <td style="color:var(--text-faint);font-size:11px">${new Date(u.createdAt).toLocaleDateString()}</td>
         <td class="actions">
           <button class="act-btn" data-action="reset-pw" data-username="${esc(u.username)}">Reset PW</button>
           ${u.username !== currentUser ? `<button class="act-btn del" data-action="delete-user" data-username="${esc(u.username)}">Delete</button>` : ''}
@@ -89,6 +90,8 @@ function toggleAddUser() {
     document.getElementById('new-username').value = '';
     document.getElementById('new-password').value = '';
     document.getElementById('new-role').value = 'user';
+    const luInput = document.getElementById('new-linuxuser');
+    if (luInput) luInput.value = '';
     document.getElementById('add-user-msg').className = 'settings-msg';
     document.getElementById('new-username').focus();
   }
@@ -98,6 +101,7 @@ async function doAddUser() {
   const username = document.getElementById('new-username').value.trim();
   const password = document.getElementById('new-password').value;
   const role = document.getElementById('new-role').value;
+  const linuxUser = document.getElementById('new-linuxuser')?.value?.trim() || '';
   const msg = document.getElementById('add-user-msg');
 
   if (!username || username.length < 2) { msg.className = 'settings-msg error'; msg.textContent = 'Username must be at least 2 characters'; return; }
@@ -106,7 +110,9 @@ async function doAddUser() {
   const addBtn = document.querySelector('#add-user-form .settings-btn.primary');
   if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Adding...'; }
   try {
-    const r = await authFetch(`${API}/users`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) });
+    const body = { username, password, role };
+    if (linuxUser) body.linuxUser = linuxUser;
+    const r = await authFetch(`${API}/users`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const d = await r.json();
     if (d.ok) {
       msg.className = 'settings-msg success'; msg.textContent = `User "${d.username}" created as ${d.role}`;
