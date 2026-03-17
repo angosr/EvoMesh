@@ -363,16 +363,19 @@ export function startServer(port: number, initialRoot?: string) {
             }
           }
 
-          // Brain-dead detection: running but BOTH memory stale AND no recent commits >30min
-          // Skip if container was recently restarted (needs time for first loop)
-          if (running) {
+          // Brain-dead detection: DISABLED.
+          // Previous implementation had false positives: idle roles in adaptive
+          // throttle (light mode) don't commit or update memory (gitignored),
+          // triggering brain-dead restart on healthy idle roles.
+          // TODO: re-enable with a reliable signal (e.g., heartbeat.json written
+          // by the role every loop, including light-mode loops).
+          if (false && running) {
             try {
               const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
               const stmStat = fs.statSync(stmPath);
               const memAgeMs = Date.now() - stmStat.mtimeMs;
               const lastTime = lastRestart.get(key) || 0;
               const timeSinceRestart = Date.now() - lastTime;
-              // Must wait at least 10 min after restart before checking (new container needs time)
               if (memAgeMs > 30 * 60 * 1000 && timeSinceRestart > 10 * 60 * 1000) {
                 // Dual signal: also check git commits — if role committed recently, it's alive
                 let hasRecentCommit = false;

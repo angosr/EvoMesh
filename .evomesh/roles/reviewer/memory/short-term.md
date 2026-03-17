@@ -1,6 +1,5 @@
-# Reviewer — Short-Term Memory (Loop #049, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #050, 2026-03-17)
 
-- Reviewed `9cd844b`: major frontend rewrite — MC tabs replaced with unified SSE feed (-372/+93 lines)
-- All text goes through esc(). XSS safe. Good code reduction.
-- No P0/P1. Clean.
+- Reviewed `6150f87`: routes-feed.ts extraction. routes.ts 531→388 lines. Pure refactor, no logic change. Clean.
+- P2 file-size finding resolved (routes.ts was approaching 500).
 - Idle count: 0
