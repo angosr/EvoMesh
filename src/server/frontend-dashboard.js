@@ -3,15 +3,52 @@
 // Depends on: state, authFetch, esc, API, addFeedMessage, withLoading,
 //   switchAccount, saveAndRestart, stopRole, saveLaunchMode from other files
 
+// ==================== Account Usage (top section) ====================
+// Cached to avoid flicker — only update DOM when data actually changes
+let _lastAccountHtml = '';
+
+async function renderAccountUsage() {
+  const section = document.getElementById('account-usage-section');
+  if (!section) return;
+  try {
+    const r = await authFetch(`${API}/usage/accounts`);
+    if (!r.ok) return;
+    const data = await r.json();
+    const accounts = data.accounts || data;
+    if (!accounts || !accounts.length) { section.innerHTML = ''; _lastAccountHtml = ''; return; }
+    const fmtNum = n => n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
+    const fmtTime = ms => { if (!ms || ms <= 0) return 'expired'; const h = Math.floor(ms/3600000); const m = Math.floor((ms%3600000)/60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
+    const html = `<h2 style="color:var(--accent);margin-bottom:10px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` +
+      accounts.map(a => {
+        const u = a.usage24h || {};
+        const statusCls = a.needsLogin ? 'needs-login' : (a.tokenExpiresIn && a.tokenExpiresIn < 3600000 ? 'expiring' : 'ok');
+        const statusText = a.needsLogin ? 'needs login' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
+        return `<div class="card acct-card-v2">
+          <div class="acct-row">
+            <span class="acct-dot ${statusCls}"></span>
+            <strong class="acct-name">${esc(a.name || a.path)}</strong>
+            <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
+            ${a.rateLimitTier ? `<span class="acct-tier">${esc(a.rateLimitTier.replace('default_claude_','').replace(/_/g,' '))}</span>` : ''}
+            <span class="acct-status ${statusCls}">${statusText}</span>
+          </div>
+          <div class="acct-stats">
+            <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
+            <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
+            <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
+            <span title="Total tokens (24h)">total <b>${fmtNum(u.total||0)}</b></span>
+            <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>
+          </div>
+        </div>`;
+      }).join('');
+    if (html !== _lastAccountHtml) { section.innerHTML = html; _lastAccountHtml = html; }
+  } catch {}
+}
+
+// ==================== Project Cards (bottom section) ====================
 function renderDashboard() {
-  const el = document.getElementById('dash-content');
-  // Ensure projects render into a sub-container so account-usage-section is not destroyed
-  let projectsEl = document.getElementById('dash-projects');
-  if (!projectsEl) {
-    projectsEl = document.createElement('div');
-    projectsEl.id = 'dash-projects';
-    el.appendChild(projectsEl);
-  }
+  const projectsEl = document.getElementById('dash-projects');
+  if (!projectsEl) return;
+
   if (!state.projects.length) {
     projectsEl.innerHTML = `<div class="card onboarding"><h3>Welcome to EvoMesh</h3>
       <p>Tell Central AI what project you want to work on:</p>
@@ -47,12 +84,12 @@ function renderDashboard() {
     const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:#1e1b4b;color:#818cf8">${esc(p.myRole||'')}</span>`;
     const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="margin-left:auto;font-size:11px">Members</button>` : '';
     const membersOpen = state.membersOpen === p.slug;
-    const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"><div style="color:#888;font-size:12px">Loading...</div></div>` : '';
+    const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
     setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
   projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
-  // Delegated event listeners for dashboard actions (avoids inline onclick XSS risk)
+  // Event listeners
   projectsEl.querySelectorAll('.acct-select').forEach(sel => {
     sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
   });
@@ -68,54 +105,8 @@ function renderDashboard() {
   projectsEl.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
   });
-  // If members panel is open, load its data
   if (state.membersOpen) loadMembers(state.membersOpen);
-  // Account usage panel
   renderAccountUsage();
-}
-
-async function renderAccountUsage() {
-  const el = document.getElementById('dash-content');
-  if (!el) return;
-  try {
-    const r = await authFetch(`${API}/usage/accounts`);
-    if (!r.ok) return;
-    const data = await r.json();
-    const accounts = data.accounts || data;
-    if (!accounts || !accounts.length) return;
-    const fmtNum = n => n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
-    const fmtTime = ms => { if (!ms || ms <= 0) return 'expired'; const h = Math.floor(ms/3600000); const m = Math.floor((ms%3600000)/60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
-    const html = accounts.map(a => {
-      const u = a.usage24h || {};
-      const statusCls = a.needsLogin ? 'needs-login' : (a.tokenExpiresIn && a.tokenExpiresIn < 3600000 ? 'expiring' : 'ok');
-      const statusText = a.needsLogin ? 'needs login' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
-      return `<div class="card acct-card-v2">
-        <div class="acct-row">
-          <span class="acct-dot ${statusCls}"></span>
-          <strong class="acct-name">${esc(a.name || a.path)}</strong>
-          <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
-          ${a.rateLimitTier ? `<span class="acct-tier">${esc(a.rateLimitTier.replace('default_claude_','').replace(/_/g,' '))}</span>` : ''}
-          <span class="acct-status ${statusCls}">${statusText}</span>
-        </div>
-        <div class="acct-stats">
-          <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
-          <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
-          <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
-          <span title="Total tokens (24h)">total <b>${fmtNum(u.total||0)}</b></span>
-          <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>
-        </div>
-      </div>`;
-    }).join('');
-    // Update in-place — only write if content changed (avoids DOM flicker)
-    const newHtml = `<h2 style="color:var(--accent);margin-bottom:10px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` + html;
-    let section = document.getElementById('account-usage-section');
-    if (!section) {
-      section = document.createElement('div');
-      section.id = 'account-usage-section';
-      el.insertBefore(section, el.firstChild);
-    }
-    if (section.innerHTML !== newHtml) section.innerHTML = newHtml;
-  } catch {}
 }
 
 // ==================== Members Panel ====================
@@ -127,6 +118,7 @@ function toggleMembers(slug) {
 async function loadMembers(slug) {
   const panel = document.getElementById(`members-${slug}`);
   if (!panel) return;
+  panel.innerHTML = '<div style="color:#888;font-size:12px">Loading members...</div>';
   try {
     const res = await authFetch(`${API}/projects/${slug}/members`);
     const data = await res.json();
