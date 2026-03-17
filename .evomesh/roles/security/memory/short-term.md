@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 77
+## 2026-03-17 Loop 78
 
-- **Done**: Reviewed feed markdown rendering (esc-first safe), template fallback (hardcoded paths). Filed SEC-016 P0: no TLS — HTTP server exposes passwords, tokens, shell I/O in cleartext on public network. Sent to lead + core-dev.
+- **Done**: Reviewed SSH mount revert sequence. Full .ssh was briefly mounted (4adf042) then correctly reverted to known_hosts only (a6a9beb). SEC-002 fix intact. TLS docs added for SEC-016. Clean.
 - **Blockers**: Cannot git pull
-- **In-progress**: SEC-016 awaiting fix
-- **Next focus**: Monitor SEC-016 fix. Recommend nginx + Let's Encrypt or Cloudflare Tunnel.
+- **In-progress**: SEC-016 (no TLS) — docs added, awaiting deployment
+- **Next focus**: Monitor SEC-016 deployment. 4 P2 hardening items open.
