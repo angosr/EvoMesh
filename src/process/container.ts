@@ -261,12 +261,12 @@ export function startRole(
     args.push("-v", `${gitconfig}:${gitconfig}:ro`);
   }
 
-  // SSH: mount .ssh directory (read-only) for git push access
-  const sshDir = path.join(homeDir, ".ssh");
-  if (fs.existsSync(sshDir)) {
-    args.push("-v", `${sshDir}:${sshDir}:ro`);
+  // SSH: mount only known_hosts (never expose private keys)
+  const knownHosts = path.join(homeDir, ".ssh", "known_hosts");
+  if (fs.existsSync(knownHosts)) {
+    args.push("-v", `${knownHosts}:${path.join(homeDir, ".ssh", "known_hosts")}:ro`);
   }
-  // Also forward SSH agent if available
+  // SSH agent forwarding for git push (keys stay on host)
   if (process.env.SSH_AUTH_SOCK) {
     args.push("-v", `${process.env.SSH_AUTH_SOCK}:/tmp/ssh-agent.sock`);
     args.push("-e", "SSH_AUTH_SOCK=/tmp/ssh-agent.sock");
