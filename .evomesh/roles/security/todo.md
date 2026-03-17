@@ -11,15 +11,16 @@
 
 ## P0 — Multi-User (BLOCKING)
 
-- [~] SEC-017: PARTIAL FIX — ~15 route handlers now pass linuxUser. 3 remaining: routes-admin.ts:169 (scroll), routes.ts:286 (/api/feed), routes.ts:391 (/api/status)
+- [x] SEC-017: FIXED — all route handlers now pass linuxUser (last 3 fixed in commits 04ba75e..57f7625)
 - [ ] SEC-018: Container network uses process.env.USER not session.linuxUser → startRole() never receives linuxUser (architectural gap)
 - [ ] SEC-019: Terminal proxy lacks ACL check → extractTerminalToken validates auth but not ownership
 - [x] SEC-020: FIXED — session.linuxUser now read by reqLinuxUser() helper, used across route handlers
 
 ## P1 — New Findings
 
-- [ ] SEC-021: /api/usage/accounts reads os.homedir() not user-scoped → all users see all accounts (email, subscription). Info disclosure in multi-user. Sent to lead.
-- [ ] SEC-022: Email/subscriptionType PII exposed via /api/usage/accounts (low severity single-user, higher multi-user)
+- [x] SEC-021: FIXED — /api/usage/accounts now scoped per session.linuxUser (commit 04ba75e)
+- [x] SEC-022: MITIGATED — account API now user-scoped, PII only visible to account owner
+- [ ] SEC-023: linuxUser field not validated for path traversal — currently safe (not settable via API) but frontend has unused linuxUser input field. Latent risk if API later accepts it.
 
 ## P0 — Track Fixes
 
