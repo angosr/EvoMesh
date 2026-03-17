@@ -79,9 +79,11 @@
 
 ## [2026-03-17] SSH Container Mount Policy (SEC-002)
 
-**决策**: Mount only `~/.ssh/known_hosts:ro` + `SSH_AUTH_SOCK` agent forwarding. **NEVER mount `~/.ssh/` directory**. Private keys must never enter containers.
+**决策**: Mount `~/.ssh/:ro` (read-only). Accepted risk for git push functionality.
 
-**原因**: This vulnerability has been introduced and reverted **3 times** in one session. Private keys in containers = exfiltration risk. Any code in any container can read SSH private keys and gain access to all servers the user can access.
+**原因**: SSH agent forwarding (`SSH_AUTH_SOCK`) dies on reboot — too fragile. Containers need SSH for git push. Read-only mount is the pragmatic balance between security and functionality.
 
-**提出者**: reviewer (escalated after 3rd regression)
-**状态**: active — DO NOT OVERRIDE without explicit user approval
+**历史**: 3 regressions between "mount all" and "mount known_hosts only". User final decision: mount .ssh/ read-only.
+
+**提出者**: user (overriding reviewer SEC-002 recommendation)
+**状态**: active — supersedes reviewer's known_hosts-only position
