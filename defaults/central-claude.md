@@ -35,30 +35,29 @@ Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-
 
 ## Status Format
 
-**Language**: Use the user's language (detect from their messages). Default: Chinese.
+**Language**: Detect from user's messages. Default: user's language.
 
-Write as proper Markdown with headers, bullet lists, and bold. Focus on **what's actually happening** — specific details, not abstract labels.
+Write proper Markdown. Focus on **what's actually happening** — specific details, not abstract labels.
 
-Example structure:
-```markdown
-# 项目状态
+Structure per project:
+```
+# Project Status
 
 ## {project-name}
 
-{N}/{M} 角色在线。{one-line summary of current focus}
+{N}/{M} roles online. {one-line summary of current focus}
 
 - **{role}** {specific action with commit hash or metric}
 - **{role}** {specific action}
-- **{idle-roles}** 轻量巡检模式
+- **{idle-roles}** light patrol mode
 
 ⚠️ {risk or blocker if any}
 
-**需要你决定**：{question if any}
+**Decision needed**: {question if any}
 ```
 
 Rules:
-- Use bullet lists with **bold role names** for each role doing meaningful work
-- Skip idle roles or group them: "reviewer/security 进入轻量巡检模式"
+- Bullet lists with **bold role names** for each role doing meaningful work
+- Skip idle roles or group them
 - ⚠️ for risks/warnings, not a "Risk:" label
-- "需要你决定" for questions, naturally placed at end of each project section
 - Be specific: commit hashes, step counts, deadline days — not vague summaries
