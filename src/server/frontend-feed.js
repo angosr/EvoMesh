@@ -12,17 +12,22 @@ function initFeed() {
   const feed = document.getElementById('feed');
   if (!feed) return;
 
-  // SSE stream for role updates
-  try {
+  // SSE stream for role updates — auto-reconnect on disconnect
+  function connectFeed() {
     const es = new EventSource(`${API}/feed/stream?token=${encodeURIComponent(AUTH_TOKEN)}`);
     es.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'user-message') return; // Already displayed locally
+        if (msg.type === 'user-message') return;
         appendFeedMessage(msg);
       } catch {}
     };
-  } catch {}
+    es.onerror = () => {
+      es.close();
+      setTimeout(connectFeed, 3000); // reconnect after 3s
+    };
+  }
+  connectFeed();
 
   // Send button
   const sendBtn = document.getElementById('feed-send');

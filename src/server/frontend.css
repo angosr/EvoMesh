@@ -395,12 +395,33 @@
     /* Settings page mobile adjustments */
     #settings { padding: 14px; }
     .settings-form { max-width: 100%; }
-    .settings-info { grid-template-columns: 100px 1fr; font-size: 12px; }
+    .settings-form input { font-size: 16px; padding: 10px; } /* prevent iOS zoom */
+    .settings-info { grid-template-columns: 1fr; gap: 2px 0; font-size: 12px; }
+    .settings-info dt { color: var(--text-faint); font-size: 10px; margin-top: 6px; }
+    .settings-btn { padding: 10px 16px; font-size: 13px; width: 100%; }
+    .user-table { font-size: 12px; }
+    .user-table th { padding: 6px; font-size: 8px; }
     .user-table td { padding: 6px; font-size: 11px; }
-    .user-table .actions { flex-wrap: wrap; }
+    .user-table .actions { flex-wrap: wrap; gap: 4px; }
+    .user-table .act-btn { padding: 6px 10px; font-size: 11px; }
     .add-user-form { flex-direction: column; align-items: stretch; }
     .add-user-form .field { width: 100%; }
+    .add-user-form input, .add-user-form select { font-size: 16px; padding: 10px; } /* prevent iOS zoom */
     .members-panel { padding: 8px; }
+
+    /* Dashboard: actions stack vertically on very narrow screens */
+    #dash-content td:last-child { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+    #dash-content .acct-select, #dash-content .mode-select { flex: 1; min-width: 80px; }
+  }
+
+  /* Extra narrow (320px) */
+  @media (max-width: 375px) {
+    #dash-content tr { padding: 8px; gap: 4px 6px; }
+    #dash-content .dash-action { padding: 6px 10px; font-size: 11px; flex: 1; text-align: center; }
+    #dash-content .res-input { width: 50px; font-size: 10px; }
+    .settings-info { font-size: 11px; }
+    .card { padding: 8px; margin-bottom: 10px; }
+    .card h3 { font-size: 13px; }
   }
 
   /* Touch-friendly */
