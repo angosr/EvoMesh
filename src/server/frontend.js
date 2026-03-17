@@ -206,7 +206,7 @@ function renderDashboard() {
       </tr>`;
     }).join('');
     const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:#1e1b4b;color:#818cf8">${esc(p.myRole||'')}</span>`;
-    const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="float:right;font-size:11px">Members</button>` : '';
+    const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="margin-left:auto;font-size:11px">Members</button>` : '';
     const membersOpen = state.membersOpen === p.slug;
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"><div style="color:#888;font-size:12px">Loading...</div></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;

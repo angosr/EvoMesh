@@ -1,14 +1,10 @@
-## 2026-03-18 Loop 136
+## 2026-03-18 Loop 137
 
 - **Done**:
-  - Processed security review: **FAIL — 4 P0 findings**
-    - P0-1: Cross-user data exposure — getProjects/getProject never receive linuxUser from routes
-    - P0-2: Container network — uses process.env.USER instead of caller's linuxUser
-    - P0-3: Terminal hijacking — no ACL check before proxy
-    - P0-4: Root cause — session.linuxUser populated but never read by any route
-  - Dispatched wiring fix to core-dev with exact file:line locations (mechanical search-replace)
-  - This is NOT a design problem — architecture is correct, just not connected
-- **Blockers**: Core-dev must wire session.linuxUser into ~30 call sites
-- **In-progress**: Core-dev P0 wiring fix
+  - Processed frontend ack: multi-user UI verified ✅ — all server-side scoping works, zero frontend changes
+  - Processed central P0: userStopped persistence bug — already fixed by core-dev (96f0efa running-roles.json)
+  - Mobile dashboard CSS/JS fix committed (user-directed: stacked card layout, Members button inline)
+- **Blockers**: Core-dev P0 wiring fix (session.linuxUser into routes) — critical path for security re-review
+- **In-progress**: Core-dev wiring fix (dispatched loop 136)
 - **Idle count**: 0
-- **Next focus**: Monitor for wiring fix commit. Then request security re-review.
+- **Next focus**: Monitor for wiring fix. Once committed → security re-review → Item 7 ✅. Then account usage monitor.

@@ -202,7 +202,7 @@
   #dashboard h2 { color: var(--accent); margin-bottom: 14px; font-size: 16px; font-family: var(--font-display); font-weight: 700; letter-spacing: -0.03em; }
   .card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; transition: border-color 0.2s; }
   .card:hover { border-color: color-mix(in srgb, var(--border) 60%, var(--accent) 40%); }
-  .card h3 { color: var(--green); margin-bottom: 8px; font-size: 13px; font-family: var(--font-display); font-weight: 600; }
+  .card h3 { color: var(--green); margin-bottom: 8px; font-size: 13px; font-family: var(--font-display); font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 11px; }
   th { color: var(--text-faint); font-size: 9px; text-transform: uppercase; font-family: var(--font-mono); letter-spacing: 0.05em; }
@@ -392,12 +392,16 @@
     #dash-content table { display: block; overflow-x: visible; }
     #dash-content thead { display: none; }
     #dash-content tbody { display: flex; flex-direction: column; gap: 8px; }
-    #dash-content tr { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 6px; border-bottom: none; }
-    #dash-content td { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; font-size: 12px; }
-    #dash-content td:first-child { width: 100%; font-size: 13px; }
-    #dash-content .res-input { width: 60px; font-size: 11px; padding: 5px 6px; }
-    #dash-content .dash-action { padding: 8px 14px; font-size: 12px; min-height: 36px; touch-action: manipulation; }
-    #dash-content .acct-select, #dash-content .mode-select { max-width: 160px; font-size: 12px; padding: 6px 8px; min-height: 36px; }
+    #dash-content tr { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 6px; border-bottom: none; }
+    #dash-content td { display: flex; align-items: center; gap: 4px; padding: 0; border: none; font-size: 12px; width: 100%; flex-wrap: wrap; }
+    #dash-content td:first-child { font-size: 13px; }
+    #dash-content td:nth-child(3) { gap: 0; } /* Account select — no extra gap */
+    #dash-content td:nth-child(4) { gap: 6px; } /* Resources — keep gap between inputs */
+    #dash-content .res-input { flex: 1; min-width: 60px; font-size: 11px; padding: 5px 6px; }
+    #dash-content .dash-action { padding: 8px 14px; font-size: 12px; min-height: 36px; touch-action: manipulation; flex: 1; text-align: center; }
+    #dash-content .acct-select, #dash-content .mode-select { flex: 1; font-size: 12px; padding: 6px 8px; min-height: 36px; }
+    /* Members button: inline with title, not floating */
+    .card h3 [data-action="members"] { float: none !important; margin-left: 8px; vertical-align: middle; }
 
     /* Non-dashboard tables keep horizontal scroll */
     table:not(#dash-content table) { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -426,16 +430,15 @@
     .add-user-form input, .add-user-form select { font-size: 16px; padding: 10px; } /* prevent iOS zoom */
     .members-panel { padding: 8px; }
 
-    /* Dashboard: actions stack vertically on very narrow screens */
-    #dash-content td:last-child { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
-    #dash-content .acct-select, #dash-content .mode-select { flex: 1; min-width: 80px; }
+    /* Dashboard: actions row */
+    #dash-content td:last-child { gap: 6px; }
   }
 
   /* Extra narrow (320px) */
   @media (max-width: 375px) {
-    #dash-content tr { padding: 8px; gap: 4px 6px; }
-    #dash-content .dash-action { padding: 6px 10px; font-size: 11px; flex: 1; text-align: center; }
-    #dash-content .res-input { width: 50px; font-size: 10px; }
+    #dash-content tr { padding: 8px; gap: 4px; }
+    #dash-content .dash-action { padding: 6px 10px; font-size: 11px; }
+    #dash-content .res-input { font-size: 10px; }
     .settings-info { font-size: 11px; }
     .card { padding: 8px; margin-bottom: 10px; }
     .card h3 { font-size: 13px; }
