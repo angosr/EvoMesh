@@ -27,6 +27,42 @@ function renderSettings() {
   document.getElementById('pw-msg').className = 'settings-msg';
   document.getElementById('pw-msg').textContent = '';
   if (typeof updateThemeButton === 'function') updateThemeButton();
+  renderMcpServers();
+}
+
+function renderMcpServers() {
+  const list = document.getElementById('mcp-list');
+  const empty = document.getElementById('mcp-empty');
+  if (!list) return;
+
+  // Gather MCP configs from project roles (if available in state)
+  const servers = [];
+  for (const p of state.projects) {
+    for (const r of p.roles) {
+      if (r.mcp && typeof r.mcp === 'object') {
+        for (const [name, config] of Object.entries(r.mcp)) {
+          servers.push({ name, role: r.name, project: p.name, active: r.running });
+        }
+      }
+    }
+  }
+
+  if (!servers.length) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = servers.map(s => `
+    <div class="mcp-card">
+      <span class="mcp-dot ${s.active ? 'active' : 'inactive'}"></span>
+      <div class="mcp-info">
+        <div class="mcp-name">${esc(s.name)}</div>
+        <div class="mcp-role">${esc(s.role)} · ${esc(s.project)}</div>
+      </div>
+      <button class="mcp-toggle ${s.active ? 'on' : ''}" title="${s.active ? 'Active' : 'Inactive'}" disabled></button>
+    </div>`).join('');
 }
 
 async function doChangePassword() {
