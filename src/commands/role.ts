@@ -2,8 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { requireProjectRoot } from "../utils/paths.js";
 import { loadConfig } from "../config/loader.js";
-import { createRole, deleteRole, listRoles } from "../roles/manager.js";
-import { TEMPLATE_NAMES } from "../roles/templates/index.js";
+import { createRole, deleteRole, listRoles, getTemplateNames } from "../roles/manager.js";
 
 export const roleCommand = new Command("role").description("Manage roles");
 
@@ -11,7 +10,7 @@ roleCommand
   .command("create")
   .description("Create a new role")
   .argument("<name>", "Role name")
-  .requiredOption("--from <template>", `Template (${TEMPLATE_NAMES.join(", ")})`)
+  .requiredOption("--from <template>", `Template (use 'role list-templates' to see available)`)
   .option("--account <account>", "Account name from project.yaml", "main")
   .action((name: string, opts: { from: string; account: string }) => {
     const root = requireProjectRoot();

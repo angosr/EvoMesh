@@ -3,8 +3,7 @@ import { loadConfig } from "../config/loader.js";
 import { evomeshDir, expandHome } from "../utils/paths.js";
 import { writeYaml } from "../utils/fs.js";
 import { errorMessage } from "../utils/error.js";
-import { createRole, deleteRole } from "../roles/manager.js";
-import { TEMPLATES, TEMPLATE_NAMES } from "../roles/templates/index.js";
+import { createRole, deleteRole, getTemplateNames } from "../roles/manager.js";
 import {
   startRole, stopRole, restartRole, isRoleRunning,
   getRoleLogs, switchAccount as switchContainerAccount,
@@ -88,7 +87,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   // --- Role CRUD ---
 
   app.get("/api/templates", (_req, res) => {
-    res.json({ templates: TEMPLATE_NAMES });
+    res.json({ templates: getTemplateNames() });
   });
 
   app.post("/api/projects/:slug/roles", (req, res) => {
@@ -97,7 +96,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { name, template, account } = req.body;
     if (!name || !ROLE_NAME_RE.test(name)) { res.status(400).json({ error: "Invalid role name" }); return; }
-    if (!template || !TEMPLATES[template]) { res.status(400).json({ error: `Invalid template` }); return; }
+    if (!template || !getTemplateNames().includes(template)) { res.status(400).json({ error: `Invalid template` }); return; }
     try {
       const config = loadConfig(project.root);
       if (config.roles[name]) { res.status(409).json({ error: `Role "${name}" already exists` }); return; }
