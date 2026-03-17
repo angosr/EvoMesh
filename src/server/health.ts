@@ -190,6 +190,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             startRole(p.root, name, rc, config, ttydPort);
             ctx.ttydProcesses.set(key, { port: ttydPort, roleName: name, projectSlug: p.slug });
             lastRestart.set(key, now);
+            markRoleRunning(key);
           } catch (e) { console.error(`[auto-restart] Failed to restart ${name}:`, e); }
         }
 
