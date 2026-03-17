@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 36
+## 2026-03-17 Loop 37
 
-- **Done**: Reviewed brain-dead dual signal fix. execFileSync with array args, validated role name in --grep. Clean.
+- **Done**: 2 commits, no src/docker changes, empty inbox. Skipped per trigger.
 - **Next focus**: Monitoring mode.
