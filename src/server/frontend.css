@@ -235,12 +235,13 @@
   #feed:empty::after { content: 'Waiting for role updates...'; color: var(--text-faint); font-size: 11px; padding: 20px; text-align: center; }
 
   .feed-item { padding: 6px 8px; border-radius: 5px; font-size: 11px; line-height: 1.4; }
-  .feed-role-update { background: var(--bg-input); border: 1px solid var(--border); }
-  .feed-central-status { background: var(--bg-input); border: 1px solid var(--border); }
-  .feed-user-message { background: var(--accent); background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); margin-left: 24px; text-align: right; }
+  .feed-role { background: var(--bg-input); border: 1px solid var(--border); }
+  .feed-central { background: #1a0a0a; border: 1px solid #3b1010; }
+  .feed-user-message { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); margin-left: 24px; text-align: right; }
   .feed-system { text-align: center; color: var(--text-faint); font-size: 9px; }
 
-  .feed-role { font-weight: 600; font-size: 11px; margin-right: 6px; }
+  .feed-project { background: #1e1b4b; color: #818cf8; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-right: 4px; }
+  .feed-item .feed-role { font-weight: 600; font-size: 11px; margin-right: 6px; background: none; border: none; padding: 0; }
   .feed-time { color: var(--text-faint); font-size: 9px; float: right; }
   .feed-text { color: var(--text-dim); margin-top: 2px; word-break: break-word; }
   .feed-system-text { color: var(--text-faint); }

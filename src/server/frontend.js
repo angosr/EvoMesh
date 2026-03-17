@@ -634,9 +634,7 @@ function initFeed() {
     };
   } catch {}
 
-  // Periodic Central AI status as feed message
-  refreshCentralStatus();
-  setInterval(refreshCentralStatus, 15000);
+  // Central AI status is now pushed via SSE (no polling needed)
 
   // Send button
   const sendBtn = document.getElementById('feed-send');
@@ -660,12 +658,13 @@ function appendFeedMessage(msg) {
 
   const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-  if (msg.type === 'role-update') {
+  if (msg.type === 'role') {
     const color = ROLE_COLORS[msg.role] || '#888';
-    div.innerHTML = `<span class="feed-role" style="color:${color}">${esc(msg.role || '')}</span>
+    const proj = msg.project ? `<span class="feed-project">${esc(msg.project)}</span>` : '';
+    div.innerHTML = `${proj}<span class="feed-role" style="color:${color}">${esc(msg.role || '')}</span>
       <span class="feed-time">${esc(time)}</span>
       <div class="feed-text">${esc(msg.text || '')}</div>`;
-  } else if (msg.type === 'central-status') {
+  } else if (msg.type === 'central') {
     div.innerHTML = `<span class="feed-role" style="color:#ef4444">Central AI</span>
       <span class="feed-time">${esc(time)}</span>
       <div class="feed-text">${esc(msg.text || '')}</div>`;
@@ -680,17 +679,7 @@ function appendFeedMessage(msg) {
   while (feed.children.length > 200) feed.removeChild(feed.firstChild);
 }
 
-async function refreshCentralStatus() {
-  try {
-    const res = await authFetch(`${API}/admin/central-status`);
-    if (res.ok) {
-      const text = await res.text();
-      if (text && text.trim()) {
-        appendFeedMessage({ type: 'central-status', text: text.slice(0, 500), time: new Date().toISOString() });
-      }
-    }
-  } catch {}
-}
+// refreshCentralStatus removed — Central AI pushes via SSE now
 
 async function sendFeedMsg() {
   const input = document.getElementById('feed-msg');

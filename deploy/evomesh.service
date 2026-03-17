@@ -1,0 +1,16 @@
+[Unit]
+Description=EvoMesh Multi-Role AI Orchestrator
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/claudeuser/work/EvoMesh
+ExecStart=/usr/bin/npx tsx --watch --watch-path=src bin/evomesh.ts serve --port 8123
+Restart=always
+RestartSec=5
+User=claudeuser
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

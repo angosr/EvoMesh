@@ -463,7 +463,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    const lastContent = new Map<string, string>();
+    const lastMtime = new Map<string, number>();
 
     const check = () => {
       try {
@@ -474,30 +474,38 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           for (const [name] of Object.entries(config.roles)) {
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
             try {
-              const stm = fs.readFileSync(stmPath, "utf-8");
+              const stat = fs.statSync(stmPath);
               const key = `${p.slug}/${name}`;
-              if (stm !== lastContent.get(key)) {
-                lastContent.set(key, stm);
-                const bullets = stm.match(/^- \*\*Done\*\*:.*$/gm) || stm.match(/^- .+$/gm);
-                const latest = bullets ? bullets[bullets.length - 1].replace(/^- (\*\*Done\*\*:\s*)?/, "") : "";
-                if (latest) {
-                  res.write(`data: ${JSON.stringify({
-                    type: "role-update", role: name, project: p.name,
-                    text: latest.slice(0, 200), time: new Date().toISOString(),
-                  })}\n\n`);
-                }
+              const prevMtime = lastMtime.get(key) || 0;
+              if (stat.mtimeMs > prevMtime) {
+                lastMtime.set(key, stat.mtimeMs);
+                if (prevMtime === 0) continue; // skip initial load (don't flood on connect)
+                const stm = fs.readFileSync(stmPath, "utf-8");
+                // Extract "Done" line — the most useful info
+                const doneMatch = stm.match(/^\s*-\s*\*\*Done\*\*:\s*(.+)$/m);
+                const text = doneMatch ? doneMatch[1] : (stm.match(/^- .+$/m)?.[0]?.replace(/^- /, "") || "updated");
+                res.write(`data: ${JSON.stringify({
+                  type: "role", role: name, project: p.slug, text: text.slice(0, 200),
+                })}\n\n`);
               }
             } catch {}
           }
         }
-        // Central AI status
+        // Central AI: only push a SHORT summary when status changes, not the full markdown
         try {
           const statusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
-          const status = fs.readFileSync(statusPath, "utf-8");
-          if (status !== lastContent.get("central/status")) {
-            lastContent.set("central/status", status);
+          const stat = fs.statSync(statusPath);
+          const prevMtime = lastMtime.get("central") || 0;
+          if (stat.mtimeMs > prevMtime) {
+            lastMtime.set("central", stat.mtimeMs);
+            if (prevMtime === 0) continue; // skip initial
+            const status = fs.readFileSync(statusPath, "utf-8");
+            // Extract only the first "正在进行" or "风险" line, not the whole doc
+            const progressMatch = status.match(/正在进行[^]*?(?=\n-\s\*\*|$)/m);
+            const riskMatch = status.match(/风险[^]*?(?=\n##|$)/m);
+            const summary = (progressMatch?.[0] || "status updated").slice(0, 200);
             res.write(`data: ${JSON.stringify({
-              type: "central-update", text: status.slice(0, 500), time: new Date().toISOString(),
+              type: "central", text: summary,
             })}\n\n`);
           }
         } catch {}

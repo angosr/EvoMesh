@@ -228,6 +228,7 @@ export function startRole(
     "run", "-d",
     "--name", name,
     "--hostname", roleName,
+    "--restart", "unless-stopped",
   ];
   if (opts.centralAI) {
     args.push("--network", "host");

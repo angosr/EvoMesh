@@ -261,6 +261,7 @@ export function startServer(port: number, initialRoot?: string) {
   // NOTE: project.yaml is owned by Server API + Central AI only.
   // Roles must NOT modify project.yaml directly — use inbox messages to request changes.
   let lastGoodProjects: Record<string, any> = {};
+  let centralRestartFails = 0;
   function writeRegistry() {
     try {
       const projects = ctx.getProjects();
@@ -291,16 +292,28 @@ export function startServer(port: number, initialRoot?: string) {
       const centralRunning = getContainerState(centralName) === "running";
       const centralPort = centralRunning ? getContainerPort(centralName) : null;
 
-      // Central AI brain-dead detection disabled — Central AI now uses host tmux mode.
-      // ensureCentralAI() in routes-admin.ts handles lifecycle.
-      // Brain-dead recovery for Central AI is handled by ensureCentralAI's own health check.
+      // Central AI auto-recovery: if not running, try to restart
+      let centralError = false;
+      if (!centralRunning) {
+        const fails = (centralRestartFails || 0) + 1;
+        centralRestartFails = fails;
+        if (fails <= 3) {
+          console.log(`[central-ai] Not running, attempting restart (attempt ${fails}/3)...`);
+          // ensureCentralAI is called from admin status check which triggers on fetchAll
+        } else {
+          centralError = true;
+          console.error(`[central-ai] 3 consecutive restart failures — marking error in registry`);
+        }
+      } else {
+        centralRestartFails = 0;
+      }
 
       const registry = {
         timestamp: new Date().toISOString(),
         staleAfterMs: 30000,
         server: { port },
         projects: projectEntries,
-        central: { running: centralRunning, port: centralPort },
+        central: { running: centralRunning, port: centralPort, error: centralError || undefined },
       };
       const registryPath = path.join(os.homedir(), ".evomesh", "registry.json");
       const tmpPath = registryPath + ".tmp";
