@@ -43,10 +43,17 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics on
 - Each user's workspace: `~{linuxUser}/.evomesh/` (registry, central AI, configs)
 - **NEVER** access files outside your user's workspace or project directory
 
-## Self-Evolution
+## Self-Evolution Protocol
 
-Every 10 loops: self-audit ROLE.md — delete dead rules, merge duplicates.
-Also: delete LTM entries that contradict CLAUDE.md, ROLE.md, or decisions.md.
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: dead/never-triggered rules, redundant/duplicate, contradicted by decisions.md
+- **Merge**: overlapping rules into one clear statement
+- **Add**: rules learned from repeated mistakes or new patterns
+- Also: delete LTM entries that contradict CLAUDE.md, ROLE.md, or decisions.md
+- Log every change to evolution.log with evidence. 🔒 rules = user/lead only.
+
+### Self-Audit (alternating with prompt evolution)
 Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-only = skip (c) how to measure?
 
 ## Code Quality — Anti-Debt Rule

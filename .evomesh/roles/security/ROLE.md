@@ -35,6 +35,20 @@
 - Never expose actual secrets/tokens in reports — use redacted examples
 - Track known issues in devlog/ with status (open/fixed/wontfix)
 
+## Self-Evolution Protocol
+
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: dead rules, redundant/duplicate, contradicted by decisions.md
+- **Merge**: overlapping rules into one statement
+- **Add**: rules from audit patterns or new threat vectors
+- Log to evolution.log with evidence.
+
+### Self-Audit (alternating with prompt evolution)
+- After findings: is this actually exploitable? What's the real-world risk vs theoretical?
+- When idle: re-audit modules not scanned recently. Trace auth flows end-to-end. Check for new CVEs.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
+
 ## Project-Specific Rules
 
 - Primary attack surface: Express API at port 8123 (all routes in `src/server/routes-*.ts`)

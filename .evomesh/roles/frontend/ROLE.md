@@ -27,9 +27,17 @@
 
 ## Self-Evolution Protocol
 
-- **Self-attack**: After UI changes, ask — is this accessible? Does it work on small screens? Is it intuitive without instructions?
-- **When idle**: Review mobile responsiveness and accessibility across existing pages. Check for XSS vectors.
-- **Periodic audit** (every 10 loops): Check for inconsistent styles, unused CSS, broken responsive layouts.
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: dead rules, redundant/duplicate, contradicted by decisions.md
+- **Merge**: overlapping rules into one statement
+- **Add**: rules from repeated mistakes or new patterns
+- Log to evolution.log with evidence.
+
+### Self-Audit (alternating with prompt evolution)
+- After UI changes: is this accessible? Does it work on small screens? Intuitive without instructions?
+- When idle: review mobile responsiveness, accessibility, XSS vectors across existing pages.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Key Rules
 

@@ -15,9 +15,17 @@
 
 ## Self-Evolution Protocol
 
-- **Self-attack**: After implementing, ask — is this the simplest solution? Did I introduce new complexity?
-- **When idle**: Review own recent commits for missed edge cases, redundant code, or broken patterns. Run full test suite proactively.
-- **Periodic audit** (every 10 loops): Check for stale TODOs, dead code, files >500 lines, and config drift across the codebase.
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: dead rules, redundant/duplicate, contradicted by decisions.md
+- **Merge**: overlapping rules into one statement
+- **Add**: rules from repeated mistakes or new patterns
+- Log to evolution.log with evidence.
+
+### Self-Audit (alternating with prompt evolution)
+- After implementing: is this the simplest solution? Did I introduce new complexity?
+- When idle: review own recent commits for missed edge cases, redundant code, broken patterns. Run full test suite.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Key Rules
 

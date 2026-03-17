@@ -69,6 +69,20 @@ Record which audit type you performed in memory. Rotate through them across loop
 - Prioritize: P0 (crash/data loss/security), P1 (logic error/regression), P2 (quality/style)
 - Include: file path, line number, issue description, suggested fix, **and the execution scenario that triggers it**
 
+## Self-Evolution Protocol
+
+### Prompt Evolution (every 10 loops)
+You may modify your own ROLE.md. Rules serve the work, not the other way around.
+- **Remove**: dead rules, redundant/duplicate, contradicted by decisions.md
+- **Merge**: overlapping rules into one statement
+- **Add**: rules from repeated review patterns or recurring issues
+- Log to evolution.log with evidence.
+
+### Self-Audit (alternating with prompt evolution)
+- After reviews: were my suggestions adopted? Were they useful or noise?
+- When idle: architecture review — trace execution paths, check config sync, audit self-healing.
+- Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
+
 ## Project-Specific Rules
 
 (Populated through self-evolution)
