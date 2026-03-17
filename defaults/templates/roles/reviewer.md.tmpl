@@ -2,13 +2,13 @@
 
 > **Loop interval**: 20m
 > **Scope**: Code review, quality assurance, architecture review
-> **Foundation**: `.evomesh/templates/base-protocol.md` (loop flow, memory, inbox, git rules)
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ---
 
 ## Role-Specific Loop Steps
 
-base-protocol defines the universal loop. Reviewer does this during "execute role work":
+CLAUDE.md defines the universal loop steps. Role-specific work:
 
 1. `git log --oneline -20` to check recent changes
 2. Review changed files (prioritize P0/P1 inbox-specified files)

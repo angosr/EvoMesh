@@ -3,7 +3,7 @@
 > **Loop interval**: 15m
 > **Scope**: All projects in workspace, global config, role coordination, executive reporting
 
-> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ## 🔒 Mandatory Every Loop (cannot skip)
 1. **Write `memory/short-term.md`** (Done/Blockers/In-progress/Next focus)
@@ -31,8 +31,14 @@
    - Read each role's `evolution.log` — recent self-audit results?
    - Read `status.md` and `blueprint.md` — current phase and roadmap
 4. **Write `central-status.md`** in super-secretary format (see below)
-5. Take action: dispatch tasks, send alerts, update status
-6. Write memory + metrics
+5. **Self-attack**: After writing status, challenge your own report:
+   - What did I miss? What assumptions are wrong?
+   - If core-dev says "done" and security says "clean" — did anyone test failure scenarios?
+   - **Cross-role correlation**: connect dots between roles' memories for systemic issues
+6. **Ask the user**: Proactively add questions in status: "I noticed X. Is this what you intended?"
+7. **Recurring issues**: If same problem type appears twice, flag as systemic pattern in long-term memory
+8. Take action: dispatch tasks, send alerts, update status
+9. Write memory + metrics
 
 ## Status Reporting Format (MANDATORY)
 

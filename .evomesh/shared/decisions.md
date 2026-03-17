@@ -39,3 +39,40 @@
 **技术**: 新增 `/api/mission-control` API，前端 5 秒轮询或 SSE
 
 **来源**: 用户 P0 指令 `20260316T2200_user_mission-control-panel.md`
+
+## [2026-03-17] XSS Prevention Pattern (Cross-Role Security)
+
+**决策**: All frontend HTML/JS must use `addEventListener` + `data-*` attributes. Never use inline event handlers (`onclick`, `onchange`).
+
+**原因**: `esc()` only sanitizes HTML context. Inline handlers execute in JS context where `esc()` is insufficient. `data-*` attributes pass values safely without JS evaluation.
+
+**适用场景**: Any code that renders user input, role names, project names, or terminal output into HTML.
+
+**提出者**: security + reviewer + frontend (consolidated from 3 roles' long-term memory)
+**状态**: active
+
+## [2026-03-17] File-Based Architecture = Implicit Reducer Pattern
+
+**决策**: EvoMesh's file conventions map to concurrent state management reducers. This is by design, not accidental.
+
+**架构**:
+- Append-only files (decisions.md, blockers.md) = append reducer → git merges cleanly
+- Single-writer files (blueprint.md, status.md) = last-write-wins → no conflict by design
+- Per-role files (todo.md, short-term.md) = partitioned state → no conflicts possible
+- Git commits = checkpoints → full history, resumable
+
+**原因**: Validated by comparison with LangGraph's state management (2026-03-17). No architectural changes needed.
+
+**提出者**: agent-architect
+**状态**: active
+
+## [2026-03-17] Compliance Chain Attenuation
+
+**决策**: Critical rules must be enforced at system level (hooks, entrypoint.sh), not relied on LLM compliance alone.
+
+**原因**: Each layer of file indirection loses ~50% compliance (prompt: 95% → ROLE.md: 90% → base-protocol: 50%). Hooks achieve 100%.
+
+**4-layer enforcement**: (1) Stop hook blocks finish if memory/metrics missing (2) Loop prompt inlines critical rules (3) ROLE.md top position for key rules (4) entrypoint.sh force git-add
+
+**提出者**: agent-architect
+**状态**: active (hooks implemented, awaiting core-dev wiring)

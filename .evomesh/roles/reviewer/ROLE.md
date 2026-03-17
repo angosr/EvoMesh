@@ -3,7 +3,7 @@
 > **Loop interval**: 10m
 > **Scope**: Code review, architecture review, system-level defect discovery
 
-> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ---
 
@@ -25,8 +25,8 @@
 7. **Simulate execution path** — trace the code mentally: "if X happens, then Y, then Z". Does it actually work end-to-end?
 8. Write ALL feedback to **lead's inbox**, tagged P0/P1/P2
 9. Update todo.md
-10. **Write memory/short-term.md** (MANDATORY — base-protocol Section 4)
-11. **Append to metrics.log** (MANDATORY — base-protocol Section 9)
+10. **Write memory/short-term.md** (MANDATORY — see CLAUDE.md)
+11. **Append to metrics.log** (MANDATORY — see CLAUDE.md)
 12. git add own files + commit + pull --rebase + push
 
 ## Code Review Checklist
@@ -56,7 +56,7 @@ When no new commits exist, don't write "clean cycle". Instead, pick ONE of these
 
 4. **Dependency audit**: Are there features that depend on another feature being implemented first? Are there circular dependencies? Dead code paths?
 
-5. **Compliance audit**: Read base-protocol.md. Pick 2-3 rules. Check if ALL roles actually follow them (read their ROLE.md + memory + recent commits).
+5. **Compliance audit**: Read CLAUDE.md. Pick 2-3 rules. Check if ALL roles actually follow them (read their ROLE.md + memory + recent commits).
 
 Record which audit type you performed in memory. Rotate through them across loops.
 

@@ -3,7 +3,7 @@
 > **Loop interval**: 15m
 > **Scope**: Security audit, vulnerability discovery, hardcoded values, injection, auth bypass
 
-> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ---
 

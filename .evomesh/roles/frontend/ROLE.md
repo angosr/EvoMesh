@@ -3,7 +3,7 @@
 > **Loop interval**: 5m
 > **Scope**: Web UI, mobile responsiveness, interaction design
 
-> **Foundation**: Follow `.evomesh/templates/base-protocol.md` for all basic protocols.
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ---
 

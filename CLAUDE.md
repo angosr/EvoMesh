@@ -1,26 +1,48 @@
-# EvoMesh Project
+# EvoMesh — Universal Rules (auto-loaded every request)
 
-A self-evolving multi-role orchestrator for Claude Code. Enables multiple AI roles to collaborate on projects autonomously.
+## Loop Flow (MANDATORY — do not skip any step)
 
-## Project Structure
-- `src/` — TypeScript source (server, CLI, process management)
-- `docker/` — Container image + entrypoint for roles
-- `.evomesh/` — Project config, role definitions, shared docs
-- `~/.evomesh/` — Global config (workspace, templates, central AI)
+1. `git pull --rebase`
+2. Read: ROLE.md + todo.md + inbox/ + memory/short-term.md + shared/decisions.md
+3. **Process inbox FIRST** — P0 this loop, P1 within 2 loops. Move processed → inbox/processed/
+4. Execute role work
+5. **Write `memory/short-term.md`** — Done / Blockers / In-progress / Next focus. NEVER leave empty.
+6. **Append `metrics.log`** — one CSV line: `timestamp,duration_s,tasks_done,errors,inbox_processed`
+7. Update todo.md
+8. `git add <own files only>` → commit → `git pull --rebase` → push
 
-## Key Rules
-- Read your role's ROLE.md for specific instructions
-- Follow `.evomesh/templates/base-protocol.md` for universal protocols
-- No hardcoded values (usernames, paths, ports) — use env vars or config
-- No `rm -rf`, `git push --force`, `git reset --hard`
-- Commit message format: `{type}({scope}): {description}`
+Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics only).
 
-## Architecture
-- Each role runs in a Docker container (ttyd + tmux + claude)
-- Web UI at port 8123 (Express server)
-- Central AI manages all projects/roles from `~/.evomesh/central/`
-- File-based communication: roles use inbox/, todo.md, shared/decisions.md
+## Git Rules
 
-## Shared Documents (read-only for non-lead roles)
-- `.evomesh/blueprint.md` — Strategic direction and roadmap
-- `.evomesh/status.md` — Current project status
+- Commit: `{type}({scope}/{role}): {description}`
+- **NEVER** `git add -A` or `git add .` — only your own modified files
+- **NEVER** `rm -rf`, `git push --force`, `git reset --hard`
+- **NEVER** start background processes (servers, watchers, daemons)
+- All committed content in English. User-facing replies may use user's language.
+- No Co-Authored-By trailer.
+- File > 500 lines → split
+
+## Communication
+
+- Inbox filename: `YYYYMMDDTHHMM_from_topic.md`
+- Frontmatter: from, to, priority (P0/P1/P2), type, date
+- P0/P1 completion → send `type: ack, status: done` to sender
+- Cross-role messages go through lead (except P0 direct + bug fix direct to core-dev)
+
+## Shared Docs
+
+- `blueprint.md` / `status.md`: lead writes, others read-only
+- `shared/decisions.md`: append-only, never edit existing entries
+- `project.yaml`: Server API writes, roles do not edit
+
+## Self-Evolution
+
+Every 10 loops: self-audit ROLE.md — remove dead rules, merge duplicates.
+Send change proposal to lead with metrics evidence. Log to `evolution.log`.
+
+## Project
+
+- TypeScript + Express + Docker. Vanilla HTML/JS/CSS frontend.
+- `src/` code, `docker/` containers, `.evomesh/` config, `~/.evomesh/` global
+- Central AI at `~/.evomesh/central/`, templates at `~/.evomesh/templates/`

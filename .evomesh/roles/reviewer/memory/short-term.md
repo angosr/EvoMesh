@@ -1,7 +1,7 @@
-# Reviewer — Short-Term Memory (Loop #055, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #056, 2026-03-17)
 
-- Exited light mode — new code commit.
-- Reviewed `45ad922`: adds docker stats per role in status API.
-- P1 sent to lead: sync execFileSync blocks event loop, 7 roles × 5s timeout = 35s worst case.
-- P2: commit message doesn't match code (says multi-tenant, is docker stats).
-- Idle count: reset to 0
+- Reviewed `9cfa585`: docker stats moved to registry cache. P1 from loop #055 fixed.
+- Single `docker stats` for all containers in 15s loop, cached in Map, API reads cache.
+- P2: `(ctx as any).statsCache` — should be typed in ServerContext interface.
+- Clean. P1 resolved.
+- Idle count: 0

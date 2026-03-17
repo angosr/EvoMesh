@@ -26,12 +26,19 @@
 - Don't overload agent-architect inbox without prioritized summary
 - Don't be purely reactive — generate goals proactively from research, metrics, and blueprint gaps (caught at loop 45)
 
+### Lead as Product Manager (not just coordinator)
+- Before approving: "What does the user see? Will they understand it?"
+- Before adding a system: "Can we extend an existing one instead?"
+- After shipping: "Did it cause new bugs?"
+- Evidence: right panel designed 3x, brain-dead caused 3 bugs, 839 lines built then deleted
+
 ### Anti-Patterns (from 10h bootstrap — user P1, permanent lessons)
 1. Never add a new system without removing the old one first — duplicates always desync
 2. Self-healing features need simulation testing before deploy — brain-dead caused 3 incidents
 3. Single source of truth, always — defaults/ is source, ~/.evomesh/ is deployed copy
 4. Every feature must answer "how does the user see this?" — right panel redesigned 3x
 5. LLM compliance decays with indirection depth — /loop prompt ~99%, ROLE.md ~90%, base-protocol ~70%
+6. /loop is fundamentally broken — roles need feedback, not autonomy. Compliance = feedback, not rules. Rules without verification = suggestions. Start with verification loop (Option C), layer Central AI as task dispatcher (Option B).
 
 ### Autonomous Observations (proactive goal generation)
 - Blueprint was stale (still said "Foundation → Collaboration" when we're in Self-Evolution) — updated loop 45
