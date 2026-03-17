@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 79
+## 2026-03-17 Loop 80
 
-- **Done**: Processed user P0 inbox — SSH .ssh/ ro mount is locked decision, do not revert. Updated SEC-002 tracking. Reviewed settings linuxUser field (esc'd, admin-only). Feed connection status dots (UI only). Clean.
-- **Blockers**: None
-- **In-progress**: SEC-016 (no TLS) — docs added, awaiting deployment
-- **Next focus**: Monitor SEC-016. 4 P2 hardening items open. SEC-002 is now user-locked.
+- **Done**: Reviewed entrypoint session resume fallback (validates before resume), feed replay on reconnect (last 30 lines from feed.jsonl), client-side dedup. Clean.
+- **Blockers**: Cannot git pull
+- **In-progress**: SEC-016 (no TLS) awaiting deployment
+- **Next focus**: Monitoring mode. Self-audit due (loop 80 = 10-loop boundary).
