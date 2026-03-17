@@ -238,8 +238,6 @@ function renderDashboard() {
 async function renderAccountUsage() {
   const el = document.getElementById('dash-content');
   if (!el) return;
-  const prev = document.getElementById('account-usage-section');
-  if (prev) prev.remove();
   try {
     const r = await authFetch(`${API}/usage/accounts`);
     if (!r.ok) return;
@@ -248,9 +246,7 @@ async function renderAccountUsage() {
     if (!accounts || !accounts.length) return;
     const fmtNum = n => n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
     const fmtTime = ms => { if (!ms || ms <= 0) return 'expired'; const h = Math.floor(ms/3600000); const m = Math.floor((ms%3600000)/60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
-    const section = document.createElement('div');
-    section.id = 'account-usage-section';
-    section.innerHTML = accounts.map(a => {
+    const html = accounts.map(a => {
       const u = a.usage24h || {};
       const statusCls = a.needsLogin ? 'needs-login' : (a.tokenExpiresIn && a.tokenExpiresIn < 3600000 ? 'expiring' : 'ok');
       const statusText = a.needsLogin ? 'needs login' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
@@ -271,7 +267,14 @@ async function renderAccountUsage() {
         </div>
       </div>`;
     }).join('');
-    el.insertBefore(section, el.firstChild);
+    // Update in-place to avoid flicker (remove + recreate causes flash)
+    let section = document.getElementById('account-usage-section');
+    if (!section) {
+      section = document.createElement('div');
+      section.id = 'account-usage-section';
+      el.insertBefore(section, el.firstChild);
+    }
+    section.innerHTML = `<h2 style="color:var(--accent);margin:0 0 8px;font-size:14px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` + html;
   } catch {}
 }
 
