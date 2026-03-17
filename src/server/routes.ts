@@ -498,15 +498,14 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           const prevMtime = lastMtime.get("central") || 0;
           if (stat.mtimeMs > prevMtime) {
             lastMtime.set("central", stat.mtimeMs);
-            if (prevMtime === 0) continue; // skip initial
-            const status = fs.readFileSync(statusPath, "utf-8");
-            // Extract only the first "正在进行" or "风险" line, not the whole doc
-            const progressMatch = status.match(/正在进行[^]*?(?=\n-\s\*\*|$)/m);
-            const riskMatch = status.match(/风险[^]*?(?=\n##|$)/m);
-            const summary = (progressMatch?.[0] || "status updated").slice(0, 200);
-            res.write(`data: ${JSON.stringify({
-              type: "central", text: summary,
-            })}\n\n`);
+            if (prevMtime > 0) { // skip initial load
+              const status = fs.readFileSync(statusPath, "utf-8");
+              const progressMatch = status.match(/正在进行[^]*?(?=\n-\s\*\*|$)/m);
+              const summary = (progressMatch?.[0] || "status updated").slice(0, 200);
+              res.write(`data: ${JSON.stringify({
+                type: "central", text: summary,
+              })}\n\n`);
+            }
           }
         } catch {}
       } catch {}
