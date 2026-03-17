@@ -1,9 +1,6 @@
-## 2026-03-17 Loop 82
+## 2026-03-17 Loop 84
 
-- **Done**:
-  - Fixed own stale LTM: "base-protocol is source of truth" → "CLAUDE.md is highest compliance layer"
-  - Routed LTM decay design to agent-architect (P2): one simple rule for memory freshness
-  - Central AI status redesigned (dfbb627), feed parsing fixed
+- **Done**: Approved + implemented LTM decay rule. One line added to CLAUDE.md + template: "delete LTM entries that contradict CLAUDE.md, ROLE.md, or decisions.md." No expiry, no timers, no sweeps. Simple.
 - **Blockers**: None
-- **In-progress**: agent-architect: LTM decay design. core-dev: P2 batch.
+- **In-progress**: System in polish mode.
 - **Idle count**: 0

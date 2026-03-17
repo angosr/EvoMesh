@@ -39,6 +39,7 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics on
 ## Self-Evolution
 
 Every 10 loops: self-audit ROLE.md — delete dead rules, merge duplicates.
+Also: delete LTM entries that contradict CLAUDE.md, ROLE.md, or decisions.md.
 Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-only = skip (c) how to measure?
 Proposal → lead inbox with metrics evidence → log to evolution.log.
 
