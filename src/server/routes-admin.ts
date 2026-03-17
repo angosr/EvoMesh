@@ -12,24 +12,21 @@ import type { SessionInfo } from "./auth.js";
 import { requireProjectRole } from "./routes.js";
 
 /**
- * Ensure Central AI container is running. Called on server startup and by API.
+ * Ensure Central AI is running. Uses host tmux mode (no Docker).
  * Returns { port, terminal } or null on failure.
  */
 function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
-  const containerName = `evomesh-${process.env.USER || "user"}-central`;
+  const sessionName = `evomesh-${process.env.USER || "user"}-central`;
   const adminPort = ctx.port + 100;
 
   // Already running? Just register and return.
-  if (getContainerState(containerName) === "running") {
-    const port = getContainerPort(containerName) || adminPort;
-    ctx.ttydProcesses.set("central/ai", { port, roleName: "ai", projectSlug: "central" });
-    return { port, terminal: "/terminal/central/ai/" };
+  if (getContainerState(sessionName) === "running") {
+    ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
+    return { port: adminPort, terminal: "/terminal/central/ai/" };
   }
 
   try {
     const homeDir = os.homedir();
-    // Remove stopped/dead container
-    try { execFileSync("docker", ["rm", "-f", containerName], { stdio: ["pipe","pipe","ignore"] }); } catch {}
 
     // Find account
     let accountPath = path.join(homeDir, ".claude");
@@ -41,33 +38,46 @@ function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string }
         if (firstAccount) accountPath = expandHome(firstAccount);
       }
     } catch {}
-    const mainClaudeJson = path.join(homeDir, ".claude.json");
 
-    // Scoped mounts — .evomesh config + account + each project dir
-    const projectRoots = ctx.getProjects().map(p => path.resolve(p.root));
-    const args = [
-      "run", "-d",
-      "--name", containerName,
-      "-p", `127.0.0.1:${adminPort}:7681`,
-      "-v", `${path.join(homeDir, ".evomesh")}:${path.join(homeDir, ".evomesh")}:rw`,
-      "-v", `${accountPath}:${accountPath}:rw`,
-      "-v", `${mainClaudeJson}:${mainClaudeJson}:rw`,
-      ...projectRoots.flatMap(r => ["-v", `${r}:${r}:rw`]),
-      "-e", `HOST_UID=${process.getuid?.() || 1000}`,
-      "-e", `HOST_GID=${process.getgid?.() || 1000}`,
-      "-e", `HOST_USER=${process.env.USER || "user"}`,
-      "-e", `HOST_HOME=${homeDir}`,
-      "-e", `HOME=${homeDir}`,
-      "-e", `CLAUDE_CONFIG_DIR=${accountPath}`,
-      "-e", "ROLE_NAME=central",
-      "-e", "ROLE_ROOT_OVERRIDE=.evomesh/central",
-      "-w", `${homeDir}`,
-      "--log-opt", "max-size=10m",
-      "evomesh-role",
-    ];
-    execFileSync("docker", args, { stdio: "inherit" });
+    // Session ID for resume
+    const centralDir = path.join(homeDir, ".evomesh", "central");
+    const sessionIdFile = path.join(centralDir, ".session-id");
+    let claudeArgs = "--dangerously-skip-permissions";
+    if (fs.existsSync(sessionIdFile)) {
+      const sid = fs.readFileSync(sessionIdFile, "utf-8").trim();
+      if (sid) claudeArgs = `--resume ${sid} ${claudeArgs}`;
+      else claudeArgs = `--name central ${claudeArgs}`;
+    } else {
+      claudeArgs = `--name central ${claudeArgs}`;
+    }
+
+    // Start tmux session with claude
+    const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
+    execFileSync("tmux", [
+      "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
+    ], { cwd: homeDir, stdio: "ignore" });
+
+    // Start ttyd pointing at tmux session
+    const ttydCmd = `ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${adminPort} -- tmux attach-session -t ${sessionName}`;
+    execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
+
+    // Send /loop command after delay (background)
+    const roleRoot = ".evomesh/central";
+    const loopCmd = `/loop 5m 你是 central 角色。先处理inbox再做其他事。执行 ${roleRoot}/ROLE.md 工作目录: ${roleRoot}/ 完成后必须：写central-status.md、更新memory/short-term.md`;
+    execFileSync("bash", ["-c", `(
+      sleep 15
+      for i in $(seq 1 60); do
+        tmux capture-pane -t ${sessionName} -p 2>/dev/null | grep -q '❯' && break
+        sleep 1
+      done
+      sleep 2
+      tmux send-keys -t ${sessionName} -l '${loopCmd.replace(/'/g, "'\\''")}'
+      sleep 0.5
+      tmux send-keys -t ${sessionName} Enter
+    ) &`], { stdio: "ignore" });
 
     ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
+    console.log(`[central-ai] Started in host tmux mode on port ${adminPort}`);
     return { port: adminPort, terminal: "/terminal/central/ai/" };
   } catch (e: unknown) {
     console.error("[central-ai] Failed to start:", errorMessage(e));
