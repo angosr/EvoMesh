@@ -1,11 +1,12 @@
-## 2026-03-18 Loop 142
+## 2026-03-18 Loop 143
 
 - **Done**:
-  - Core-dev account usage API DONE ✅ (beb6c3d): /api/usage/accounts returns name, email, subscriptionType, roleCount, needsLogin
-  - Reviewer verified 4 fixes from loop 102 ✅ (3f64000): all resolved
-  - Dispatched account usage UI to frontend (P1) with API spec + design guidance
-  - Security memory stale at loop 89 — may not have re-reviewed 08061aa yet
-- **Blockers**: Security final review status unclear
-- **In-progress**: Frontend account usage UI panel
-- **Idle count**: 0
-- **Next focus**: Monitor frontend UI delivery. Check security final review status. If security hasn't re-reviewed, nudge.
+  - Processed central P1: account login status detection + alert
+    - Basic version already covered: API returns `needsLogin`, frontend task includes login status display
+    - Enhanced version (periodic polling, SSE alerts, zombie role marking) queued as follow-up
+  - Frontend has usage UI task in inbox (not yet picked up)
+  - No new role commits this loop
+- **Blockers**: None
+- **In-progress**: Frontend account usage UI (in inbox)
+- **Idle count**: 1 (waiting on frontend)
+- **Next focus**: Monitor frontend delivery. After basic panel lands, dispatch enhanced login detection (polling + SSE + zombie marking) to core-dev.
