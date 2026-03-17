@@ -1,3 +1,10 @@
+# This file is a TEMPLATE. setup.sh generates the actual service file
+# with correct paths and username.
+#
+# Variables replaced by setup.sh:
+#   __USER__ → current username
+#   __WORKDIR__ → EvoMesh installation directory
+
 [Unit]
 Description=EvoMesh Multi-Role AI Orchestrator
 After=network.target docker.service
@@ -5,11 +12,11 @@ Wants=docker.service
 
 [Service]
 Type=simple
-WorkingDirectory=/home/claudeuser/work/EvoMesh
+WorkingDirectory=__WORKDIR__
 ExecStart=/usr/bin/npx tsx --watch --watch-path=src bin/evomesh.ts serve --port 8123
 Restart=always
 RestartSec=5
-User=claudeuser
+User=__USER__
 Environment=NODE_ENV=production
 
 [Install]
