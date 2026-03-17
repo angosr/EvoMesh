@@ -16,6 +16,11 @@
 - [ ] SEC-019: Terminal proxy lacks ACL check → extractTerminalToken validates auth but not ownership
 - [x] SEC-020: FIXED — session.linuxUser now read by reqLinuxUser() helper, used across route handlers
 
+## P1 — New Findings
+
+- [ ] SEC-021: /api/usage/accounts reads os.homedir() not user-scoped → all users see all accounts (email, subscription). Info disclosure in multi-user. Sent to lead.
+- [ ] SEC-022: Email/subscriptionType PII exposed via /api/usage/accounts (low severity single-user, higher multi-user)
+
 ## P0 — Track Fixes
 
 - [ ] SEC-016: No TLS — HTTP server exposes all traffic (passwords, tokens, shell I/O) → sent to lead + core-dev
