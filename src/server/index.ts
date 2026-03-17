@@ -296,11 +296,14 @@ export function startServer(port: number, initialRoot?: string) {
           const centralStatusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
           const stat = fs.statSync(centralStatusPath);
           const ageMs = Date.now() - stat.mtimeMs;
-          if (ageMs > 30 * 60 * 1000) {
+          const centralLastRestart = lastRestart.get("central/ai") || 0;
+          const timeSinceCentralRestart = Date.now() - centralLastRestart;
+          // Only check brain-dead if container has been up >10min (give it time to loop)
+          if (ageMs > 30 * 60 * 1000 && timeSinceCentralRestart > 10 * 60 * 1000) {
             console.log(`[brain-dead] central AI status stale ${Math.round(ageMs / 60000)}min, force-restarting`);
             try { execFileSync("docker", ["rm", "-f", centralName], { stdio: "ignore" }); } catch {}
             ctx.ttydProcesses.delete("central/ai");
-            // ensureCentralAI in routes-admin will recreate on next status check
+            lastRestart.set("central/ai", Date.now());
           }
         } catch {} // file doesn't exist yet — skip
       }
