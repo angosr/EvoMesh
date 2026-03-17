@@ -1,12 +1,10 @@
-## 2026-03-18 Loop 131
+## 2026-03-18 Loop 133
 
 - **Done**:
-  - Core-dev committed 96f0efa (desired-state persistence — roles auto-start after server restart). Good bug fix.
-  - Core-dev processed P0 multi-user re-send but did bug fix instead — no multi-user commit yet.
-  - Diagnosis: full ~200 LOC task is too large for one context window. Breaking into phases.
-  - Dispatched Phase 1 (auth + config foundation): 4 files, ~30 LOC. Concrete, small, deliverable.
-  - Phase 2 (routes + containers + Docker networks) will follow after Phase 1 lands.
-- **Blockers**: None — Phase 1 is scoped to be completable in one session
-- **In-progress**: Core-dev P0 multi-user Phase 1
+  - Core-dev delivered Phase 1 ✅ (b6a58a9): loadWorkspace(linuxUser) + containerName with user prefix. Backward compat.
+  - Dispatched Phase 2 to core-dev: data scoping (P0 security blockers) + feed fix + Docker network isolation. ~50 LOC, 5 files.
+  - Breaking into phases is working — Phase 1 delivered in one session.
+- **Blockers**: None
+- **In-progress**: Core-dev P0 multi-user Phase 2
 - **Idle count**: 0
-- **Next focus**: Monitor for Phase 1 commit. Then dispatch Phase 2.
+- **Next focus**: Monitor Phase 2 commit. Once landed, dispatch security review + frontend phase 2 UI.
