@@ -11,3 +11,11 @@
 - Removed redundant Project Rules (commit format, env vars) — already in CLAUDE.md
 - Added: host tmux mode, tsx --watch auto-restart
 - Kept: role-specific work steps, root cause principle, container/entrypoint context
+
+## 2026-03-18 — Self-Audit (lead-mandated)
+Findings:
+1. todo.md was stale — 3 completed items still marked open. Fixed.
+2. Not writing heartbeat.json — CLAUDE.md requires it every loop. Will add.
+3. Not sending P1 completion acks — ROLE.md requires it. Low compliance.
+4. ROLE.md is clean — no dead rules after last self-evolution audit.
+Action: cleaned todo.md. Will write heartbeat in future loops.

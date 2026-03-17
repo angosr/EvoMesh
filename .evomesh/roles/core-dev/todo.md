@@ -6,16 +6,18 @@
 
 ## P1
 
-- ~~Migrate smartInit() to file-based templates~~ ✅
-- ~~Template overhaul — 7 types, English only~~ ✅
-- ~~Dual launch mode — Docker + host tmux~~ ✅
-- ~~Bootstrap auto-sync defaults → live~~ ✅
-- ~~Entrypoint inline mandatory steps~~ ✅
-- ~~Brain-dead dual signal (memory + git commits)~~ ✅
-- ~~Wire `ensureCentralAI()` to use host mode~~ ✅ — tmux + ttyd, no docker
-- ⬜ Compliance hooks — Claude Code Stop hook to enforce memory/metrics writing (needs hooks research)
+(All clear)
 
 ## P2
 
-- ⬜ Extract mission-control into routes-mission.ts if routes.ts grows further
-- ⬜ Run full test suite and fix any regressions from template overhaul
+(All clear)
+
+## Completed
+
+- ✅ smartInit migration, template overhaul, dual launch mode
+- ✅ Bootstrap auto-sync, brain-dead detection, Central AI host mode
+- ✅ Compliance hooks (Stop + SessionStart)
+- ✅ Session/feed persistence, config launch_mode
+- ✅ Health.ts + routes-usage.ts extractions
+- ✅ Multi-user Phase 1+2, all SEC findings resolved
+- ✅ Account usage API, AGENTS.md, desired state persistence
