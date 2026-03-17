@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 42
+## 2026-03-17 Loop 43
 
-- **Done**: Reviewed Central AI host tmux switch + admin message fix. Same validated patterns as loop 41. Admin-only. Clean.
+- **Done**: Reviewed Central AI brain-dead removal (Docker code deleted, host mode managed by ensureCentralAI). Clean.
 - **Next focus**: Monitoring mode.
