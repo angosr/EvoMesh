@@ -162,8 +162,10 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
             lastMtime.set("central", stat.mtimeMs);
             if (prevMtime > 0) {
               const status = fs.readFileSync(statusPath, "utf-8");
-              const progressMatch = status.match(/正在进行[^]*?(?=\n-\s\*\*|$)/m);
-              const summary = (progressMatch?.[0] || "status updated").slice(0, 200);
+              // Extract first few bullet points as summary (language-agnostic)
+              const bullets = status.match(/^- \*\*.+$/gm);
+              const summary = bullets ? bullets.slice(0, 3).map(b => b.replace(/^- \*\*|\*\*/g, '').trim()).join(' | ') : status.split('\n').filter(l => l.trim() && !l.startsWith('#')).slice(0, 2).join(' ').slice(0, 200);
+
               broadcastFeed({ type: "central", text: summary });
             }
           }
