@@ -6,7 +6,7 @@ import { loadConfig } from "../config/loader.js";
 import { roleDir, expandHome } from "../utils/paths.js";
 import { loadWorkspace, saveWorkspace, addProject, slugify } from "../workspace/config.js";
 import { smartInit } from "../workspace/smartInit.js";
-import { exists } from "../utils/fs.js";
+import { exists, formatBytes } from "../utils/fs.js";
 import { errorMessage } from "../utils/error.js";
 import {
   startRole, stopRole, isRoleRunning, sendInput,
@@ -27,11 +27,6 @@ import { registerUsageRoutes } from "./routes-usage.js";
 export const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
-  if (bytes < 1024 ** 3) return (bytes / (1024 ** 2)).toFixed(1) + " MB";
-  return (bytes / (1024 ** 3)).toFixed(1) + " GB";
-}
 
 /**
  * Check if the request has a session with at least the given project role.

@@ -34,3 +34,9 @@ export function listDirs(dir: string): string[] {
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
 }
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
+  if (bytes < 1024 ** 3) return (bytes / (1024 ** 2)).toFixed(1) + " MB";
+  return (bytes / (1024 ** 3)).toFixed(1) + " GB";
+}

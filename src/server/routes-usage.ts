@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
-import { formatBytes } from "./routes.js";
+import { formatBytes } from "../utils/fs.js";
 import type { SessionInfo } from "./auth.js";
 import type { ServerContext } from "./index.js";
 
