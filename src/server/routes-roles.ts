@@ -73,6 +73,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         startRole(project.root, roleName, rc, config, ttydPort);
         ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
       }
+      markRoleRunning(`${project.slug}/${roleName}`);
       res.json({ ok: true, role: roleName });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
