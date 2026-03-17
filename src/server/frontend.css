@@ -253,7 +253,8 @@
   #feed { flex: 1; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
   #feed:empty::after { content: 'Waiting for role updates...'; color: var(--text-faint); font-size: 11px; padding: 20px; text-align: center; }
 
-  .feed-item { padding: 6px 8px; border-radius: 5px; font-size: 11px; line-height: 1.4; }
+  .feed-item { padding: 6px 8px; border-radius: var(--radius-sm); font-size: 11px; line-height: 1.4; animation: feedSlideIn 0.2s ease-out; }
+  @keyframes feedSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .feed-role { background: var(--bg-input); border: 1px solid var(--border); }
   .feed-central { background: #1a0a0a; border: 1px solid #3b1010; }
   .feed-user-message { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); margin-left: 24px; text-align: right; }
