@@ -9,6 +9,13 @@
 5. ~~Review auth system~~ ✅ PASS (strong PBKDF2)
 6. ~~Write security audit report~~ ✅ audit-001 + audit-002
 
+## P0 — Multi-User (BLOCKING)
+
+- [ ] SEC-017: getProjects/getProject never receive linuxUser — 30+ call sites unscoped → all users see all projects
+- [ ] SEC-018: Container network uses process.env.USER not session.linuxUser → no per-user isolation
+- [ ] SEC-019: Terminal proxy lacks ACL check → any authenticated user can access any terminal
+- [ ] SEC-020: session.linuxUser populated but never read by any route handler (root cause of SEC-017/018)
+
 ## P0 — Track Fixes
 
 - [ ] SEC-016: No TLS — HTTP server exposes all traffic (passwords, tokens, shell I/O) → sent to lead + core-dev
