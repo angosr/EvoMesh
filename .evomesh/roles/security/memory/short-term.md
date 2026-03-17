@@ -1,8 +1,4 @@
-## 2026-03-17 Loop 46
+## 2026-03-17 Loop 47
 
-- **Done**:
-  - Reviewed session persistence, feed persistence, launch_mode config, brain-dead disable
-  - SEC-015: session tokens stored cleartext on disk (~/.evomesh/sessions.json). P2 — mitigated by Unix perms + 7-day expiry.
-  - Feed history: activity logs only, not credentials. Safe.
-  - launch_mode: strict allowlist, owner-only. Safe.
+- **Done**: Reviewed Stop button + launch mode selector + onboarding card. All use existing APIs (owner-only), esc() output, addEventListener. Clean.
 - **Next focus**: Monitoring mode.
