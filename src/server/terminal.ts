@@ -108,7 +108,15 @@ export function setupTerminalProxy(
       return;
     }
 
-    const key = `${match[1]}/${match[2]}`;
+    // ACL: verify user owns this project
+    const session = ctx.sessions.get(token);
+    const slug = match[1];
+    if (slug !== "central") {
+      const project = ctx.getProject(slug, session?.linuxUser);
+      if (!project) { res.status(403).send("Access denied."); return; }
+    }
+
+    const key = `${slug}/${match[2]}`;
     const ttyd = ctx.ttydProcesses.get(key);
     if (!ttyd) { res.status(404).send("Terminal not available. Is the role running?"); return; }
 
@@ -136,7 +144,19 @@ export function setupTerminalProxy(
       return;
     }
 
-    const key = `${match[1]}/${match[2]}`;
+    // ACL: verify user owns this project
+    const session = ctx.sessions.get(token);
+    const wsSlug = match[1];
+    if (wsSlug !== "central") {
+      const project = ctx.getProject(wsSlug, session?.linuxUser);
+      if (!project) {
+        socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+        socket.destroy();
+        return;
+      }
+    }
+
+    const key = `${wsSlug}/${match[2]}`;
     const ttyd = ctx.ttydProcesses.get(key);
     if (!ttyd) { socket.destroy(); return; }
 

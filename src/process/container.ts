@@ -201,13 +201,13 @@ export function startRole(
   roleConfig: RoleConfig,
   config: ProjectConfig,
   ttydPort: number,
-  opts: { centralAI?: boolean; containerNameOverride?: string; projectRoots?: string[]; launchMode?: "docker" | "host" } = {}
+  opts: { centralAI?: boolean; containerNameOverride?: string; projectRoots?: string[]; launchMode?: "docker" | "host"; linuxUser?: string } = {}
 ): ContainerRole {
   if (opts.launchMode === "host") {
     return startRoleHost(root, roleName, roleConfig, config, ttydPort);
   }
   const projectSlug = projectSlugFromRoot(root);
-  const name = opts.containerNameOverride || containerName(projectSlug, roleName);
+  const name = opts.containerNameOverride || containerName(projectSlug, roleName, opts.linuxUser);
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
 
   // If container is already running, just return its info
@@ -236,7 +236,7 @@ export function startRole(
     args.push("-e", `TTYD_PORT=${ttydPort}`);
   } else {
     // Per-user Docker network for isolation
-    const netUser = process.env.USER || "user";
+    const netUser = opts.linuxUser || process.env.USER || "user";
     const netName = `evomesh-net-${netUser}`;
     try { execFileSync("docker", ["network", "create", netName], { stdio: "ignore" }); } catch {} // already exists = ok
     args.push("--network", netName);
