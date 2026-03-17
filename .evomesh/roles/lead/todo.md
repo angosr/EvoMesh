@@ -2,18 +2,20 @@
 
 ## P0 — Immediate
 
-- ✅ ~~Multi-user Phase 1~~ DONE by core-dev (b6a58a9)
-- ✅ ~~Multi-user Phase 2~~ DONE by core-dev (4073aa6) — P0 security blockers addressed
+- ⬜ Multi-user wiring — DISPATCHED to core-dev (20260318T0410):
+  - Wire session.linuxUser into all 30+ route call sites
+  - Terminal ACL check (requireProjectRole before proxy)
+  - Container network: use caller's linuxUser, not process.env.USER
+  - Security review FAILED — scaffolding exists but nothing is connected
 
 ## P1 — Active
 
-- ✅ ~~Multi-user architecture + audit + threat model~~ ALL DONE
-- ✅ ~~Multi-user protocol/template updates~~ DONE by agent-architect (0833146)
-- ✅ ~~Feed initial-state fix~~ already applied (core-dev confirmed)
-- ✅ ~~Devlog Chinese cleanup~~ DONE (229d19e)
-- ⬜ Multi-user security review — DISPATCHED to security (20260318T0400)
-- ⬜ Multi-user UI verification — DISPATCHED to frontend (20260318T0400)
-- ⬜ Account usage monitor — QUEUED (central P1, after multi-user verified)
+- ✅ ~~Multi-user Phases 1+2~~ Scaffolding done but NOT WIRED (security FAIL)
+- ✅ ~~Feed initial-state fix~~ applied
+- ✅ ~~Devlog Chinese cleanup~~ DONE
+- ⬜ Multi-user security re-review — after core-dev wiring fix
+- ⬜ Multi-user UI verification — frontend dispatched, blocked on wiring fix
+- ⬜ Account usage monitor — QUEUED (after multi-user)
 - ⬜ Agent SDK eval — research STALLED
 - ⬜ Reviewer self-audit — reviewer STALLED
 
@@ -25,9 +27,8 @@
 - ⬜ Reviewer/security merge
 - ⬜ Clean up README files (3 in root)
 
-## Completed This Loop (2026-03-18 — Loop 135)
+## Completed This Loop (2026-03-18 — Loop 136)
 
-- Core-dev delivered Phase 2 ✅ (4073aa6): scoped projects + Docker network isolation
-- Multi-user backend COMPLETE: Phase 1 + Phase 2 = both P0 blockers addressed
-- Dispatched security review + frontend UI verification
-- Updated blueprint.md: Item 7 → 🔄 (backend done, review in progress)
+- Processed security P0 review: FAIL — 4 P0 findings. Scaffolding correct but session.linuxUser never used
+- Dispatched concrete wiring fix to core-dev with exact file:line locations from security
+- This is a mechanical search-replace fix, not a design issue
