@@ -22,9 +22,19 @@ function initFeed() {
         appendFeedMessage(msg);
       } catch {}
     };
+    es.onopen = () => {
+      const dot = document.getElementById('conn-dot');
+      const dot2 = document.getElementById('conn-dot2');
+      if (dot) dot.className = 'conn-dot connected';
+      if (dot2) dot2.className = 'conn-dot connected';
+    };
     es.onerror = () => {
       es.close();
-      setTimeout(connectFeed, 3000); // reconnect after 3s
+      const dot = document.getElementById('conn-dot');
+      const dot2 = document.getElementById('conn-dot2');
+      if (dot) dot.className = 'conn-dot disconnected';
+      if (dot2) dot2.className = 'conn-dot disconnected';
+      setTimeout(connectFeed, 3000);
     };
   }
   connectFeed();
