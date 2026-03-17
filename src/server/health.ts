@@ -235,8 +235,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
                 console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"})`);
                 fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
                 stopRole(p.root, name);
-                  lastRestart.set(key, now);
-                }
+                lastRestart.set(key, now);
               }
             }
           } catch {}
