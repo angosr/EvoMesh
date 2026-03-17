@@ -1,17 +1,15 @@
-## 2026-03-18 Loop 139
+## 2026-03-18 Loop 140
 
 - **Done**:
-  - Processed security re-review: PARTIAL — SEC-020 closed ✅, but 3 P0s remain:
-    - SEC-017: 3 unscoped routes (admin scroll, feed SSE, status)
-    - SEC-018: container isolation (startRole needs linuxUser)
-    - SEC-019: terminal proxy has no ownership check
-  - Processed reviewer code review (4856d80): 3 P1 + 1 P2 findings (duplicate SSE history, container name mismatch, unauthenticated endpoints). Self-audit also complete.
-  - Consolidated all findings into single core-dev P0 dispatch with prioritized fix order
-  - Reviewer is BACK after long stall — productive loop with real findings
-- **Blockers**: 3 P0s must be fixed before multi-user can pass security review
-- **In-progress**:
-  - core-dev: P0 remaining multi-user fixes (dispatched)
-  - research: P1 account usage data (dispatched)
-  - agent-architect: P2 README cleanup (dispatched)
-- **Idle count**: 0
-- **Next focus**: Monitor core-dev P0 fixes. When done → security final review → Item 7 ✅.
+  - Processed research account usage data report ✅ — excellent findings:
+    - Primary: JSONL session files in `~/.claude2/projects/` (local, reliable)
+    - Secondary: OAuth /api/oauth/usage endpoint (live, but undocumented)
+    - Static: .claude.json + .credentials.json (account name, tier)
+    - Full report in research/devlog/20260318_claude-usage-data-format.md
+  - Agent-architect README cleanup DONE ✅ (818021e: consolidated to single README.md)
+  - Core-dev remaining P0s still in inbox (not yet processed — previous wiring was 508a2be)
+  - Proactive scan: reviewed, no new action needed
+- **Blockers**: Core-dev P0 remaining fixes (3 P0s) still pending
+- **In-progress**: Core-dev P0 multi-user remaining fixes
+- **Idle count**: 0 (inbox processed)
+- **Next focus**: Monitor core-dev P0 fix. Once multi-user P0s clear → dispatch account usage API implementation to core-dev + frontend. Research report is ready as the spec.
