@@ -174,7 +174,15 @@ function renderOpenTabs() {
 // ==================== Dashboard ====================
 function renderDashboard() {
   const el = document.getElementById('dash-content');
-  if (!state.projects.length) { el.innerHTML = '<div class="card"><p style="color:#888">No projects yet.</p></div>'; return; }
+  if (!state.projects.length) {
+    el.innerHTML = `<div class="card onboarding"><h3>Welcome to EvoMesh</h3>
+      <p>Tell Central AI what project you want to work on:</p>
+      <ol><li>Open the right panel (Mission Control)</li>
+      <li>Type: "Create a project for /path/to/my-project"</li>
+      <li>Central AI will analyze your code and set up roles</li></ol>
+      <p style="color:var(--text-faint)">Or add an existing project by path or GitHub URL.</p></div>`;
+    return;
+  }
   const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
   let html = '';
   for (const p of state.projects) {
@@ -184,7 +192,11 @@ function renderDashboard() {
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
       const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:#666">${esc(r.account)}</span>`;
       const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="mem" title="Memory (e.g. 2g, 512m)"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="cpu" title="CPUs (e.g. 1.5, 2)">` : '';
-      const actCol = isOwner ? `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button>` : '';
+      const startRestartBtn = `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button>`;
+      const stopBtn = r.running ? ` <button class="dash-action danger" data-action="stop" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">■ Stop</button>` : '';
+      const launchMode = r.launch_mode || 'docker';
+      const modeSelect = `<select class="mode-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}"><option value="docker"${launchMode==='docker'?' selected':''}>docker</option><option value="host"${launchMode==='host'?' selected':''}>host</option></select>`;
+      const actCol = isOwner ? `${startRestartBtn}${stopBtn} ${modeSelect}` : '';
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span></td>
         <td>${statusBadge}${loginBadge}</td>
@@ -207,6 +219,12 @@ function renderDashboard() {
   });
   el.querySelectorAll('.dash-action[data-action="restart"]').forEach(btn => {
     btn.addEventListener('click', () => withLoading(btn, () => saveAndRestart(btn.dataset.slug, btn.dataset.role)));
+  });
+  el.querySelectorAll('.dash-action[data-action="stop"]').forEach(btn => {
+    btn.addEventListener('click', () => withLoading(btn, () => stopRole(btn.dataset.slug, btn.dataset.role)));
+  });
+  el.querySelectorAll('.mode-select').forEach(sel => {
+    sel.addEventListener('change', () => saveLaunchMode(sel.dataset.slug, sel.dataset.role, sel.value));
   });
   el.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
