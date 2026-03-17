@@ -2,22 +2,13 @@
 
 ## P0 — Immediate
 
-- ⬜ Multi-user remaining P0s — in core-dev inbox (20260318T0440), not yet processed:
-  - SEC-017: 3 unscoped route call sites
-  - SEC-018: container startRole needs linuxUser param
-  - SEC-019: terminal proxy ACL check
+- ✅ ~~Multi-user all P0s~~ FIXED by core-dev (08061aa)
+- ⬜ Multi-user final security review — DISPATCHED to security
 
 ## P1 — Active
 
-- ✅ ~~Multi-user wiring fix~~ PARTIAL (508a2be — ~15 routes fixed, SEC-020 closed)
-- ✅ ~~Agent SDK eval~~ DEFER (research)
-- ✅ ~~Account usage data research~~ DONE by research — 3 data sources identified
-- ✅ ~~README cleanup~~ DONE by agent-architect (818021e — single English README)
-- ✅ ~~Frontend multi-user UI~~ verified
-- ✅ ~~Reviewer self-audit~~ DONE with findings
-- ⬜ Account usage monitor API — QUEUED for core-dev after P0s clear (research spec ready)
-- ⬜ Account usage monitor UI — QUEUED for frontend after API exists
-- ⬜ Duplicate SSE history + unauthenticated endpoints — in core-dev P0 dispatch
+- ⬜ Account usage API — DISPATCHED to core-dev (20260318T0500)
+- ⬜ Account usage UI — QUEUED for frontend after API
 
 ## P2 — Later
 
@@ -25,8 +16,7 @@
 - ⬜ Additional role templates
 - ⬜ Mobile terminal scrolling
 
-## Completed This Loop (2026-03-18 — Loop 140)
+## Completed This Loop (2026-03-18 — Loop 141)
 
-- Processed research account usage report — 3 data sources (JSONL primary, OAuth live, static metadata)
-- Agent-architect README cleanup done (818021e)
-- Core-dev remaining P0s still pending in inbox
+- Core-dev closed all 6 multi-user vulnerabilities (08061aa)
+- Dispatched final security review + account usage API
