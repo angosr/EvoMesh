@@ -259,6 +259,7 @@
   .feed-role { background: var(--bg-input); border: 1px solid var(--border); }
   .feed-central { background: rgba(248, 113, 113, 0.06); border: 1px solid rgba(248, 113, 113, 0.15); padding: 8px 10px; }
   .feed-central-text { white-space: pre-line; line-height: 1.6; font-size: 11px; }
+  .feed-section-title { font-weight: 700; color: var(--text); font-size: 12px; margin-top: 6px; border-bottom: 1px solid var(--border); padding-bottom: 2px; }
   .feed-user-message { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); margin-left: 24px; text-align: right; }
   .feed-system { text-align: center; color: var(--text-faint); font-size: 9px; }
 
