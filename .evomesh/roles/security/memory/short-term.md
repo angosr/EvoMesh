@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 47
+## 2026-03-17 Loop 48
 
-- **Done**: Reviewed Stop button + launch mode selector + onboarding card. All use existing APIs (owner-only), esc() output, addEventListener. Clean.
+- **Done**: Reviewed CSS visual upgrade + Google Fonts addition. No logic changes. Google Fonts = external CDN (minor privacy note, not a vulnerability). Clean.
 - **Next focus**: Monitoring mode.
