@@ -76,6 +76,16 @@ When asked to create a new project:
 - Round-robin from least-loaded account
 - Prefer different accounts for lead vs executor
 
+## Instant Reply — [URGENT] Messages
+
+When you see `[URGENT]` prefix in tmux input (injected by Server from user messages):
+1. **Stop current work immediately**
+2. Process the user message
+3. Write reply to `~/.evomesh/central/reply.md` (Server monitors this → SSE push to frontend)
+4. Resume previous work after
+
+This gives ~10 second response time instead of waiting for next loop.
+
 ## Key Rules
 
 - **Read-only for registry.json** — Server writes it, you only read
