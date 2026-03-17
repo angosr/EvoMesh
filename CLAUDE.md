@@ -48,6 +48,14 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics on
 Every 10 loops: self-audit ROLE.md — delete dead rules, merge duplicates.
 Also: delete LTM entries that contradict CLAUDE.md, ROLE.md, or decisions.md.
 Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-only = skip (c) how to measure?
+
+## Code Quality — Anti-Debt Rule
+
+**Same bug fixed 2+ times = mandatory refactor.** Do not add another patch — restructure the code.
+- Remove accumulated dead patch code (unused fallbacks, redundant checks, orphaned branches)
+- Add tests covering the regression area
+- Simplify control flow so the bug class becomes impossible
+- Lead dispatches P1 code quality tasks when regression patterns detected in git log
 Proposal → lead inbox with metrics evidence → log to evolution.log.
 
 ## EvoMesh Project-Specific

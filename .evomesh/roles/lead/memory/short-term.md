@@ -1,12 +1,12 @@
-## 2026-03-18 Loop 150
+## 2026-03-18 Loop 150 (continued)
 
 - **Done**:
-  - Processed central P0: userStopped 3rd regression — roles auto-restart despite being stopped
-  - Core-dev has unstaged health.ts fix (loadDesiredState checks) — looks correct, dispatched P0 to formalize
-  - Security loop 91 (562aec9): SEC-017 ALL FIXED ✅, SEC-021 FIXED ✅, new SEC-023 (latent path traversal, low risk)
-  - SEC-018 (container naming) and SEC-019 (terminal proxy) still open per security
-  - Processed stale research mobile scan inbox (already handled loop 146)
-- **Blockers**: P0 userStopped bug (core-dev has fix in progress)
-- **In-progress**: Core-dev P0 userStopped fix (unstaged, needs commit)
+  - Added "Code Quality Debt Detection" section to lead ROLE.md — mandatory regression pattern detection + refactor dispatch
+  - Added "Anti-Debt Rule" to CLAUDE.md + CLAUDE.md.tmpl — "same bug 2+ times = refactor, not patch"
+  - Dispatched P1 code quality refactor for health.ts auto-restart logic to core-dev
+    - Root cause: 3 patches accumulated without simplifying, multiple overlapping state mechanisms
+    - Fix: single source of truth (running-roles.json), remove userStopped in-memory flag, add tests
+- **Blockers**: P0 userStopped fix still pending
+- **In-progress**: Core-dev P0 userStopped fix + P1 code quality refactor
 - **Idle count**: 0
-- **Next focus**: Monitor userStopped fix commit. Then SEC-018/019 + mobile CSS.
+- **Next focus**: Monitor core-dev delivery. This refactor should prevent 4th regression.

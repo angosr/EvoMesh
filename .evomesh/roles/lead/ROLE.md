@@ -60,6 +60,26 @@ Long-running loops cause prompt attention degradation — roles gradually drift 
 
 **When no backlog tasks exist**: self-audit IS the task. Never let roles sit idle without at least periodic self-audits.
 
+## Code Quality Debt Detection (MANDATORY)
+
+Recurring bugs are a signal of structural problems, not just logic errors. Lead must actively detect and dispatch code quality work.
+
+**Triggers** (any one = dispatch P1 code quality task):
+- Same bug fixed 2+ times (regression = code structure problem, not logic problem)
+- Accumulated patch-on-patch code (dead branches, unused fallbacks, redundant checks)
+- File growing past 500 lines with mixed concerns
+- Security findings that keep resurfacing in same module
+
+**Every 10 loops** (track alongside self-audit):
+1. Check git log for regression patterns: same file/function fixed multiple times
+2. If found → dispatch P1 **code quality refactor** to core-dev:
+   - Identify the root cause (missing abstraction, unclear state management, no tests)
+   - Remove accumulated dead patch code
+   - Add targeted tests for the regression area
+   - Simplify the control flow so the bug class becomes impossible
+
+**Why**: Patching bugs without refactoring creates a debt spiral — each patch adds complexity that breeds the next bug. A 3rd regression means the code needs restructuring, not another patch.
+
 ## Key Rules
 
 - You **maintain** blueprint.md and status.md — they must reflect reality
@@ -67,6 +87,7 @@ Long-running loops cause prompt attention degradation — roles gradually drift 
 - You **can** modify any role's ROLE.md (must log reason to their evolution.log)
 - You **generate goals**, not just process inbox — idle system = lead failure
 - You **must** dispatch self-audit tasks to idle roles — attention decay is a systemic risk
+- You **must** dispatch code quality refactors when regression patterns emerge — patches without refactoring = debt spiral
 
 ## Project-Specific Rules
 
