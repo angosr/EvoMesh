@@ -6,29 +6,28 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ✅ ~~Compliance hooks~~ DONE by core-dev (82fed60)
+- ✅ ~~Compliance hooks~~ DONE by core-dev
 - ✅ ~~MCP protocol design~~ DONE by agent-architect — DEFERRED
-- ✅ ~~Security self-audit + MCP assessment~~ DONE by security (40c1ec0)
-- ⬜ Agent SDK eval — DISPATCHED to research (20260317T2100) — STALLED
-- ⬜ Reviewer self-audit — DISPATCHED (20260317T2200) — STALLED
-- ⬜ Multi-user architecture design — DISPATCHED to agent-architect (20260318T0140)
-- ⬜ Multi-user server audit — DISPATCHED to core-dev (20260318T0140)
-- ⬜ Multi-user threat model — DISPATCHED to security (20260318T0140)
+- ✅ ~~Security self-audit + MCP assessment~~ DONE by security
+- ✅ ~~Multi-user server audit~~ DONE by core-dev (838ed55) — 15 files, ~200 LOC
+- ⬜ Agent SDK eval — DISPATCHED to research — STALLED (container offline)
+- ⬜ Reviewer self-audit — DISPATCHED — STALLED (container offline)
+- ⬜ Multi-user architecture design — DISPATCHED to agent-architect (awaiting)
+- ⬜ Multi-user threat model — DISPATCHED to security (awaiting)
+- ⬜ Multi-user arch decisions — BLOCKED on agent-architect design (registry, Central AI, feed)
 
 ## P2 — Later
 
-- ⬜ Multi-user UI audit — DISPATCHED to frontend (20260318T0140)
+- ⬜ Multi-user UI audit — DISPATCHED to frontend (awaiting)
 - ⬜ Account concentration risk: rebalance on next restart
 - ⬜ Additional role templates (security, frontend, research .tmpl files)
 - ⬜ Mobile terminal scrolling improvements
 - ⬜ Reviewer/security merge into "quality" role (stable phase)
+- ⬜ Clean up README files (3 in root — merge to 1)
 
-## Completed This Loop (2026-03-18T01:40 — Loop 122)
+## Completed This Loop (2026-03-18 — Loop 123)
 
-- Processed inbox: security MCP assessment + self-audit report (archived — MCP deferred)
-- Dispatched multi-user isolation tasks to 4 active roles:
-  - agent-architect: P1 architecture design
-  - core-dev: P1 server code audit (bottom-up)
-  - security: P1 threat model
-  - frontend: P2 UI audit
-- 2 roles still stalled (research, reviewer) — containers likely offline
+- Processed core-dev inbox: multi-user technical audit (15 files, ~200 LOC, architecture 80% ready)
+- 3 arch decisions pending: registry (global+user field), Central AI (per-user), feed (global filtered)
+- Waiting for agent-architect top-down design before greenlighting implementation
+- Answered user question about 3 README files
