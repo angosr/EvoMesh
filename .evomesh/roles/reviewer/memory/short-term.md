@@ -1,5 +1,6 @@
-# Reviewer — Short-Term Memory (Loop #051, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #052, 2026-03-17)
 
-- Reviewed `b3534d3`: Stop button, launch mode selector, onboarding card. +25 lines.
-- addEventListener pattern, esc() on all display. Clean.
+- Reviewed `f188e4d`: CSS visual upgrade + Google Fonts. No JS changes.
+- P2: Google Fonts = external dependency (offline won't render). Not a security risk.
+- Clean.
 - Idle count: 0
