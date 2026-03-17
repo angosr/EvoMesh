@@ -92,6 +92,7 @@ date: YYYY-MM-DDTHH:MM
 - 单文件 > 500 行必须拆分
 - 修改前先读现有代码
 - 不启动后台进程（服务器、watcher、daemon）
+- **All committed content must be in English** — code, comments, commit messages, ROLE.md, docs, devlog, inbox messages. Only user-facing replies (central-status.md, direct responses to user) may use the user's language.
 
 > **为什么**：多角色并行在同一分支工作，精准 git add 防止覆盖他人修改。
 
