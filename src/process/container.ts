@@ -173,7 +173,7 @@ function startRoleHost(
   // Send /loop command after delay
   const loopInterval = roleConfig.loop_interval || "10m";
   const roleRootRel = `.evomesh/roles/${roleName}`;
-  const loopCmd = `/loop ${loopInterval} 你是 ${roleName} 角色。先处理inbox再做其他事。执行 ${roleRootRel}/ROLE.md 工作目录: ${roleRootRel}/ 完成后必须：写memory/short-term.md、追加metrics.log、更新todo.md`;
+  const loopCmd = `/loop ${loopInterval} You are the ${roleName} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
 
   // Background: wait for claude to be ready, then send /loop
   execFileSync("bash", ["-c", `(

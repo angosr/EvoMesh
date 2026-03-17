@@ -2,9 +2,11 @@
 
 **能力摘要**: 多 agent 协作架构设计（通信协议、记忆系统、自演进、合规强制）。掌握 CrewAI/AutoGen/LangGraph/EvoMAC 研究、Claude Code hooks/skills 机制。
 
-### Compliance Chain Attenuation
-→ 详见 `shared/decisions.md` [2026-03-17] Compliance Chain Attenuation
-- 角色专属补充：自己设计了 verify-loop-compliance.sh Stop hook，待 core-dev 接线
+### Compliance Chain Attenuation — STRUCTURALLY SOLVED
+→ 详见 `shared/decisions.md` [2026-03-17]
+- 根本修复：通用规则迁移到 CLAUDE.md（Claude Code auto-load = Layer 0 = ~95% compliance）
+- base-protocol.md 不再是规则来源 — CLAUDE.md 是。50 行，每次请求自动加载。
+- 补充强制：verify-loop-compliance.sh Stop hook（待 core-dev 接线）
 
 ### 角色分类（主动 vs 被动）
 - 主动型（lead, core-dev, frontend, agent-architect）：空闲时自我审查，持续轮询
@@ -22,7 +24,8 @@
 - File-based architecture = implicit reducer pattern → 详见 `shared/decisions.md`
 
 ### 协议设计原则
-- 简洁 = 遵守率。base-protocol v3: 268→141 行
-- 模板只写角色专属内容，通用规则指向 base-protocol
+- 简洁 = 遵守率。CLAUDE.md 50 行 auto-loaded > base-protocol 141 行需手动读
+- 规则层级：CLAUDE.md（通用，auto-load）→ ROLE.md（角色专属）→ decisions.md（架构决策）
+- 模板只写角色专属内容，通用规则在 CLAUDE.md
 - 跨角色知识放 shared/decisions.md，long-term 只存角色专属经验
 - P2 自主执行权：协议/模板变更无需 lead 审批
