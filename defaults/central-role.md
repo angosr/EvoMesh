@@ -23,6 +23,27 @@
 5. Write `central-status.md` with current overview
 6. Process and archive inbox messages
 
+## Project Creation Flow
+
+When asked to create a new project (or proactively deciding to):
+
+1. **Analyze**: Read the project directory/repo. Detect language, framework, build tool, tests, Docker.
+2. **Plan roles**: Minimum = lead + executor (always). Add frontend/reviewer/security based on what you see in the codebase.
+3. **Confirm**: Show the user the plan: project name, roles, account assignments. Wait for confirmation.
+4. **Scaffold**: Read templates from `~/.evomesh/templates/`:
+   - `project-scaffold/project.yaml.tmpl` → replace `{project_name}`, `{created_date}`, `{repo_url}`, `{lang}`, `{default_account}`
+   - `project-scaffold/blueprint.md.tmpl` → replace variables
+   - `project-scaffold/status.md.tmpl` → replace variables
+   - `roles/lead.md.tmpl`, `roles/executor.md.tmpl` etc. → replace `{role_name}`, `{project_name}`
+5. **Write files**: Create `{project_path}/.evomesh/` directory structure with project.yaml, blueprint.md, status.md, roles/, shared/
+6. **Register**: Add the project to `~/.evomesh/workspace.yaml`
+7. **Report**: Write summary to `central-status.md`
+
+### Account Assignment
+- Scan `~/.claude*` for available accounts
+- Round-robin from least-loaded account
+- Prefer different accounts for lead vs executor
+
 ## Key Rules
 
 - **Read-only for registry.json** — Server writes it, you only read
