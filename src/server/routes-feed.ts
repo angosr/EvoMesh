@@ -139,13 +139,13 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
           try { config = loadConfig(p.root); } catch { continue; }
           for (const [name] of Object.entries(config.roles)) {
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
+            if (!fs.existsSync(stmPath)) continue;
             try {
               const stat = fs.statSync(stmPath);
               const key = `${p.slug}/${name}`;
               const prevMtime = lastMtime.get(key) || 0;
               if (stat.mtimeMs > prevMtime) {
                 lastMtime.set(key, stat.mtimeMs);
-                if (prevMtime === 0) continue;
                 const stm = fs.readFileSync(stmPath, "utf-8");
                 const doneMatch = stm.match(/^\s*-\s*\*\*Done\*\*:\s*(.+)$/m);
                 const text = doneMatch ? doneMatch[1] : (stm.match(/^- .+$/m)?.[0]?.replace(/^- /, "") || "updated");
