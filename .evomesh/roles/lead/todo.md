@@ -6,20 +6,19 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ✅ ~~SEC-018 + SEC-019~~ DONE by core-dev (a509372)
-- ⬜ Multi-user FINAL security review — DISPATCHED to security (20260318T0815)
+- ⬜ Multi-user FINAL security review — in security inbox (waiting)
 
 ## P2 — Active
 
-- ✅ ~~Mobile touch targets~~ DONE by frontend (aef3341) — 44px min, Apple HIG
-- ⬜ Self-healing audit — DISPATCHED to reviewer (waiting)
-- ⬜ AGENTS.md support — DISPATCHED to agent-architect (waiting)
-- ⬜ MS Agent Framework GA check — DISPATCHED to research (waiting)
+- ⬜ frontend.js file split (543→<500) — DISPATCHED to frontend (20260318T0825)
+- ⬜ AGENTS.md proposal resend — DISPATCHED to agent-architect (20260318T0825)
+- ⬜ Self-healing audit — in reviewer inbox (waiting)
+- ⬜ MS Agent Framework GA check — in research inbox (waiting)
 - ⬜ Account concentration risk
 - ⬜ SEC-023: latent path traversal (low risk)
 
-## Completed This Loop (2026-03-18 — Loop 160)
+## Completed This Loop (2026-03-18 — Loop 161)
 
-- Core-dev SEC-018/019 DONE ✅ — container linuxUser + terminal ACL
-- Frontend mobile touch targets DONE ✅ — 44px min per Apple HIG
-- Dispatched FINAL security review to close out multi-user milestone
+- Code quality trigger: frontend.js 543 lines → dispatched split
+- AGENTS.md proposal lost to git clean → requested resend
+- Proactive scan: reviewed, no new gaps
