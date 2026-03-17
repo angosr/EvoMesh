@@ -287,6 +287,13 @@ export function startServer(port: number, initialRoot?: string) {
     res.type("js").sendFile(path.resolve(p));
   });
 
+  app.get("/app-layout.js", (_req, res) => {
+    const p = resolveAsset("frontend-layout.js");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.set("Cache-Control", "no-store");
+    res.type("js").sendFile(path.resolve(p));
+  });
+
   app.get("/", (_req, res) => {
     const p = resolveAsset("frontend.html");
     if (!p) { res.send("Frontend not found."); return; }
