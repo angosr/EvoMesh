@@ -291,22 +291,9 @@ export function startServer(port: number, initialRoot?: string) {
       const centralRunning = getContainerState(centralName) === "running";
       const centralPort = centralRunning ? getContainerPort(centralName) : null;
 
-      if (centralRunning) {
-        try {
-          const centralStatusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
-          const stat = fs.statSync(centralStatusPath);
-          const ageMs = Date.now() - stat.mtimeMs;
-          const centralLastRestart = lastRestart.get("central/ai") || 0;
-          const timeSinceCentralRestart = Date.now() - centralLastRestart;
-          // Only check brain-dead if container has been up >10min (give it time to loop)
-          if (ageMs > 30 * 60 * 1000 && timeSinceCentralRestart > 10 * 60 * 1000) {
-            console.log(`[brain-dead] central AI status stale ${Math.round(ageMs / 60000)}min, force-restarting`);
-            try { execFileSync("docker", ["rm", "-f", centralName], { stdio: "ignore" }); } catch {}
-            ctx.ttydProcesses.delete("central/ai");
-            lastRestart.set("central/ai", Date.now());
-          }
-        } catch {} // file doesn't exist yet — skip
-      }
+      // Central AI brain-dead detection disabled — Central AI now uses host tmux mode.
+      // ensureCentralAI() in routes-admin.ts handles lifecycle.
+      // Brain-dead recovery for Central AI is handled by ensureCentralAI's own health check.
 
       const registry = {
         timestamp: new Date().toISOString(),
