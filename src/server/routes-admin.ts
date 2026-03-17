@@ -63,7 +63,7 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
 
     // Send /loop command after delay (background)
     const roleRoot = ".evomesh/central";
-    const loopCmd = `/loop 5m You are the central role. FIRST: cat and read ${roleRoot}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRoot}/`;
+    const loopCmd = `/loop 5m You are the central role. FIRST: cat and read ${roleRoot}/ROLE.md completely. Then follow CLAUDE.md loop flow. MANDATORY: write central-status.md every loop (Now/Next/Risk per project). Working directory: ${roleRoot}/`;
     execFileSync("bash", ["-c", `(
       sleep 15
       for i in $(seq 1 60); do
