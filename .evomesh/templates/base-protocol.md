@@ -103,8 +103,12 @@ Required content:
 ### Format
 
 ```
-{type}({scope}): {description}
+{type}({scope}/{role}): {description}
 ```
+
+Example: `feat(server/core-dev): add brain-dead recovery`
+
+The `{role}` identifies which role made the commit.
 
 ### Types
 
