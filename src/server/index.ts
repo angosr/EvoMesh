@@ -470,28 +470,39 @@ export function startServer(port: number, initialRoot?: string) {
       for (const p of projects) {
         let config;
         try { config = loadConfig(p.root); } catch { continue; }
-        for (const [name] of Object.entries(config.roles)) {
+        for (const [name, rc] of Object.entries(config.roles)) {
           if (!isRoleRunning(p.root, name)) continue;
           const key = `${p.slug}/${name}`;
           const lastNudgeTime = lastNudge.get(key) || 0;
           if (now - lastNudgeTime < NUDGE_COOLDOWN) continue;
 
-          // Check memory freshness — if running and memory >10min stale, role may have skipped writing
+          // Use role's loop_interval as minimum threshold (parse "10m" → 10)
+          const intervalMin = parseInt(rc.loop_interval) || 10;
+          const threshold = Math.max(intervalMin * 1.5, 10); // at least 10min, or 1.5× interval
+
           const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
           try {
             const stat = fs.statSync(stmPath);
             const ageMin = (now - stat.mtimeMs) / 60000;
-            // Only nudge if memory is stale AND role has been running long enough (>15min)
             const entry = ctx.ttydProcesses.get(key);
             if (!entry) continue;
-            if (ageMin > 10) {
-              const cname = `evomesh-${p.slug}-${name}`;
+            if (ageMin > threshold) {
+              const sessionName = `evomesh-${p.slug}-${name}`;
+              const nudgeMsg = "[SYSTEM] Write memory/short-term.md and append metrics.log before continuing.";
               try {
-                execFileSync("docker", ["exec", cname, "bash", "-c",
-                  `tmux -f /dev/null send-keys -t claude -l "[SYSTEM] Write memory/short-term.md and append metrics.log before continuing." 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
-                ], { stdio: "ignore", timeout: 5000 });
+                if (rc.launch_mode === "host") {
+                  // Host tmux mode — send directly
+                  execFileSync("tmux", ["send-keys", "-t", sessionName, "-l", nudgeMsg], { stdio: "ignore", timeout: 5000 });
+                  execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore", timeout: 5000 });
+                } else {
+                  // Docker mode — exec into container
+                  const user = process.env.USER || "user";
+                  execFileSync("docker", ["exec", sessionName, "bash", "-c",
+                    `tmux -f /dev/null send-keys -t claude -l "${nudgeMsg}" 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
+                  ], { stdio: "ignore", timeout: 5000 });
+                }
                 lastNudge.set(key, now);
-                console.log(`[verify] Nudged ${name} — memory ${Math.round(ageMin)}min stale`);
+                console.log(`[verify] Nudged ${name} — memory ${Math.round(ageMin)}min stale (threshold: ${threshold}min)`);
               } catch {}
             }
           } catch {} // no memory file yet — skip
