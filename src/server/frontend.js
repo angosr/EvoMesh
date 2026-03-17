@@ -231,6 +231,42 @@ function renderDashboard() {
   });
   // If members panel is open, load its data
   if (state.membersOpen) loadMembers(state.membersOpen);
+  // Account usage panel
+  renderAccountUsage();
+}
+
+async function renderAccountUsage() {
+  const el = document.getElementById('dash-content');
+  if (!el) return;
+  // Remove previous account section if any
+  const prev = document.getElementById('account-usage-section');
+  if (prev) prev.remove();
+
+  try {
+    const r = await authFetch(`${API}/usage/accounts`);
+    if (!r.ok) return;
+    const accounts = await r.json();
+    if (!accounts.length) return;
+
+    const section = document.createElement('div');
+    section.id = 'account-usage-section';
+    section.innerHTML = `<h2 style="color:var(--accent);margin:20px 0 10px;font-size:14px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` +
+      accounts.map(a => `<div class="card acct-card">
+        <div class="acct-card-header">
+          <span class="acct-dot ${a.needsLogin ? 'needs-login' : 'ok'}"></span>
+          <div class="acct-card-info">
+            <span class="acct-name">${esc(a.name)}</span>
+            ${a.email ? `<span class="acct-email">${esc(a.email)}</span>` : ''}
+          </div>
+          <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
+        </div>
+        <div class="acct-card-meta">
+          <span>${a.roleCount || 0} role${a.roleCount !== 1 ? 's' : ''}</span>
+          ${a.needsLogin ? '<span style="color:var(--red)">needs login</span>' : ''}
+        </div>
+      </div>`).join('');
+    el.appendChild(section);
+  } catch {}
 }
 
 // ==================== Members Panel ====================
