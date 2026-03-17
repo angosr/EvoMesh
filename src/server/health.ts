@@ -166,9 +166,18 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
   }
 }
 
+/**
+ * Auto-restart crashed/brain-dead roles.
+ *
+ * SINGLE SOURCE OF TRUTH: running-roles.json (desired state)
+ * - Role in running-roles.json + not running → restart (crashed)
+ * - Role NOT in running-roles.json + not running → leave stopped (user-stopped)
+ * - The in-memory userStopped flag is NOT checked — only running-roles.json matters.
+ */
 export function autoRestartCrashed(ctx: ServerContext): void {
   try {
     const now = Date.now();
+    const desired = loadDesiredState();
     const projects = ctx.getProjects();
     for (const p of projects) {
       let config;
@@ -176,12 +185,12 @@ export function autoRestartCrashed(ctx: ServerContext): void {
       for (const [name, rc] of Object.entries(config.roles)) {
         const key = `${p.slug}/${name}`;
         const running = isRoleRunning(p.root, name);
+        const shouldRun = key in desired && desired[key];
         const wasRunning = prevRunning.get(key) ?? false;
         prevRunning.set(key, running);
 
-        if (wasRunning && !running) {
-          const entry = ctx.ttydProcesses.get(key);
-          if (entry?.userStopped) continue;
+        // Crashed: was running, now stopped, should be running
+        if (wasRunning && !running && shouldRun) {
           const lastTime = lastRestart.get(key) || 0;
           if (now - lastTime < RESTART_COOLDOWN) continue;
           console.log(`[auto-restart] ${name} crashed in ${p.name}, restarting...`);
@@ -190,12 +199,11 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             startRole(p.root, name, rc, config, ttydPort);
             ctx.ttydProcesses.set(key, { port: ttydPort, roleName: name, projectSlug: p.slug });
             lastRestart.set(key, now);
-            markRoleRunning(key);
           } catch (e) { console.error(`[auto-restart] Failed to restart ${name}:`, e); }
         }
 
-        // Brain-dead detection via heartbeat.json
-        if (running) {
+        // Brain-dead: running but heartbeat stale + no commits → force stop (next cycle restarts)
+        if (running && shouldRun) {
           try {
             const hbPath = path.join(roleDir(p.root, name), "heartbeat.json");
             const hbStat = fs.statSync(hbPath);
@@ -210,12 +218,9 @@ export function autoRestartCrashed(ctx: ServerContext): void {
                 hasRecentCommit = gitLog.trim().length > 0;
               } catch {}
               if (!hasRecentCommit) {
-                const entry = ctx.ttydProcesses.get(key);
-                if (!entry?.userStopped) {
-                  console.log(`[brain-dead] ${name} heartbeat ${Math.round(hbAgeMs / 60000)}min stale, restarting`);
-                  stopRole(p.root, name);
-                  lastRestart.set(key, now);
-                }
+                console.log(`[brain-dead] ${name} heartbeat ${Math.round(hbAgeMs / 60000)}min stale, restarting`);
+                stopRole(p.root, name);
+                lastRestart.set(key, now);
               }
             }
           } catch {}
@@ -227,12 +232,9 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             if (hbContent.request === "restart") {
               const lastTime = lastRestart.get(key) || 0;
               if (now - lastTime > RESTART_COOLDOWN) {
-                const entry = ctx.ttydProcesses.get(key);
-                if (!entry?.userStopped) {
-                  console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"}, loop: ${hbContent.loop || "?"})`);
-                  // Clear the request before stopping to prevent restart loop
-                  fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
-                  stopRole(p.root, name);
+                console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"})`);
+                fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
+                stopRole(p.root, name);
                   lastRestart.set(key, now);
                 }
               }
