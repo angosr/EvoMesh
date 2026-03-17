@@ -261,15 +261,10 @@ export function startRole(
     args.push("-v", `${gitconfig}:${gitconfig}:ro`);
   }
 
-  // SSH: mount only known_hosts (never expose private keys)
-  const knownHosts = path.join(homeDir, ".ssh", "known_hosts");
-  if (fs.existsSync(knownHosts)) {
-    args.push("-v", `${knownHosts}:${path.join(homeDir, ".ssh", "known_hosts")}:ro`);
-  }
-  // SSH agent forwarding for git push (keys stay on host)
-  if (process.env.SSH_AUTH_SOCK) {
-    args.push("-v", `${process.env.SSH_AUTH_SOCK}:/tmp/ssh-agent.sock`);
-    args.push("-e", "SSH_AUTH_SOCK=/tmp/ssh-agent.sock");
+  // SSH keys (RO) — roles need this for git push
+  const sshDir = path.join(homeDir, ".ssh");
+  if (fs.existsSync(sshDir)) {
+    args.push("-v", `${sshDir}:${sshDir}:ro`);
   }
 
   // Environment — preserve host paths
