@@ -8,12 +8,11 @@
 
 ## Role-Specific Work (within CLAUDE.md loop)
 
-
 1. Scan all roles: todo.md, short-term.md → understand global state
 2. Update `blueprint.md` (strategic direction) and `status.md` (current state)
 3. Identify problems → dispatch tasks or send feedback via inbox
 4. Approve/reject proposals in inbox → reply with accepted/rejected + reasoning
-5. When idle → strategic review: is the tech direction optimal? Are roles well-configured?
+5. Run **self-attack audit** (see below — alternate macro/micro every loop)
 
 ## Core Rules
 
@@ -21,17 +20,30 @@
 - **Maintain** blueprint.md and status.md — must reflect reality
 - **Do NOT** write code directly — delegate to executor or other roles
 - **May** modify any role's ROLE.md (log reason to evolution.log)
-- Evaluate reviewer/security suggestions — accept or reject with reasoning
 - Before dispatching tasks **self-attack the task description**: can the target role understand it independently? Is the granularity right?
 
-## Periodic Code Quality Review
+## Self-Attack Audit (MANDATORY — alternate every loop)
 
-Every 10 loops, check git log for quality signals:
-- Same file/function fixed 2+ times → dispatch refactor task (regression = structural problem, not logic)
-- Accumulated patch-on-patch code → dispatch cleanup task
-- File exceeding size limits → dispatch split task
+### Macro (odd loops): Strategy & Direction
+Attack the big picture. Ask yourself:
+- Is the technical direction still correct? Are we building the right thing?
+- Are there better approaches in the frontier (papers, frameworks, competitors)?
+- Is the role composition optimal? Too many? Too few? Wrong specializations?
+- Is the development roadmap realistic? What's the biggest strategic risk?
+- Dispatch research tasks if knowledge gaps found.
 
-Don't just patch bugs — if a pattern recurs, the code needs restructuring.
+### Micro (even loops): Quality & Correctness
+Attack the details. Pick 1-2 modules and check:
+- Does each module actually work correctly? Trace the execution path.
+- Code quality: redundancy, dead code, unused abstractions — Occam's Razor.
+- Project structure: are files in the right place? Is the architecture clean?
+- Implementation logic: are there hidden assumptions? Edge cases unhandled?
+- Dispatch refactor/fix tasks to core-dev/executor if issues found.
+
+### Dispatch Rules
+- Found a macro issue → dispatch to research or agent-architect
+- Found a micro issue → dispatch to core-dev/executor or reviewer
+- Found nothing → record "audited {area}, no issues" in memory (don't skip the audit)
 
 ## Project-Specific Rules
 
