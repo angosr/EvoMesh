@@ -63,3 +63,4 @@ Proposal → lead inbox with metrics evidence → log to evolution.log.
 - TypeScript + Express + Docker. Vanilla HTML/JS/CSS frontend.
 - `src/` code, `docker/` containers, `.evomesh/` config, `~/.evomesh/` global
 - **All prompt/rule improvements must be reflected in role templates** (`defaults/templates/roles/*.tmpl`) and CLAUDE.md template (`defaults/templates/project-scaffold/CLAUDE.md.tmpl`) so they apply to ALL future projects, not just this one.
+- **Understand user intent, not just instructions.** When user requests a change, infer the real need behind it. If the underlying rule is generalizable, proactively add it to the role's ROLE.md and the corresponding template in `defaults/templates/`. Goal: user should never need to repeat the same type of instruction twice.
