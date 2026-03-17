@@ -9,7 +9,7 @@ import { slugify } from "../workspace/config.js";
 import { getContainerState, getContainerPort } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
-import { requireProjectRole } from "./routes.js";
+import { requireProjectRole, reqLinuxUser } from "./routes.js";
 
 /**
  * Ensure Central AI is running. Uses host tmux mode (no Docker).
@@ -166,12 +166,13 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
 
   // --- Scroll: tmux copy-mode scroll via docker exec ---
   app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
     if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
-    const cname = `evomesh-${slugify(path.basename(project.root))}-${req.params.name}`;
+    const lu = reqLinuxUser(req) || process.env.USER || "user";
+    const cname = `evomesh-${lu}-${slugify(path.basename(project.root))}-${req.params.name}`;
     const user = process.env.USER || "user";
     try {
       if (direction === "esc") {

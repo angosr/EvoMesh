@@ -209,7 +209,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         const accountDir = expandHome(config.accounts[rc.account] || "~/.claude");
         let actualMem: string | null = null, actualCpu: string | null = null;
         if (running) {
-          const cname = `evomesh-${slugify(path.basename(project.root))}-${name}`;
+          const lu = reqLinuxUser(req) || process.env.USER || "user";
+          const cname = `evomesh-${lu}-${slugify(path.basename(project.root))}-${name}`;
           const cached = (ctx as any).statsCache?.get(cname);
           if (cached) { actualMem = cached.mem || null; actualCpu = cached.cpu || null; }
         }
@@ -276,14 +277,16 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   // --- SSE feed ---
 
-  app.get("/api/feed", (_req, res) => {
+  app.get("/api/feed", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
     const gather = () => {
       try {
-        const projects = ctx.getProjects();
+        const projects = ctx.getProjects(session.linuxUser);
         const allEntries: Array<{ project: string; slug: string; role: string; type: string; running: boolean; status: string }> = [];
         for (const p of projects) {
           try {
@@ -308,12 +311,14 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     };
     gather();
     const timer = setInterval(gather, 5000);
-    _req.on("close", () => clearInterval(timer));
+    req.on("close", () => clearInterval(timer));
   });
 
   // --- Accounts ---
 
-  app.get("/api/accounts", (_req, res) => {
+  app.get("/api/accounts", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     try {
       const homeDir = os.homedir();
       const detected = fs.readdirSync(homeDir, { withFileTypes: true })
@@ -330,7 +335,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   // --- System metrics ---
 
-  app.get("/api/metrics", (_req, res) => {
+  app.get("/api/metrics", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     try {
       const cpus = os.cpus();
       const load1 = os.loadavg()[0];
@@ -387,8 +394,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
 
   // --- Backward compat ---
 
-  app.get("/api/status", (_req, res) => {
-    const projects = ctx.getProjects();
+  app.get("/api/status", (req, res) => {
+    const projects = ctx.getProjects(reqLinuxUser(req));
     if (projects.length === 0) { res.json({ project: "none", roles: [] }); return; }
     res.redirect(`/api/projects/${projects[0].slug}/status`);
   });

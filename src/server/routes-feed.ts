@@ -174,13 +174,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
       } catch {}
     };
 
-    // Send recent history on connect (so reconnect doesn't lose messages)
-    try {
-      const history = fs.readFileSync(FEED_FILE, "utf-8").trim().split("\n").slice(-30);
-      for (const line of history) {
-        if (line.trim()) res.write(`data: ${line}\n\n`);
-      }
-    } catch {}
+    // History already sent above (lines 122-128). No duplicate needed.
 
     feedSubscribers.add(res);
     check();
