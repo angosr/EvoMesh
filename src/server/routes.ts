@@ -449,6 +449,67 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
+  // --- SSE Feed: real-time role updates ---
+  const feedSubscribers: Set<import("express").Response> = new Set();
+  // Expose for admin message broadcast
+  (ctx as any)._feedSubscribers = feedSubscribers;
+
+  app.get("/api/feed/stream", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const lastContent = new Map<string, string>();
+
+    const check = () => {
+      try {
+        const projects = ctx.getProjects();
+        for (const p of projects) {
+          let config;
+          try { config = loadConfig(p.root); } catch { continue; }
+          for (const [name] of Object.entries(config.roles)) {
+            const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
+            try {
+              const stm = fs.readFileSync(stmPath, "utf-8");
+              const key = `${p.slug}/${name}`;
+              if (stm !== lastContent.get(key)) {
+                lastContent.set(key, stm);
+                const bullets = stm.match(/^- \*\*Done\*\*:.*$/gm) || stm.match(/^- .+$/gm);
+                const latest = bullets ? bullets[bullets.length - 1].replace(/^- (\*\*Done\*\*:\s*)?/, "") : "";
+                if (latest) {
+                  res.write(`data: ${JSON.stringify({
+                    type: "role-update", role: name, project: p.name,
+                    text: latest.slice(0, 200), time: new Date().toISOString(),
+                  })}\n\n`);
+                }
+              }
+            } catch {}
+          }
+        }
+        // Central AI status
+        try {
+          const statusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
+          const status = fs.readFileSync(statusPath, "utf-8");
+          if (status !== lastContent.get("central/status")) {
+            lastContent.set("central/status", status);
+            res.write(`data: ${JSON.stringify({
+              type: "central-update", text: status.slice(0, 500), time: new Date().toISOString(),
+            })}\n\n`);
+          }
+        } catch {}
+      } catch {}
+    };
+
+    feedSubscribers.add(res);
+    check();
+    const timer = setInterval(check, 5000);
+    req.on("close", () => { clearInterval(timer); feedSubscribers.delete(res); });
+  });
+
   // --- Backward compat ---
 
   app.get("/api/status", (_req, res) => {

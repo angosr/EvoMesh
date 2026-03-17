@@ -154,6 +154,13 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
         execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore" });
       } catch {}
 
+      // Broadcast to SSE feed subscribers
+      const feedSubs = (ctx as any)._feedSubscribers as Set<import("express").Response> | undefined;
+      if (feedSubs) {
+        const event = JSON.stringify({ type: "user-message", text: message.trim(), time: new Date().toISOString() });
+        for (const sub of feedSubs) { try { sub.write(`data: ${event}\n\n`); } catch {} }
+      }
+
       res.json({ ok: true });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
