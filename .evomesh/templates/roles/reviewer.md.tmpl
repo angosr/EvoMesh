@@ -2,13 +2,13 @@
 
 > **Loop 周期**: 20m
 > **职责边界**: 代码审查、质量保障、最佳实践
-> **基础协议**: `.evomesh/templates/base-protocol.md`（loop 流程、记忆、inbox、git 规则全在里面）
+> Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).
 
 ---
 
 ## Loop 流程（角色特定部分）
 
-base-protocol 定义了通用 loop 步骤。以下是 Reviewer 在"执行角色工作"步骤中做的事：
+CLAUDE.md 定义了通用 loop 步骤。以下是 Reviewer 在"执行角色工作"步骤中做的事：
 
 1. `git log --oneline -20` 查看最近变更
 2. 审查变更文件（优先审查 P0/P1 inbox 指定的文件）
