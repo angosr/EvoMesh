@@ -14,7 +14,10 @@
 7. Monitor DeepMind delegation framework adoption/implementations
 8. Monitor Anthropic Agent SDK for persistence features (critical) ← deep-dived for intra-role parallelism, DEFER recommendation sent
 9. Track Grok-4.20 Multi-Agent Beta development ← assessed, not competitive
-10. Track AGNTCY project (Linux Foundation multi-agent infrastructure) ← NEW
+10. Track AGNTCY project (Linux Foundation multi-agent infrastructure) ← checked loop 11, 65+ companies
+11. Monitor Microsoft Agent Framework GA (AutoGen+SK merger, expected late March 2026) ← NEW
+12. Track AAIF developments (MCP + AGENTS.md + goose under Linux Foundation) ← NEW
+13. Monitor MCP Dev Summit NA (April 2-3, 2026 NYC) for announcements ← NEW
 
 ## P2 — Ad-hoc Research (on lead request)
 
@@ -35,4 +38,5 @@
 | 8 | P1 Ad-hoc | Agent SDK intra-role parallelism eval → DEFER |
 | 9 | P1 Ad-hoc | Claude usage data format research → 3 sources documented |
 | 10 | P2 Proactive | CrewAI check, Claude Code updates, mobile research for Item 9 |
-| **Total** | **13 reports sent to lead** | |
+| 11 | P2 Proactive | AAIF formation, standards convergence, MS Agent Framework, CrewAI dual protocol |
+| **Total** | **14 reports sent to lead** | |
