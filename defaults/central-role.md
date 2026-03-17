@@ -94,6 +94,7 @@ This gives ~10 second response time instead of waiting for next loop.
 
 ## Key Rules
 
+- **Only send messages to lead** — never write to other roles' inbox directly. Lead decides whether to forward, delegate, or reject. This preserves hub-and-spoke coordination.
 - **Read-only for registry.json** — Server writes it, you only read
 - **No direct Docker commands** — use file-based communication
 - **No HTTP API calls** — modify config files, Server picks up changes
