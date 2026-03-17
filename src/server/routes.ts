@@ -204,15 +204,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         const accountDir = expandHome(config.accounts[rc.account] || "~/.claude");
         let actualMem: string | null = null, actualCpu: string | null = null;
         if (running) {
-          try {
-            const cname = `evomesh-${slugify(path.basename(project.root))}-${name}`;
-            const stats = execFileSync("docker", [
-              "stats", "--no-stream", "--format", "{{.MemUsage}}|{{.CPUPerc}}", cname,
-            ], { encoding: "utf-8", timeout: 5000 }).trim();
-            const parts = stats.split("|");
-            actualMem = parts[0]?.split("/")[0]?.trim() || null;
-            actualCpu = parts[1]?.trim() || null;
-          } catch {}
+          const cname = `evomesh-${slugify(path.basename(project.root))}-${name}`;
+          const cached = (ctx as any).statsCache?.get(cname);
+          if (cached) { actualMem = cached.mem || null; actualCpu = cached.cpu || null; }
         }
         return {
           name, type: rc.type, loop_interval: rc.loop_interval, description: rc.description,

@@ -291,6 +291,10 @@ export function startServer(port: number, initialRoot?: string) {
   // Roles must NOT modify project.yaml directly — use inbox messages to request changes.
   let lastGoodProjects: Record<string, any> = {};
   let centralRestartFails = 0;
+  // Cached docker stats — updated every 15s in registry loop, read by API
+  const statsCache = new Map<string, { mem: string; cpu: string }>();
+  (ctx as any).statsCache = statsCache;
+
   function writeRegistry() {
     try {
       const projects = ctx.getProjects();
@@ -315,6 +319,19 @@ export function startServer(port: number, initialRoot?: string) {
         }
       }
       lastGoodProjects = { ...projectEntries };
+
+      // Collect docker stats for all running containers (cached for API)
+      try {
+        const allStats = execFileSync("docker", [
+          "stats", "--no-stream", "--format", "{{.Name}}|{{.MemUsage}}|{{.CPUPerc}}",
+        ], { encoding: "utf-8", timeout: 10000 }).trim();
+        for (const line of allStats.split("\n")) {
+          const [cname, mem, cpu] = line.split("|");
+          if (cname && mem) {
+            statsCache.set(cname, { mem: mem.split("/")[0]?.trim() || "", cpu: cpu?.trim() || "" });
+          }
+        }
+      } catch {}
 
       // Central AI status + brain-dead detection
       const centralName = `evomesh-${process.env.USER || "user"}-central`;
