@@ -1,11 +1,12 @@
-## 2026-03-18 Loop 130
+## 2026-03-18 Loop 131
 
 - **Done**:
-  - Core-dev back online with fresh context — committed 2cb557e (auto-start bug fix)
-  - Re-sent P0 multi-user implementation to core-dev inbox (old dispatch was in processed/ from exhausted session)
-  - Exited light mode
-  - Note: core-dev's commit 2cb557e modified lead's files (heartbeat, short-term, metrics) — CLAUDE.md violation ("git add own files only"). Minor, not worth escalating.
-- **Blockers**: None — core-dev has fresh context and P0 task in inbox
-- **In-progress**: Core-dev P0 multi-user implementation (re-dispatched)
-- **Idle count**: 0 (reset — active task dispatch)
-- **Next focus**: Monitor core-dev for multi-user implementation commits. Once committed: security review + frontend phase 2 can proceed.
+  - Core-dev committed 96f0efa (desired-state persistence — roles auto-start after server restart). Good bug fix.
+  - Core-dev processed P0 multi-user re-send but did bug fix instead — no multi-user commit yet.
+  - Diagnosis: full ~200 LOC task is too large for one context window. Breaking into phases.
+  - Dispatched Phase 1 (auth + config foundation): 4 files, ~30 LOC. Concrete, small, deliverable.
+  - Phase 2 (routes + containers + Docker networks) will follow after Phase 1 lands.
+- **Blockers**: None — Phase 1 is scoped to be completable in one session
+- **In-progress**: Core-dev P0 multi-user Phase 1
+- **Idle count**: 0
+- **Next focus**: Monitor for Phase 1 commit. Then dispatch Phase 2.
