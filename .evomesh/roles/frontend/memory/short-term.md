@@ -1,11 +1,12 @@
-## 2026-03-17 Loop 25
+## 2026-03-17 Loop 26
 
 - **Done**:
-  - CSS variable conversion: dashboard button, open tabs, sidebar tabs, add project area, autocomplete, status bar
-  - Added transitions to all converted elements
-  - Status bar + tab headers now use mono font
-  - Remaining hardcoded hex: ~55 (down from ~72)
+  - CSS variable conversion: settings forms, buttons, messages, user table, term toolbar, selects, feed central/project badges
+  - Settings messages now use rgba-based backgrounds (theme compatible)
+  - All role badges + settings btn secondary converted
+  - Added transitions + accent glow to settings inputs and primary button
+  - Remaining hardcoded hex: ~39 (down from ~55)
   - All tests pass (113/113)
 - **Blockers**: None
-- **In-progress**: Beautification P1 continues. ~55 hex values remain in scrollbar, login, settings, members panel
-- **Next focus**: Continue CSS cleanup or switch to JS quality pass
+- **In-progress**: ~39 hex values remain — mostly scrollbar, login page, mobile overrides, #fff/#000 edge cases
+- **Next focus**: Final CSS hex cleanup pass or JS code quality
