@@ -1,4 +1,3 @@
-# Reviewer — Short-Term Memory (Loop #072, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #075, 2026-03-17)
 
-- Reviewed `ffe2300`: removed duplicate centralDir declaration that crashed server. 1-line fix. Clean.
-- Idle count: 0
+- No inbox, no new code. Idle count: 1.

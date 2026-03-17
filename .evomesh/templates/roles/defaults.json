@@ -6,5 +6,6 @@
   "reviewer": { "type": "worker", "loop_interval": "10m", "evolution_upgrade_every": 25, "scope": ["src/", "test/", "docs/"], "description": "Code review — quality, correctness, best practices" },
   "agent-architect": { "type": "worker", "loop_interval": "10m", "evolution_upgrade_every": 25, "scope": [".evomesh/", "docs/"], "description": "Multi-agent collaboration specialist" },
   "security": { "type": "worker", "loop_interval": "15m", "evolution_upgrade_every": 25, "scope": ["src/", "docker/"], "description": "Security audit — vulnerabilities, hardcodes, injection" },
-  "research": { "type": "worker", "loop_interval": "15m", "evolution_upgrade_every": 25, "scope": ["devlog/", "docs/"], "description": "Frontier research — papers, open source, trends" }
+  "research": { "type": "worker", "loop_interval": "15m", "evolution_upgrade_every": 25, "scope": ["devlog/", "docs/"], "description": "Frontier research — papers, open source, trends" },
+  "trainer": { "type": "worker", "loop_interval": "10m", "evolution_upgrade_every": 20, "scope": ["training/", "scripts/", "logs/", "data/"], "description": "ML training orchestrator — training pipelines, evaluation, hyperparameter tuning" }
 }

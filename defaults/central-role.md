@@ -64,17 +64,29 @@ Rules:
 - **Do NOT list**: what was completed (user saw it in feed), which roles are online (feed shows this), loop counts, role health table
 - **Do NOT exceed 10 lines total** — if you can't say it in 10 lines, you don't understand it well enough
 
-## Project Creation Flow
+## Project Creation / Role Addition Flow
 
-When asked to create a new project:
+When asked to create a new project or add roles to an existing project:
 
 1. **Analyze**: Read project directory. Detect language, framework, build tool, tests, Docker.
-2. **Plan roles**: Minimum = lead + executor. Add roles based on codebase analysis.
+2. **Plan roles**: Decide roles based on codebase analysis. User may specify exact roles.
 3. **Confirm**: Show user the plan. Wait for confirmation.
-4. **Scaffold**: Read templates from `~/.evomesh/templates/`, replace `{project_name}`, `{created_date}`, `{repo_url}`, `{lang}`, `{default_account}`
-5. **Write files**: Create `.evomesh/` directory structure
-6. **Register**: Add to `~/.evomesh/workspace.yaml`
+4. **Scaffold** — ALL of the following are MANDATORY (missing any = roles invisible on web UI):
+   a. **`.evomesh/project.yaml`** ⚠️ CRITICAL — Server reads this to discover roles. Without it, no roles appear in web UI or registry.json. Must contain: `name`, `created`, `lang`, `accounts`, `roles` (with type/loop_interval/account/scope/description per role), `git`.
+      - Reference: copy format from `~/.evomesh/templates/project-scaffold/project.yaml.tmpl`
+   b. **`CLAUDE.md`** in project root — copy from `~/.evomesh/templates/project-scaffold/CLAUDE.md.tmpl`, replace `{project_name}`
+   c. **Role directories**: `.evomesh/roles/{role_name}/` with: ROLE.md (from templates), todo.md, evolution.log, `inbox/processed/`, `memory/short-term.md`
+   d. **Shared docs**: `.evomesh/shared/decisions.md`, blueprint.md, status.md
+5. **Register**: Add to `~/.evomesh/workspace.yaml`
+6. **Verify**: Wait for next registry.json refresh → confirm roles appear with `configured: true`
 7. **Report**: Write summary to `central-status.md`
+
+### Checklist (must ALL pass before reporting "done")
+- [ ] `.evomesh/project.yaml` exists with all roles listed
+- [ ] `CLAUDE.md` exists in project root
+- [ ] Each role has complete directory structure
+- [ ] Project in `~/.evomesh/workspace.yaml`
+- [ ] Accounts assigned (different accounts for roles that run simultaneously)
 
 ### Account Assignment
 - Scan `~/.claude*` for available accounts
