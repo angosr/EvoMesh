@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 88
+## 2026-03-18 Loop 89
 
-- **Done**: Full security review of multi-user implementation (Phase 1 b6a58a9 + Phase 2 4073aa6). FAIL — 4 P0 findings. Functions accept linuxUser but 0 of 30+ call sites pass it. Terminal proxy lacks ACL check. Container network uses process.env.USER not session user. Sent P0 report to lead inbox.
-- **Blockers**: Multi-user implementation not secure — all 4 P0 findings unresolved
-- **In-progress**: SEC-016 (no TLS) awaiting deployment
-- **Next focus**: Monitor for core-dev fixes to multi-user P0 findings. Re-review when committed.
+- **Done**: Re-audited multi-user fixes in routes.ts, routes-roles.ts, routes-feed.ts. SEC-020 CLOSED (linuxUser populated). SEC-017 partially fixed (~15 call sites wired). Found 3 remaining unscoped call sites (routes-admin scroll, /api/feed, /api/status). SEC-018 and SEC-019 still unfixed. Sent P0 report to lead.
+- **Blockers**: SEC-018 (container naming) requires architectural change to startRole(). SEC-019 (terminal proxy ACL) still missing ownership check.
+- **In-progress**: Monitoring for remaining fixes
+- **Next focus**: Re-verify when core-dev patches SEC-017 remaining sites, SEC-018, SEC-019

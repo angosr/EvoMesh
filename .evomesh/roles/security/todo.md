@@ -11,10 +11,10 @@
 
 ## P0 — Multi-User (BLOCKING)
 
-- [ ] SEC-017: getProjects/getProject never receive linuxUser — 30+ call sites unscoped → all users see all projects
-- [ ] SEC-018: Container network uses process.env.USER not session.linuxUser → no per-user isolation
-- [ ] SEC-019: Terminal proxy lacks ACL check → any authenticated user can access any terminal
-- [ ] SEC-020: session.linuxUser populated but never read by any route handler (root cause of SEC-017/018)
+- [~] SEC-017: PARTIAL FIX — ~15 route handlers now pass linuxUser. 3 remaining: routes-admin.ts:169 (scroll), routes.ts:286 (/api/feed), routes.ts:391 (/api/status)
+- [ ] SEC-018: Container network uses process.env.USER not session.linuxUser → startRole() never receives linuxUser (architectural gap)
+- [ ] SEC-019: Terminal proxy lacks ACL check → extractTerminalToken validates auth but not ownership
+- [x] SEC-020: FIXED — session.linuxUser now read by reqLinuxUser() helper, used across route handlers
 
 ## P0 — Track Fixes
 
