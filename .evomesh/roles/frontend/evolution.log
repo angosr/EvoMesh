@@ -26,3 +26,8 @@
 - Memory was just "idle" for 10+ loops — accurate but low-value
 **Changes**: Minor — updated "Mission Control" → "feed" in responsibilities. Removed "server curl tests" from loop flow (not available in container). No structural changes needed — ROLE.md is clean at 57 lines.
 **No proposal to lead**: changes are editorial, not behavioral.
+## [2026-03-18] Lead: Added stable DOM container rule
+- **Reason**: Account Usage dashboard had 7 fix commits for the same flicker/Loading class of bug
+- **Rule**: Define section containers in HTML, async renders write into containers, never destroy siblings
+- **Evidence**: a3e5554, ce30d1c, 3f8135a, 26eb91e, 4ad1841 — all same root cause
+- **Anti-debt trigger**: same bug class fixed 2+ times

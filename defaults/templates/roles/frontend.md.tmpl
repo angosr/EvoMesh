@@ -34,6 +34,7 @@ You may modify your own ROLE.md. Rules serve the work, not the other way around.
 - Mobile-first: always test responsive behavior
 - Never restore intentionally removed code — check shared/decisions.md first
 - Keep CSS organized with variables for theming
+- Stable DOM containers for async data — define section containers in HTML, not dynamically via JS. Async renders write into their container. Never let one section's innerHTML destroy a sibling.
 
 ## Project-Specific Rules
 

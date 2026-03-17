@@ -45,6 +45,7 @@ You may modify your own ROLE.md. Rules serve the work, not the other way around.
 - Use CSS variables for theming — never hardcode colors
 - No inline onclick with interpolated data — use addEventListener + data-* attributes
 - Never restore code that was intentionally removed — check decisions.md and commit messages first
+- 🔒 **Stable DOM containers for async data** — define section containers in HTML (not dynamically created via JS). Async renders write into their container's innerHTML. Never let one section's innerHTML destroy a sibling section. This prevents the entire class of flicker/Loading.../disappearing-section bugs.
 
 ## Project-Specific Rules
 
