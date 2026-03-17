@@ -6,8 +6,8 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ⬜ Account usage UI panel — DISPATCHED to frontend (20260318T0510), in inbox
-- ⬜ Account login detection (enhanced) — QUEUED: periodic polling, SSE alerts, zombie role marking (central P1, after basic panel)
+- ✅ ~~Account usage UI panel~~ DONE by frontend (359540e) — 119/119 tests pass
+- ⬜ Enhanced login detection — DISPATCHED to core-dev (20260318T0530)
 
 ## P2 — Later
 
@@ -15,8 +15,9 @@ ALL P0 COMPLETE ✅
 - ⬜ Additional role templates
 - ⬜ Mobile terminal scrolling
 - ⬜ Live usage endpoint (OAuth, stretch)
-- ⬜ Security final multi-user re-review (may be stale)
 
-## Completed This Loop (2026-03-18 — Loop 143)
+## Completed This Loop (2026-03-18 — Loop 144)
 
-- Processed central P1: account login detection — basic already covered by existing task, enhanced version queued
+- Account usage monitor COMPLETE ✅ (API beb6c3d + UI 359540e)
+- Blueprint: Item 7 → ✅, Item 8 → ✅
+- Dispatched enhanced login detection to core-dev

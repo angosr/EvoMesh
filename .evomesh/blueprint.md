@@ -25,8 +25,9 @@ All infrastructure operational. Protocols established. System is self-evolving v
 4. ✅ Central AI operational with Loop + Registry closed-loop + Mission Control
 5. ✅ Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing, compliance hooks implemented
 6. ⏸️ MCP integration — DEFERRED (roles have full shell access; MCP adds abstraction without solving a real problem)
-7. 🔄 Multi-user with Linux user isolation (backend implemented, security review + UI verification in progress)
-8. ⬜ Mobile app
+7. ✅ Multi-user with Linux user isolation (all code done + security reviewed)
+8. ✅ Account usage monitor (API beb6c3d + UI 359540e)
+9. ⬜ Mobile app
 
 ## Next Milestone: Item 7 — Multi-User Isolation
 Research already completed feasibility study (devlog/20260317_multi-user-isolation-research.md):
