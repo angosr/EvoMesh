@@ -46,6 +46,16 @@ export function bootstrapGlobalConfig(): void {
     }
   }
 
+  // Central AI CLAUDE.md — auto-loaded by Claude Code when cwd is ~/.evomesh/central/
+  const centralClaude = path.join(evomeshDir, "central", "CLAUDE.md");
+  const repoClaude = findRepoFile("defaults/central-claude.md");
+  if (repoClaude) {
+    if (!fs.existsSync(centralClaude) || fs.statSync(repoClaude).mtimeMs > fs.statSync(centralClaude).mtimeMs) {
+      fs.copyFileSync(repoClaude, centralClaude);
+      console.log("[bootstrap] Synced central AI CLAUDE.md");
+    }
+  }
+
   // Central AI todo.md
   const centralTodo = path.join(evomeshDir, "central", "todo.md");
   if (!fs.existsSync(centralTodo)) {

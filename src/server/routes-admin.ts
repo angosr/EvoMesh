@@ -51,19 +51,19 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
       claudeArgs = `--name central ${claudeArgs}`;
     }
 
-    // Start tmux session with claude
+    // Start tmux session with claude — cwd is ~/.evomesh/central/ so Claude Code loads CLAUDE.md from there
+    const centralDir = path.join(homeDir, ".evomesh", "central");
     const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
     execFileSync("tmux", [
       "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
-    ], { cwd: homeDir, stdio: "ignore" });
+    ], { cwd: centralDir, stdio: "ignore" });
 
     // Start ttyd pointing at tmux session
     const ttydCmd = `ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${adminPort} -- tmux attach-session -t ${sessionName}`;
     execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
 
     // Send /loop command after delay (background)
-    const roleRoot = ".evomesh/central";
-    const loopCmd = `/loop 5m You are the central role. FIRST: cat and read ${roleRoot}/ROLE.md completely. Then follow CLAUDE.md loop flow. MANDATORY: write central-status.md every loop (Now/Next/Risk per project). Working directory: ${roleRoot}/`;
+    const loopCmd = `/loop 5m You are the central role. FIRST: cat and read ROLE.md completely. Then follow CLAUDE.md loop flow. MANDATORY: write central-status.md every loop (Now/Next/Risk per project).`;
     execFileSync("bash", ["-c", `(
       sleep 15
       for i in $(seq 1 60); do
