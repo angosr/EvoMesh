@@ -15,6 +15,7 @@
 6. `git add <own files only>` → commit → `git pull --rebase` → push
 
 Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics only).
+**Light mode: do NOT git commit/push.** Only commit when you actually changed code or processed inbox.
 
 ## Git
 
