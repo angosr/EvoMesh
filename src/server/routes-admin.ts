@@ -146,13 +146,12 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       fs.writeFileSync(path.join(inboxDir, filename),
         `---\nfrom: user\npriority: high\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
 
-      // Also try to send directly to central AI's tmux if running
-      const cname = `evomesh-${process.env.USER || "user"}-central`;
-      const user = process.env.USER || "user";
+      // Also try to send directly to central AI's tmux session (host mode)
+      const sessionName = `evomesh-${process.env.USER || "user"}-central`;
       try {
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "-l",
-          `[User Command] ${message.trim()}`], { stdio: "ignore" });
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "Enter"], { stdio: "ignore" });
+        execFileSync("tmux", ["send-keys", "-t", sessionName, "-l",
+          `[URGENT] ${message.trim()}`], { stdio: "ignore" });
+        execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore" });
       } catch {}
 
       res.json({ ok: true });
