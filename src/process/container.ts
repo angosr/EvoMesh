@@ -96,9 +96,15 @@ export function ensureImage(): void {
 }
 
 /**
- * Get container state.
+ * Get container/session state. Supports both Docker containers and host tmux sessions.
  */
 export function getContainerState(name: string): "running" | "stopped" | "not-found" {
+  // First try tmux (host mode)
+  try {
+    execFileSync("tmux", ["has-session", "-t", name], { stdio: "ignore" });
+    return "running"; // tmux session exists
+  } catch {}
+  // Then try docker
   try {
     const out = execFileSync("docker", ["inspect", "--format", "{{.State.Running}}", name], {
       encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"],
@@ -124,7 +130,69 @@ export function getContainerPort(name: string): number | null {
 }
 
 /**
- * Start a role in a Docker container.
+ * Start a role in host tmux mode (no Docker).
+ */
+function startRoleHost(
+  root: string,
+  roleName: string,
+  roleConfig: RoleConfig,
+  config: ProjectConfig,
+  ttydPort: number,
+): ContainerRole {
+  const projectSlug = projectSlugFromRoot(root);
+  const sessionName = `evomesh-${projectSlug}-${roleName}`;
+  const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
+
+  // Already running?
+  if (getContainerState(sessionName) === "running") {
+    return { role: roleName, containerName: sessionName, ttydPort };
+  }
+
+  // Session ID for resume
+  const roleRoot = path.join(root, ".evomesh", "roles", roleName);
+  const sessionIdFile = path.join(roleRoot, ".session-id");
+  let claudeArgs = "--dangerously-skip-permissions";
+  if (fs.existsSync(sessionIdFile)) {
+    const sid = fs.readFileSync(sessionIdFile, "utf-8").trim();
+    if (sid) claudeArgs = `--resume ${sid} ${claudeArgs}`;
+    else claudeArgs = `--name ${roleName} ${claudeArgs}`;
+  } else {
+    claudeArgs = `--name ${roleName} ${claudeArgs}`;
+  }
+
+  // Start tmux session with claude
+  const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
+  execFileSync("tmux", [
+    "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
+  ], { cwd: path.resolve(root), stdio: "ignore" });
+
+  // Start ttyd pointing at tmux session
+  const ttydCmd = `ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${ttydPort} -- tmux attach-session -t ${sessionName}`;
+  execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
+
+  // Send /loop command after delay
+  const loopInterval = roleConfig.loop_interval || "10m";
+  const roleRootRel = `.evomesh/roles/${roleName}`;
+  const loopCmd = `/loop ${loopInterval} 你是 ${roleName} 角色。先处理inbox再做其他事。执行 ${roleRootRel}/ROLE.md 工作目录: ${roleRootRel}/ 完成后必须：写memory/short-term.md、追加metrics.log、更新todo.md`;
+
+  // Background: wait for claude to be ready, then send /loop
+  execFileSync("bash", ["-c", `(
+    sleep 15
+    for i in $(seq 1 60); do
+      tmux capture-pane -t ${sessionName} -p 2>/dev/null | grep -q '❯' && break
+      sleep 1
+    done
+    sleep 2
+    tmux send-keys -t ${sessionName} -l '${loopCmd.replace(/'/g, "'\\''")}'
+    sleep 0.5
+    tmux send-keys -t ${sessionName} Enter
+  ) &`], { stdio: "ignore" });
+
+  return { role: roleName, containerName: sessionName, ttydPort };
+}
+
+/**
+ * Start a role. Dispatches to Docker or host tmux based on launch_mode.
  */
 export function startRole(
   root: string,
@@ -132,8 +200,11 @@ export function startRole(
   roleConfig: RoleConfig,
   config: ProjectConfig,
   ttydPort: number,
-  opts: { centralAI?: boolean; containerNameOverride?: string; projectRoots?: string[] } = {}
+  opts: { centralAI?: boolean; containerNameOverride?: string; projectRoots?: string[]; launchMode?: "docker" | "host" } = {}
 ): ContainerRole {
+  if (opts.launchMode === "host") {
+    return startRoleHost(root, roleName, roleConfig, config, ttydPort);
+  }
   const projectSlug = projectSlugFromRoot(root);
   const name = opts.containerNameOverride || containerName(projectSlug, roleName);
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
@@ -231,10 +302,22 @@ export function startRole(
 }
 
 /**
- * Stop a role's container.
+ * Stop a role. Handles both Docker containers and host tmux sessions.
  */
 export function stopRole(root: string, roleName: string): boolean {
   const name = containerName(projectSlugFromRoot(root), roleName);
+  // Try tmux first (host mode)
+  try {
+    execFileSync("tmux", ["has-session", "-t", name], { stdio: "ignore" });
+    // It's a tmux session — kill it
+    execFileSync("tmux", ["kill-session", "-t", name], { stdio: "ignore" });
+    // Kill associated ttyd process
+    try {
+      execFileSync("bash", ["-c", `pkill -f "ttyd.*${name}" 2>/dev/null`], { stdio: "ignore" });
+    } catch {}
+    return true;
+  } catch {}
+  // Try docker
   try {
     execFileSync("docker", ["stop", "-t", "15", name], { stdio: "ignore" });
     execFileSync("docker", ["rm", name], { stdio: "ignore" });
