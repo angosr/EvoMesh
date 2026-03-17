@@ -6,18 +6,18 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ✅ ~~Enhanced login detection~~ DONE by core-dev (a30e7c3)
-- ⬜ SEC-021 account API scoping — DISPATCHED to core-dev (20260318T0550)
+- ✅ ~~SEC-021 account API scoping~~ DONE by core-dev (04ba75e)
+- ✅ ~~Full usage stats (API + UI)~~ DONE (9e38074)
+- ✅ ~~Usage panel render bug~~ FIXED (4ad1841)
 
 ## P2 — Later
 
-- ⬜ Mobile app — research recommends CSS media queries (~2h, "Low" path)
+- ⬜ Mobile app CSS — research recommends "Low" path (~2h)
 - ⬜ Account concentration risk
 - ⬜ Additional role templates
-- ⬜ Mobile terminal scrolling
-- ⬜ Live usage endpoint (OAuth, stretch)
 
-## Completed This Loop (2026-03-18 — Loop 147)
+## Completed This Loop (2026-03-18 — Loop 148)
 
-- Resolved merge conflicts from stash pop
-- Core-dev ddf5fb3: auto-restart markRoleRunning fix
+- Resolved merge conflicts
+- SEC-021 fixed, full usage stats live, blueprint updated
+- System: 8/9 roadmap items complete
