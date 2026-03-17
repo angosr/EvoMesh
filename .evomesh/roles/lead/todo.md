@@ -10,15 +10,14 @@ ALL P0 COMPLETE ✅
 
 ## P2 — Active
 
-- ⬜ frontend.js file split (543→<500) — DISPATCHED to frontend (20260318T0825)
-- ⬜ AGENTS.md proposal resend — DISPATCHED to agent-architect (20260318T0825)
-- ⬜ Self-healing audit — in reviewer inbox (waiting)
-- ⬜ MS Agent Framework GA check — in research inbox (waiting)
+- ✅ ~~AGENTS.md proposal~~ APPROVED (agent-architect)
+- ⬜ AGENTS.md auto-generate — DISPATCHED to core-dev (20260318T0835)
+- ⬜ frontend.js file split — DISPATCHED to frontend
+- ⬜ Self-healing audit — in reviewer inbox
+- ⬜ MS Agent Framework GA check — in research inbox
 - ⬜ Account concentration risk
 - ⬜ SEC-023: latent path traversal (low risk)
 
-## Completed This Loop (2026-03-18 — Loop 161)
+## Completed This Loop (2026-03-18 — Loop 162)
 
-- Code quality trigger: frontend.js 543 lines → dispatched split
-- AGENTS.md proposal lost to git clean → requested resend
-- Proactive scan: reviewed, no new gaps
+- AGENTS.md proposal APPROVED + implementation dispatched to core-dev
