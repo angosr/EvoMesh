@@ -1,12 +1,11 @@
-## 2026-03-17 Loop 28
+## 2026-03-17 Loop 29
 
 - **Done**:
-  - Extracted unified feed code into frontend-feed.js (92 lines)
-  - Registered /app-feed.js route in index.ts
-  - Added script tag to frontend.html
-  - Removed dead stubs (startSSEFeed, renderChatProjectSelect)
-  - frontend.js: 767 → 675 lines (still over 500, needs further split)
-  - All tests pass (113/113), JS syntax clean, TSC clean
+  - Extracted layout code into frontend-layout.js (130 lines): sidebar toggles, theme, mobile overlay, swipe-to-close, resize handles
+  - frontend.js: 675 → 541 lines (near 500 target, manageable)
+  - Added /app-layout.js route, script tag (loads before app.js for function availability)
+  - Updated smoke test to scan all 5 JS files
+  - All tests pass (117/117 — 4 new from scanning new files)
 - **Blockers**: None
-- **In-progress**: frontend.js still 675 lines — sidebar/layout/resize section (~175 lines) is the next extraction candidate
-- **Next focus**: Extract sidebar/layout code to bring frontend.js under 500 lines
+- **In-progress**: JS code quality phase complete — 5 clean files, all under/near 500 lines
+- **Next focus**: Await new tasks. Beautification P1 complete (CSS variables + JS split done)
