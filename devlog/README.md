@@ -1,32 +1,18 @@
-# devlog/ — 开发日志
+# devlog/ — Development Log
 
-角色将审查报告、技术分析、重要决策记录写入此目录。
+Roles write review reports, technical analyses, and design documents here.
 
-## 文件命名
+## Naming
 
-```
-{YYYY-MM-DD}_{角色名}_{主题}.md
-```
+`YYYY-MM-DD_{role}_{topic}.md`
 
-示例: `2026-03-15_executor_security-audit.md`
+Example: `2026-03-17_security_audit-002.md`
 
-## 内容格式
+## When to Write
 
-```markdown
-# {标题}
-
-**Date**: {日期}
-**Author**: {角色名}
-**Scope**: {范围}
-
----
-
-{正文}
-```
-
-## 何时写 devlog
-
-- 代码审查报告
-- 技术方案评估
-- 大方向审查结果
-- 架构决策分析（最终决策写入 `shared/decisions.md`）
+- Code review reports (reviewer)
+- Security audit reports (security)
+- Research reports (research)
+- Architecture design documents (agent-architect)
+- Technical assessments (core-dev)
+- Final decisions go to `shared/decisions.md`, not here
