@@ -57,6 +57,7 @@
   /* === Left Sidebar === */
   #sidebar { width: 260px; min-width: 180px; background: var(--bg-panel); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; transition: width 0.2s, min-width 0.2s; }
   #sidebar-header { padding: 12px 14px; font-size: 15px; color: var(--accent); font-weight: 700; font-family: var(--font-display); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; letter-spacing: -0.03em; }
+  .user-badge { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); font-weight: 400; margin-left: auto; margin-right: 6px; }
   #sidebar-header .toggle-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; transition: color 0.15s; }
   #sidebar-header .toggle-btn:hover { color: var(--accent); }
 

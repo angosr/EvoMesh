@@ -477,7 +477,12 @@ async function startAndOpenCentral() {
     const r = await fetch('/auth/validate', { headers: { 'Authorization': 'Bearer ' + AUTH_TOKEN } });
     const d = await r.json();
     if (!d.valid) { localStorage.removeItem('evomesh-token'); localStorage.removeItem('evomesh-user'); location.href = '/login'; return; }
-    if (d.username) { localStorage.setItem('evomesh-user', JSON.stringify({username:d.username, role:d.role})); state.systemRole = d.role || 'user'; }
+    if (d.username) {
+      localStorage.setItem('evomesh-user', JSON.stringify({username:d.username, role:d.role}));
+      state.systemRole = d.role || 'user';
+      const badge = document.getElementById('user-badge');
+      if (badge) badge.textContent = d.username;
+    }
   } catch { location.href = '/login'; return; }
   restoreLayout();
   fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000);
