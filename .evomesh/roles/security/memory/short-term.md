@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 48
+## 2026-03-17 Loop 49
 
-- **Done**: Reviewed CSS visual upgrade + Google Fonts addition. No logic changes. Google Fonts = external CDN (minor privacy note, not a vulnerability). Clean.
+- **Done**: Reviewed CSS visual upgrade phase 2 + bootstrap template path change (defaults/ instead of .evomesh/). Same safe patterns. Clean.
 - **Next focus**: Monitoring mode.
