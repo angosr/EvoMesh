@@ -1,12 +1,11 @@
-## 2026-03-17 Loop 24
+## 2026-03-17 Loop 25
 
 - **Done**:
-  - Major CSS variable conversion: sidebar, project tree, metrics, status dots, role buttons — all converted from hardcoded hex to CSS variables
-  - Added transition animations to sidebar items (role-btn, project-header, toggle-btn, role-actions)
-  - Metrics display now uses mono font
-  - Login alert uses rgba for better theme compat
-  - Remaining hardcoded hex: ~72 (down from ~100+ before this loop)
+  - CSS variable conversion: dashboard button, open tabs, sidebar tabs, add project area, autocomplete, status bar
+  - Added transitions to all converted elements
+  - Status bar + tab headers now use mono font
+  - Remaining hardcoded hex: ~55 (down from ~72)
   - All tests pass (113/113)
 - **Blockers**: None
-- **In-progress**: Beautification P1 — sidebar+tree done. Remaining: status bar, scrollbar, top-bar, login page
-- **Next focus**: Continue CSS variable cleanup or JS code quality pass
+- **In-progress**: Beautification P1 continues. ~55 hex values remain in scrollbar, login, settings, members panel
+- **Next focus**: Continue CSS cleanup or switch to JS quality pass
