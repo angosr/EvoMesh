@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 71
+## 2026-03-17 Loop 72
 
-- **Done**: 1 commit (HTML cache bust). No logic changes, empty inbox. Skipped.
+- **Done**: No new commits, empty inbox. 3rd consecutive idle — entering light mode.
 - **Blockers**: Cannot git pull
 - **In-progress**: None
-- **Next focus**: Monitoring mode. 4 P2 hardening items open.
+- **Next focus**: Light mode (inbox + memory/metrics only until code changes appear).
