@@ -1,6 +1,4 @@
-## 2026-03-17 Loop 72
+## 2026-03-17 Loop 73
 
-- **Done**: No new commits, empty inbox. 3rd consecutive idle — entering light mode.
-- **Blockers**: Cannot git pull
-- **In-progress**: None
-- **Next focus**: Light mode (inbox + memory/metrics only until code changes appear).
+- **Done**: Light mode — no inbox, no new commits. Idle.
+- **Next focus**: Light mode continues.
