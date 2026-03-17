@@ -16,7 +16,8 @@ export interface ContainerRole {
 const ROLE_CONFIGS_DIR = path.join(os.homedir(), ".evomesh", "role-configs");
 const DOCKER_IMAGE = "evomesh-role";
 
-function containerName(projectSlug: string, roleName: string): string {
+function containerName(projectSlug: string, roleName: string, linuxUser?: string): string {
+  if (linuxUser) return `evomesh-${linuxUser}-${projectSlug}-${roleName}`;
   return `evomesh-${projectSlug}-${roleName}`;
 }
 

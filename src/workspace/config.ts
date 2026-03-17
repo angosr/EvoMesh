@@ -7,15 +7,23 @@ import type { WorkspaceConfig, WorkspaceProject, Lang } from "../config/schema.j
 const WORKSPACE_DIR = path.join(os.homedir(), ".evomesh");
 const WORKSPACE_FILE = path.join(WORKSPACE_DIR, "workspace.yaml");
 
+function resolveWorkspaceFile(linuxUser?: string): string {
+  if (linuxUser && linuxUser !== (process.env.USER || "user")) {
+    return path.join("/home", linuxUser, ".evomesh", "workspace.yaml");
+  }
+  return WORKSPACE_FILE;
+}
+
 export function workspaceConfigPath(): string {
   return WORKSPACE_FILE;
 }
 
-export function loadWorkspace(): WorkspaceConfig {
-  if (!exists(WORKSPACE_FILE)) {
+export function loadWorkspace(linuxUser?: string): WorkspaceConfig {
+  const wsFile = resolveWorkspaceFile(linuxUser);
+  if (!exists(wsFile)) {
     return { projects: [] };
   }
-  const raw = readYaml<any>(WORKSPACE_FILE);
+  const raw = readYaml<any>(wsFile);
   return { projects: raw?.projects || [] };
 }
 
