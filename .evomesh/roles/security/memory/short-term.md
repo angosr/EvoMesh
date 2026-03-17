@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 78
+## 2026-03-17 Loop 79
 
-- **Done**: Reviewed SSH mount revert sequence. Full .ssh was briefly mounted (4adf042) then correctly reverted to known_hosts only (a6a9beb). SEC-002 fix intact. TLS docs added for SEC-016. Clean.
-- **Blockers**: Cannot git pull
+- **Done**: Processed user P0 inbox — SSH .ssh/ ro mount is locked decision, do not revert. Updated SEC-002 tracking. Reviewed settings linuxUser field (esc'd, admin-only). Feed connection status dots (UI only). Clean.
+- **Blockers**: None
 - **In-progress**: SEC-016 (no TLS) — docs added, awaiting deployment
-- **Next focus**: Monitor SEC-016 deployment. 4 P2 hardening items open.
+- **Next focus**: Monitor SEC-016. 4 P2 hardening items open. SEC-002 is now user-locked.

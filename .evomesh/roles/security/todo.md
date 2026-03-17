@@ -13,7 +13,7 @@
 
 - [ ] SEC-016: No TLS — HTTP server exposes all traffic (passwords, tokens, shell I/O) → sent to lead + core-dev
 - [x] SEC-001: Central AI HOME mount rw → FIXED (scoped mounts)
-- [x] SEC-002: SSH keys in containers → FIXED (known_hosts only + agent forwarding)
+- [x] SEC-002: SSH keys in containers → USER OVERRIDE: full .ssh/ mounted ro (locked decision, do not revert)
 - [x] SEC-003: Admin endpoints missing role check → FIXED
 
 ## P1 — Completed
