@@ -342,6 +342,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       const lu = session.linuxUser || process.env.USER || "user";
       const homeDir = lu === (process.env.USER || "user") ? os.homedir() : `/home/${lu}`;
+      const now = Date.now();
+      const DAY_MS = 86400000;
       const accounts = fs.readdirSync(homeDir, { withFileTypes: true })
         .filter(e => e.isDirectory() && e.name.startsWith(".claude"))
         .map(e => {
@@ -349,11 +351,55 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           const name = e.name.replace(/^\.claude/, "") || "default";
           let email: string | null = null;
           let subscriptionType: string | null = null;
+          let rateLimitTier: string | null = null;
+          let tokenExpiresAt: number | null = null;
           // Read .claude.json for profile info
           try {
             const claudeJson = JSON.parse(fs.readFileSync(path.join(dir, ".claude.json"), "utf-8"));
-            email = claudeJson.email || claudeJson.claudeAiOauth?.email || null;
-            subscriptionType = claudeJson.subscriptionType || claudeJson.claudeAiOauth?.subscriptionType || null;
+            email = claudeJson.email || claudeJson.oauthAccount?.emailAddress || null;
+            subscriptionType = claudeJson.subscriptionType || null;
+          } catch {}
+          // Read .credentials.json for token + subscription info
+          try {
+            const cred = JSON.parse(fs.readFileSync(path.join(dir, ".credentials.json"), "utf-8"));
+            const oauth = cred.claudeAiOauth || {};
+            if (!subscriptionType) subscriptionType = oauth.subscriptionType || null;
+            rateLimitTier = oauth.rateLimitTier || null;
+            tokenExpiresAt = oauth.expiresAt || null;
+          } catch {}
+          // Aggregate token usage from JSONL session files (last 24h)
+          let inputTokens = 0, outputTokens = 0, cacheCreation = 0, cacheRead = 0, activeSessions = 0;
+          const projDir = path.join(dir, "projects");
+          try {
+            if (fs.existsSync(projDir)) {
+              for (const pd of fs.readdirSync(projDir)) {
+                const pdPath = path.join(projDir, pd);
+                if (!fs.statSync(pdPath).isDirectory()) continue;
+                for (const jf of fs.readdirSync(pdPath).filter(f => f.endsWith(".jsonl"))) {
+                  const jfPath = path.join(pdPath, jf);
+                  try {
+                    if (now - fs.statSync(jfPath).mtimeMs > DAY_MS) continue;
+                  } catch { continue; }
+                  activeSessions++;
+                  try {
+                    const content = fs.readFileSync(jfPath, "utf-8");
+                    for (const line of content.split("\n")) {
+                      if (!line.includes("input_tokens")) continue;
+                      try {
+                        const d = JSON.parse(line);
+                        const u = d.message?.usage;
+                        if (u) {
+                          inputTokens += u.input_tokens || 0;
+                          outputTokens += u.output_tokens || 0;
+                          cacheCreation += u.cache_creation_input_tokens || 0;
+                          cacheRead += u.cache_read_input_tokens || 0;
+                        }
+                      } catch {}
+                    }
+                  } catch {}
+                }
+              }
+            }
           } catch {}
           // Count roles using this account
           const projects = ctx.getProjects(session.linuxUser);
@@ -368,8 +414,11 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
             } catch {}
           }
           return {
-            name, path: `~/${e.name}`, email, subscriptionType, roleCount,
-            needsLogin: ctx.checkNeedsLogin(dir),
+            name, path: `~/${e.name}`, email, subscriptionType, rateLimitTier,
+            tokenExpiresAt, tokenExpiresIn: tokenExpiresAt ? Math.max(0, tokenExpiresAt - now) : null,
+            roleCount, activeSessions, needsLogin: ctx.checkNeedsLogin(dir),
+            usage24h: { inputTokens, outputTokens, cacheCreation, cacheRead,
+              total: inputTokens + outputTokens + cacheCreation + cacheRead },
           };
         });
       res.json({ accounts });

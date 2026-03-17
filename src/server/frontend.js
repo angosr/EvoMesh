@@ -238,35 +238,40 @@ function renderDashboard() {
 async function renderAccountUsage() {
   const el = document.getElementById('dash-content');
   if (!el) return;
-  // Remove previous account section if any
   const prev = document.getElementById('account-usage-section');
   if (prev) prev.remove();
-
   try {
     const r = await authFetch(`${API}/usage/accounts`);
     if (!r.ok) return;
     const data = await r.json();
     const accounts = data.accounts || data;
     if (!accounts || !accounts.length) return;
-
+    const fmtNum = n => n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
+    const fmtTime = ms => { if (!ms || ms <= 0) return 'expired'; const h = Math.floor(ms/3600000); const m = Math.floor((ms%3600000)/60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
     const section = document.createElement('div');
     section.id = 'account-usage-section';
-    section.innerHTML = `<h2 style="color:var(--accent);margin:20px 0 10px;font-size:14px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` +
-      accounts.map(a => `<div class="card acct-card">
-        <div class="acct-card-header">
-          <span class="acct-dot ${a.needsLogin ? 'needs-login' : 'ok'}"></span>
-          <div class="acct-card-info">
-            <span class="acct-name">${esc(a.name)}</span>
-            ${a.email ? `<span class="acct-email">${esc(a.email)}</span>` : ''}
-          </div>
+    section.innerHTML = accounts.map(a => {
+      const u = a.usage24h || {};
+      const statusCls = a.needsLogin ? 'needs-login' : (a.tokenExpiresIn && a.tokenExpiresIn < 3600000 ? 'expiring' : 'ok');
+      const statusText = a.needsLogin ? 'needs login' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
+      return `<div class="card acct-card-v2">
+        <div class="acct-row">
+          <span class="acct-dot ${statusCls}"></span>
+          <strong class="acct-name">${esc(a.name || a.path)}</strong>
           <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
+          ${a.rateLimitTier ? `<span class="acct-tier">${esc(a.rateLimitTier.replace('default_claude_','').replace(/_/g,' '))}</span>` : ''}
+          <span class="acct-status ${statusCls}">${statusText}</span>
         </div>
-        <div class="acct-card-meta">
-          <span>${a.roleCount || 0} role${a.roleCount !== 1 ? 's' : ''}</span>
-          ${a.needsLogin ? '<span style="color:var(--red)">needs login</span>' : ''}
+        <div class="acct-stats">
+          <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
+          <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
+          <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
+          <span title="Active sessions (24h)">sess <b>${a.activeSessions||0}</b></span>
+          <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>
         </div>
-      </div>`).join('');
-    el.appendChild(section);
+      </div>`;
+    }).join('');
+    el.insertBefore(section, el.firstChild);
   } catch {}
 }
 
