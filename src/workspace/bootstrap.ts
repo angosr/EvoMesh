@@ -10,29 +10,39 @@ import { ensureDir } from "../utils/fs.js";
  */
 export function bootstrapGlobalConfig(): void {
   const evomeshDir = path.join(os.homedir(), ".evomesh");
-  if (fs.existsSync(path.join(evomeshDir, "workspace.yaml"))) return; // already bootstrapped
+  const isFirstRun = !fs.existsSync(path.join(evomeshDir, "workspace.yaml"));
 
-  console.log("[bootstrap] First run detected — creating ~/.evomesh/ skeleton...");
+  if (isFirstRun) {
+    console.log("[bootstrap] First run detected — creating ~/.evomesh/ skeleton...");
+  }
 
-  // Core directories
+  // Core directories (always ensure)
   ensureDir(evomeshDir);
   ensureDir(path.join(evomeshDir, "central", "memory"));
   ensureDir(path.join(evomeshDir, "central", "inbox"));
   ensureDir(path.join(evomeshDir, "templates"));
 
-  // Empty workspace config
+  // Empty workspace config (first run only)
   const wsFile = path.join(evomeshDir, "workspace.yaml");
   if (!fs.existsSync(wsFile)) {
     fs.writeFileSync(wsFile, "projects: []\n", "utf-8");
   }
 
-  // Central AI ROLE.md — copy from repo defaults/
+  // Central AI ROLE.md — sync from repo defaults/ (copy if newer or missing)
   const centralRole = path.join(evomeshDir, "central", "ROLE.md");
-  if (!fs.existsSync(centralRole)) {
-    const repoDefault = findRepoFile("defaults/central-role.md");
-    if (repoDefault) {
+  const repoDefault = findRepoFile("defaults/central-role.md");
+  if (repoDefault) {
+    if (!fs.existsSync(centralRole)) {
       fs.copyFileSync(repoDefault, centralRole);
       console.log("[bootstrap] Created central AI ROLE.md");
+    } else {
+      // Auto-sync: if defaults is newer than live, overwrite
+      const defaultMtime = fs.statSync(repoDefault).mtimeMs;
+      const liveMtime = fs.statSync(centralRole).mtimeMs;
+      if (defaultMtime > liveMtime) {
+        fs.copyFileSync(repoDefault, centralRole);
+        console.log("[bootstrap] Synced central AI ROLE.md from defaults (newer)");
+      }
     }
   }
 
@@ -72,7 +82,7 @@ function copyDirRecursive(src: string, dest: string): void {
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
       copyDirRecursive(srcPath, destPath);
-    } else if (!fs.existsSync(destPath)) {
+    } else if (!fs.existsSync(destPath) || fs.statSync(srcPath).mtimeMs > fs.statSync(destPath).mtimeMs) {
       fs.copyFileSync(srcPath, destPath);
     }
   }
