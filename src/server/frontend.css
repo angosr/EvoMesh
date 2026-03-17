@@ -308,6 +308,21 @@
   .user-table .role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-family: var(--font-mono); }
   .user-table .role-badge.admin { background: rgba(251, 191, 36, 0.12); color: var(--yellow); }
   .user-table .role-badge.user { background: rgba(129, 140, 248, 0.12); color: var(--blue); }
+
+  /* MCP Servers */
+  .mcp-empty { color: var(--text-faint); font-size: 11px; padding: 12px 0; }
+  .mcp-card { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 8px; transition: border-color 0.15s; }
+  .mcp-card:hover { border-color: color-mix(in srgb, var(--border) 60%, var(--accent) 40%); }
+  .mcp-card .mcp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .mcp-card .mcp-dot.active { background: var(--green); }
+  .mcp-card .mcp-dot.inactive { background: var(--text-faint); }
+  .mcp-card .mcp-info { flex: 1; }
+  .mcp-card .mcp-name { font-weight: 600; font-size: 12px; font-family: var(--font-mono); color: var(--text); }
+  .mcp-card .mcp-role { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .mcp-card .mcp-toggle { position: relative; width: 36px; height: 20px; background: var(--border); border-radius: 10px; cursor: pointer; border: none; flex-shrink: 0; transition: background 0.2s; }
+  .mcp-card .mcp-toggle.on { background: var(--green); }
+  .mcp-card .mcp-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+  .mcp-card .mcp-toggle.on::after { transform: translateX(16px); }
   .user-table .actions { display: flex; gap: 6px; }
   .user-table .act-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; transition: all 0.15s; }
   .user-table .act-btn:hover { border-color: var(--text-dim); color: var(--text); }

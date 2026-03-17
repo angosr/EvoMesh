@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check: were memory/short-term.md and metrics.log written this loop? If not, respond with {\"decision\": \"block\", \"reason\": \"Write memory/short-term.md and append metrics.log before finishing.\"}"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat .evomesh/templates/base-protocol.md 2>/dev/null || cat CLAUDE.md"
+          }
+        ]
+      }
+    ]
+  }
+}

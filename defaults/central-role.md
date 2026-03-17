@@ -61,7 +61,10 @@ When asked to create a new project or add roles to an existing project:
 6. **Verify**: Wait for next registry.json refresh → confirm roles appear with `configured: true`
 7. **Report**: Write summary to `central-status.md`
 
-   e. **`.gitignore`** — append EvoMesh runtime entries if not present:
+   e. **`.gitignore`** — choose one of two modes based on project type:
+
+      **Mode A: Managed** (project uses .evomesh/ for role definitions, devlog, knowledge)
+      Use when: project is built WITH EvoMesh (roles, inbox, devlog are project knowledge)
       ```
       .evomesh/project.yaml
       .evomesh/project.yaml.bak
@@ -73,6 +76,12 @@ When asked to create a new project or add roles to an existing project:
       .evomesh/roles/*/heartbeat.json
       .evomesh/roles/*/role-card.json
       .evomesh/roles/*/inbox/processed/
+      ```
+
+      **Mode B: Independent** (project has its own collaboration, .evomesh/ is just EvoMesh runtime)
+      Use when: project has its own PLAYBOOK/experiments/knowledge — .evomesh/ is only for container management
+      ```
+      .evomesh/
       ```
 
 ### Checklist (must ALL pass before reporting "done")
