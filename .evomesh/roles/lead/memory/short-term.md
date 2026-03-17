@@ -1,12 +1,11 @@
-## 2026-03-18 Loop 144
+## 2026-03-18 Loop 146
 
 - **Done**:
-  - Frontend account usage panel DONE ✅ (359540e): per-account cards with name, email, subscription badge, role count, login status dot, 119/119 tests
-  - **Account Usage Monitor feature COMPLETE**: API (beb6c3d) + UI (359540e)
-  - Updated blueprint: Item 7 multi-user → ✅, Item 8 account usage → ✅
-  - Dispatched enhanced login detection to core-dev (P1: health check credentials, zombie role marking, SSE alert)
-  - Note: frontend.js now 533 lines (33 over 500 limit) — acceptable for now, may need split later
+  - Core-dev login monitoring DONE ✅ (a30e7c3): checkAccountHealth + accountDown marking in registry
+  - Processed SEC-021 from security: /api/usage/accounts + checkAccountHealth scan os.homedir() globally — leaks all accounts in multi-user. Dispatched fix to core-dev (~8 LOC).
+  - Processed research proactive scan: mobile roadmap complete. 3 paths: Low (CSS, ~2h), Medium (study Happy Coder, ~1w), High (PWA, ~2w). Recommend Low first.
+  - Research self-audit: clean, 100% active rate
 - **Blockers**: None
-- **In-progress**: Core-dev enhanced login detection
+- **In-progress**: Core-dev SEC-021 fix
 - **Idle count**: 0
-- **Next focus**: Monitor login detection delivery. System is now in strong shape — 8 roadmap items complete. Consider what's next after current P1.
+- **Next focus**: After SEC-021 fix, consider dispatching mobile CSS improvements (Low path from research) to frontend. System is mature — mostly security hardening + polish now.
