@@ -34,4 +34,5 @@
 | 7 | P2 Monitor | AGNTCY + AAIF scan |
 | 8 | P1 Ad-hoc | Agent SDK intra-role parallelism eval → DEFER |
 | 9 | P1 Ad-hoc | Claude usage data format research → 3 sources documented |
-| **Total** | **12 architecture recommendations sent to lead** | |
+| 10 | P2 Proactive | CrewAI check, Claude Code updates, mobile research for Item 9 |
+| **Total** | **13 reports sent to lead** | |

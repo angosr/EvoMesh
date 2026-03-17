@@ -62,8 +62,24 @@
 9. Message body schemas — MEDIUM/HIGH ✅
 10. Memory auto-archive trigger — LOW/MEDIUM ✅
 
+### Claude Code Ecosystem (updated 2026-03-17, loop 10)
+- Voice mode: /voice with push-to-talk, 20 languages
+- /loop: recurring tasks with cron scheduling
+- 1M context: Opus 4.6 default model
+- Agent SDK: subagents + hooks, same core tools as Claude Code, still NO file-based persistence
+- ExitWorktree: isolated environment management
+- Session naming: `claude -n "name"` + `/rename`
+
+### Mobile Terminal Solutions (surveyed 2026-03-17)
+- ttyd: already responsive on mobile (Xterm.js + WebGL2 + WebSockets)
+- Happy Coder (github.com/slopus/happy): open-source mobile+web client for Claude Code + Codex
+- AnyClaw (github.com/friuns2/openclaw-android-assistant): native Android, no root
+- Orseni's tool: tmux + ttyd + Tailscale stack
+- Recommendation for EvoMesh: Low path (CSS media queries ~2h) → Medium (study Happy Coder) → High (PWA)
+
 ## Tracked for Follow-up
 - WMAC 2026 full paper list: check multiagents.org
-- CrewAI: monitor quarterly for file-persistence
+- CrewAI: monitor quarterly for file-persistence (checked 2026-03-17: still Pydantic, 45.9k stars)
 - A-Mem: revisit linking at >100 entries per role
 - DeepMind DCTs: revisit if EvoMesh scales multi-org
+- A2A protocol: next quarterly check due
