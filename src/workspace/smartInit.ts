@@ -136,6 +136,15 @@ export function smartInit(root: string, name: string, lang: Lang = "zh"): Projec
       tmpl ? renderTemplate(tmpl, vars) : (lang === "en" ? `# ${name} — Project Status\n\n(just initialized)\n` : `# ${name} — 项目现况\n\n（项目刚初始化）\n`));
   }
 
+  // CLAUDE.md — EvoMesh universal rules (auto-loaded by Claude Code)
+  const claudeMdPath = path.join(root, "CLAUDE.md");
+  if (!exists(claudeMdPath)) {
+    const tmpl = readTemplate("project-scaffold/CLAUDE.md.tmpl");
+    if (tmpl) {
+      writeFile(claudeMdPath, renderTemplate(tmpl, vars));
+    }
+  }
+
   // Gitignore
   const gitignorePath = path.join(root, ".gitignore");
   if (exists(gitignorePath)) {
