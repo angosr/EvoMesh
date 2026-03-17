@@ -71,18 +71,49 @@ export function restoreDesiredRoles(ctx: ServerContext): void {
   }
 }
 
+// --- Account health: check if Claude credentials are valid ---
+const accountHealthCache = new Map<string, boolean>(); // path → needsLogin
+
+function checkAccountHealth(): void {
+  try {
+    const homeDir = os.homedir();
+    const dirs = fs.readdirSync(homeDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && e.name.startsWith(".claude"));
+    for (const d of dirs) {
+      const dir = path.join(homeDir, d.name);
+      let needsLogin = true;
+      try {
+        const creds = JSON.parse(fs.readFileSync(path.join(dir, ".credentials.json"), "utf-8"));
+        const token = creds?.claudeAiOauth?.accessToken;
+        const expiry = creds?.claudeAiOauth?.expiresAt;
+        if (token && (!expiry || new Date(expiry).getTime() > Date.now())) {
+          needsLogin = false;
+        }
+      } catch {}
+      accountHealthCache.set(dir, needsLogin);
+    }
+  } catch {}
+}
+
+export function isAccountDown(accountPath: string): boolean {
+  return accountHealthCache.get(accountPath) ?? false;
+}
+
 export function writeRegistry(ctx: ServerContext, port: number): void {
   try {
+    checkAccountHealth(); // Update account health each cycle
     const projects = ctx.getProjects();
     const projectEntries: Record<string, any> = {};
     for (const p of projects) {
       try {
         const config = loadConfig(p.root);
         const roles: Record<string, any> = {};
-        for (const [name] of Object.entries(config.roles)) {
+        for (const [name, rc] of Object.entries(config.roles)) {
           const running = isRoleRunning(p.root, name);
           const cname = `evomesh-${p.slug}-${name}`;
-          roles[name] = { configured: true, running, port: running ? getContainerPort(cname) : null };
+          const accountPath = path.join(os.homedir(), config.accounts[rc.account] || ".claude");
+          const accountDown = isAccountDown(accountPath);
+          roles[name] = { configured: true, running, port: running ? getContainerPort(cname) : null, accountDown: accountDown || undefined };
         }
         projectEntries[p.slug] = { path: p.root, roles };
       } catch {
