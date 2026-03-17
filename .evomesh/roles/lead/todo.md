@@ -10,16 +10,15 @@ ALL P0 COMPLETE ✅
 
 ## P2 — Active
 
-- ⬜ Mobile CSS improvements — DISPATCHED to frontend (20260318T0755)
-- ⬜ Self-healing architecture audit — DISPATCHED to reviewer (20260318T0755)
-- ⬜ AGENTS.md support (agent-architect scope — not yet dispatched)
+- ⬜ Mobile CSS — DISPATCHED to frontend (20260318T0755)
+- ⬜ Self-healing audit — DISPATCHED to reviewer (20260318T0755)
+- ⬜ AGENTS.md support — DISPATCHED to agent-architect (20260318T0805)
+- ⬜ MS Agent Framework GA check — DISPATCHED to research (20260318T0805)
 - ⬜ Account concentration risk
 - ⬜ SEC-023: latent path traversal (low risk)
 
-## Completed This Loop (2026-03-18 — Loop 158)
+## Completed This Loop (2026-03-18 — Loop 159)
 
-- NEVER light mode rule acknowledged — lead must always do proactive scan
-- Idle detection: 5+ roles idle with P2 backlog → dispatched 3 tasks
-- core-dev: SEC-018/019 (P1, final multi-user security)
-- frontend: mobile CSS (P2, Item 9 Low path)
-- reviewer: self-healing audit (P2, architecture rotation)
+- Dispatched AGENTS.md evaluation to agent-architect
+- Dispatched MS Agent Framework GA check to research
+- All 5 active roles now have assigned tasks

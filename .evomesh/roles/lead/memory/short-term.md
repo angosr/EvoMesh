@@ -1,14 +1,13 @@
-## 2026-03-18 Loop 158
+## 2026-03-18 Loop 159
 
 - **Done**:
-  - Acknowledged new ROLE.md rule: NEVER enter light mode. Lead idle = system idle.
-  - Idle detection: all 6 specialist roles idle — dispatched 3 tasks:
-    - core-dev: P1 SEC-018 + SEC-019 (final multi-user security fixes)
-    - frontend: P2 mobile CSS improvements (Item 9 Low path)
-    - reviewer: P2 self-healing architecture audit
-  - Agent-architect (loop 212) + research (loop 11) + security (loop 92) still idle — have monitoring tasks, no P2 backlog match strong enough to dispatch yet
-  - Proactive scan: blueprint Item 9 (mobile) is next milestone, dispatched to frontend
-- **Blockers**: None
-- **In-progress**: 3 dispatched tasks
-- **Idle count**: 0 (proactive dispatch)
-- **Next focus**: Monitor SEC-018/019 fix. When done → request security final review. Mobile CSS from frontend.
+  - Idle detection: 3 dispatched tasks from loop 158 still in inboxes (core-dev, frontend, reviewer)
+  - Dispatched 2 more tasks to remaining idle roles:
+    - agent-architect: P2 AGENTS.md support evaluation
+    - research: P2 MS Agent Framework GA check + AAIF update
+  - Security is the only role without a new dispatch (monitoring mode, waiting on SEC-018/019 fix)
+  - Proactive scan: reviewed, no new action beyond dispatches
+- **Blockers**: None — all roles have work assigned
+- **In-progress**: 5 dispatched tasks across 5 roles
+- **Idle count**: 0
+- **Next focus**: Monitor all 5 task deliveries. Priority: core-dev SEC-018/019 → security re-review.
