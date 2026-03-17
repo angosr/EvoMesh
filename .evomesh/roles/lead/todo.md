@@ -6,20 +6,20 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ✅ ~~userStopped persistence~~ CLOSED — not a bug (another AI started the roles)
-- ✅ ~~Code quality refactor: health.ts~~ DONE (13ce1f1) — still valuable: single source of truth
-- ⬜ SEC-018: container naming uses process.env.USER (security)
-- ⬜ SEC-019: terminal proxy ACL (security)
+- ⬜ SEC-018 + SEC-019 — DISPATCHED to core-dev (20260318T0755)
 
-## P2 — Later
+## P2 — Active
 
-- ⬜ Mobile app CSS (~2h, research "Low" path)
-- ⬜ AGENTS.md support (low effort compatibility)
+- ⬜ Mobile CSS improvements — DISPATCHED to frontend (20260318T0755)
+- ⬜ Self-healing architecture audit — DISPATCHED to reviewer (20260318T0755)
+- ⬜ AGENTS.md support (agent-architect scope — not yet dispatched)
 - ⬜ Account concentration risk
-- ⬜ SEC-023: latent path traversal in linuxUser (low risk)
+- ⬜ SEC-023: latent path traversal (low risk)
 
-## Completed This Loop (2026-03-18 — Loop 156)
+## Completed This Loop (2026-03-18 — Loop 158)
 
-- Closed userStopped P0 — not a bug, another AI was starting the roles
-- health.ts refactor still counts as code quality win
-- No inbox, system stable
+- NEVER light mode rule acknowledged — lead must always do proactive scan
+- Idle detection: 5+ roles idle with P2 backlog → dispatched 3 tasks
+- core-dev: SEC-018/019 (P1, final multi-user security)
+- frontend: mobile CSS (P2, Item 9 Low path)
+- reviewer: self-healing audit (P2, architecture rotation)

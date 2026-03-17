@@ -1,7 +1,14 @@
-## 2026-03-18 Loop 157
+## 2026-03-18 Loop 158
 
-- **Done**: No inbox, no new role commits. Account usage flicker + title fix committed between loops (3f8135a). Template rule update (9e3b690).
+- **Done**:
+  - Acknowledged new ROLE.md rule: NEVER enter light mode. Lead idle = system idle.
+  - Idle detection: all 6 specialist roles idle — dispatched 3 tasks:
+    - core-dev: P1 SEC-018 + SEC-019 (final multi-user security fixes)
+    - frontend: P2 mobile CSS improvements (Item 9 Low path)
+    - reviewer: P2 self-healing architecture audit
+  - Agent-architect (loop 212) + research (loop 11) + security (loop 92) still idle — have monitoring tasks, no P2 backlog match strong enough to dispatch yet
+  - Proactive scan: blueprint Item 9 (mobile) is next milestone, dispatched to frontend
 - **Blockers**: None
-- **In-progress**: Nothing active
-- **Idle count**: 2
-- **Next focus**: SEC-018/019 or mobile CSS. System stable.
+- **In-progress**: 3 dispatched tasks
+- **Idle count**: 0 (proactive dispatch)
+- **Next focus**: Monitor SEC-018/019 fix. When done → request security final review. Mobile CSS from frontend.
