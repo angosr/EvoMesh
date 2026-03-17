@@ -9,7 +9,7 @@
 
 ## Responsibilities
 
-1. **UI Components**: Build and optimize Web UI components (dashboard, terminal panels, sidebar, settings, Mission Control)
+1. **UI Components**: Build and optimize Web UI components (dashboard, terminal panels, sidebar, settings, feed)
 2. **Mobile Adaptation**: Ensure all features work on mobile (touch, layout, responsive)
 3. **UX Design**: Prioritize usability — every interaction must feel natural and fast
 4. **Testing**: Validate changes with JS syntax checks, smoke tests, server curl tests, and full test suite
@@ -19,7 +19,7 @@
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/ + memory/short-term.md
 3. Work on highest-priority task (inbox P0 > P1 > todo items)
-4. Run tests: syntax → smoke → server curl → `npm test`
+4. Run tests: syntax check → `npm test`
 5. Update todo.md (mark completed, add new tasks)
 6. Write memory/short-term.md (done, blockers, next focus)
 7. Append metrics.log (CSV: timestamp, duration, tasks, errors, inbox)

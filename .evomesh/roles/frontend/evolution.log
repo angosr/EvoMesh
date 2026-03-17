@@ -16,3 +16,13 @@
 - Added Project Rule: light theme via [data-theme="light"]
 - Removed vague wording: "frontend skills", "2 viewport sizes"
 **Reason**: 35 idle loops revealed rules were stale after 13 productive loops. Dead rules wasted prompt space. Missing rules (XSS, no-restore) caused P0 incidents earlier.
+
+## 2026-03-18T10:05 — Self-audit (loop 135)
+**Findings**:
+- metrics.log not appended during idle/light mode loops — violation of CLAUDE.md
+- "Mission Control" reference in responsibilities — stale, now "feed"
+- "server curl tests" in loop flow — not executable from container, dead rule
+- Cache busting `?v=timestamp` — informational only, user manages externally
+- Memory was just "idle" for 10+ loops — accurate but low-value
+**Changes**: Minor — updated "Mission Control" → "feed" in responsibilities. Removed "server curl tests" from loop flow (not available in container). No structural changes needed — ROLE.md is clean at 57 lines.
+**No proposal to lead**: changes are editorial, not behavioral.
