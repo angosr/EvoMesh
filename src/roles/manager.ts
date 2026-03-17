@@ -11,10 +11,14 @@ import type { ProjectConfig, RoleConfig } from "../config/schema.js";
  */
 function readRoleTemplate(templateName: string): string | null {
   const filename = `${templateName}.md.tmpl`;
-  const globalPath = path.join(os.homedir(), ".evomesh", "templates", "roles", filename);
-  if (fs.existsSync(globalPath)) return fs.readFileSync(globalPath, "utf-8");
-  const localPath = path.join(".evomesh", "templates", "roles", filename);
-  if (fs.existsSync(localPath)) return fs.readFileSync(localPath, "utf-8");
+  const candidates = [
+    path.join(os.homedir(), ".evomesh", "templates", "roles", filename),
+    path.join(".evomesh", "templates", "roles", filename),
+    path.join("defaults", "templates", "roles", filename),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return fs.readFileSync(p, "utf-8");
+  }
   return null;
 }
 
@@ -25,6 +29,7 @@ function loadRoleDefaults(): Record<string, Omit<RoleConfig, "account">> {
   const paths = [
     path.join(os.homedir(), ".evomesh", "templates", "roles", "defaults.json"),
     path.join(".evomesh", "templates", "roles", "defaults.json"),
+    path.join("defaults", "templates", "roles", "defaults.json"),
   ];
   for (const p of paths) {
     try {
