@@ -333,6 +333,47 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
+  // --- Account usage info ---
+
+  app.get("/api/usage/accounts", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
+    try {
+      const homeDir = os.homedir();
+      const accounts = fs.readdirSync(homeDir, { withFileTypes: true })
+        .filter(e => e.isDirectory() && e.name.startsWith(".claude"))
+        .map(e => {
+          const dir = path.join(homeDir, e.name);
+          const name = e.name.replace(/^\.claude/, "") || "default";
+          let email: string | null = null;
+          let subscriptionType: string | null = null;
+          // Read .claude.json for profile info
+          try {
+            const claudeJson = JSON.parse(fs.readFileSync(path.join(dir, ".claude.json"), "utf-8"));
+            email = claudeJson.email || claudeJson.claudeAiOauth?.email || null;
+            subscriptionType = claudeJson.subscriptionType || claudeJson.claudeAiOauth?.subscriptionType || null;
+          } catch {}
+          // Count roles using this account
+          const projects = ctx.getProjects(session.linuxUser);
+          let roleCount = 0;
+          for (const p of projects) {
+            try {
+              const config = loadConfig(p.root);
+              for (const rc of Object.values(config.roles)) {
+                const acctPath = expandHome(config.accounts[rc.account] || "~/.claude");
+                if (acctPath === dir) roleCount++;
+              }
+            } catch {}
+          }
+          return {
+            name, path: `~/${e.name}`, email, subscriptionType, roleCount,
+            needsLogin: ctx.checkNeedsLogin(dir),
+          };
+        });
+      res.json({ accounts });
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
+  });
+
   // --- System metrics ---
 
   app.get("/api/metrics", (req, res) => {
