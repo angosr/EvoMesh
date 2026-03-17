@@ -463,18 +463,24 @@
     .card h3 { font-size: 13px; }
   }
 
-  /* Touch-friendly */
+  /* Touch-friendly (min 44px touch targets per Apple HIG) */
   @media (pointer: coarse) {
-    .role-btn { padding: 10px 12px; font-size: 14px; }
+    .role-btn { padding: 10px 12px; font-size: 14px; min-height: 44px; }
     .role-btn .role-actions { opacity: 0.5; }
-    .role-btn .role-actions span { padding: 6px 8px; font-size: 16px; }
-    .sidebar-tab { padding: 10px 14px; font-size: 13px; }
-    .sidebar-tab .close { font-size: 18px; opacity: 0.5; padding: 4px; }
-    .project-header { padding: 12px; font-size: 14px; }
-    .add-role-btn { padding: 10px 12px; font-size: 13px; }
-    #add-project-btn { padding: 12px; font-size: 13px; }
-    #chat-input { font-size: 16px; padding: 10px; }
-    #chat-send { padding: 10px 16px; font-size: 14px; }
+    .role-btn .role-actions span { padding: 6px 8px; font-size: 16px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .sidebar-tab { padding: 10px 14px; font-size: 13px; min-height: 44px; }
+    .sidebar-tab .close { font-size: 18px; opacity: 0.5; padding: 4px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .project-header { padding: 12px; font-size: 14px; min-height: 44px; }
+    .add-role-btn { padding: 10px 12px; font-size: 13px; min-height: 44px; }
+    #add-project-btn { padding: 12px; font-size: 13px; min-height: 44px; }
+    .toggle-sidebar-btn, .topbar-icon-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    #dashboard-btn, #central-btn { min-height: 44px; }
+    .settings-btn { min-height: 44px; }
+    #feed-input button { width: 44px; height: 44px; }
+    /* Account cards touch-friendly */
+    .acct-card-v2 { padding: 12px !important; }
+    /* Open tabs scroll on overflow */
+    #open-tabs-list { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .toggle-sidebar-btn { padding: 8px 12px; font-size: 18px; }
     #dashboard-btn { padding: 12px 14px; font-size: 14px; }
   }
