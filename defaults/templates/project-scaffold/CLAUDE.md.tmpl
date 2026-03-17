@@ -37,6 +37,12 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics on
 - shared/decisions.md: append-only
 - project.yaml: Server API only writes
 
+## Multi-User Isolation
+
+- Container naming: `evomesh-{linuxUser}-{project}-{role}`
+- Each user's workspace: `~{linuxUser}/.evomesh/` (registry, central AI, configs)
+- **NEVER** access files outside your user's workspace or project directory
+
 ## Self-Evolution
 
 Every 10 loops: self-audit ROLE.md — delete dead rules, merge duplicates.
