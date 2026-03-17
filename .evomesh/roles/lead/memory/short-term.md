@@ -1,8 +1,9 @@
-## 2026-03-17 Loop 81
+## 2026-03-17 Loop 82
 
-- **Done**: Dispatched mobile responsive polish (P2) to frontend per Central AI forwarded user request.
-  Template copy fix shipped (b220b20). Central AI messaging rule added (3fcd574).
+- **Done**:
+  - Fixed own stale LTM: "base-protocol is source of truth" → "CLAUDE.md is highest compliance layer"
+  - Routed LTM decay design to agent-architect (P2): one simple rule for memory freshness
+  - Central AI status redesigned (dfbb627), feed parsing fixed
 - **Blockers**: None
-- **In-progress**: frontend: JS quality + mobile responsive. core-dev: P2 batch.
+- **In-progress**: agent-architect: LTM decay design. core-dev: P2 batch.
 - **Idle count**: 0
-- **Proactive scan**: Reviewed, no action needed.

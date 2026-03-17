@@ -15,9 +15,9 @@
 - core-dev responds fast to P1 tasks (registry gaps closed in 1 loop)
 
 ### Protocol Evolution
-- base-protocol.md is the source of truth for all role behavior
-- Key additions: mandatory memory, decisions.md reading, git autonomy (no git add -A), self-evolution, circuit breaker, prompt hygiene
-- Templates moved from ~/.evomesh/ to .evomesh/templates/ (project-local, git-trackable)
+- CLAUDE.md is the highest-compliance rule layer (~99%). base-protocol.md is reference (~70%). Put critical rules in CLAUDE.md.
+- Templates live in defaults/ (source of truth) → copied to ~/.evomesh/templates/ (deployed)
+- Compliance = feedback, not rules. Verification loop + heartbeat.json enforce deterministically.
 
 ### Mistakes to Avoid
 - Don't skip writing memory/short-term.md (was caught by user at loop 14)
