@@ -247,11 +247,11 @@
   .feed-system-text { color: var(--text-faint); }
 
   /* Feed input */
-  #feed-input { border-top: 1px solid var(--border); padding: 6px; display: flex; gap: 4px; flex-shrink: 0; }
-  #feed-input textarea { flex: 1; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 6px; border-radius: 5px; font-size: 12px; font-family: inherit; resize: none; outline: none; }
+  #feed-input { border-top: 1px solid var(--border); padding: 8px; display: flex; gap: 6px; flex-shrink: 0; align-items: flex-end; }
+  #feed-input textarea { flex: 1; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 18px; font-size: 13px; font-family: inherit; resize: none; outline: none; line-height: 1.4; max-height: 80px; overflow-y: auto; }
   #feed-input textarea:focus { border-color: var(--accent); }
   #feed-input textarea::placeholder { color: var(--text-faint); }
-  #feed-input button { background: var(--accent); border: none; color: #fff; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  #feed-input button { background: var(--accent); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   #feed-input button:hover { background: var(--accent-hover); }
   #feed-input button:disabled { background: #444; cursor: not-allowed; }
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EvoMesh</title>
-<link rel="stylesheet" href="/app.css?v=1773715376">
+<link rel="stylesheet" href="/app.css?v=1773716853">
 </head>
 <body>
 
@@ -143,13 +143,13 @@
   <h2><span class="pulse"></span> Mission Control <button class="mc-close" onclick="toggleChat()" title="Close">&times;</button></h2>
   <div id="feed"></div>
   <div id="feed-input">
-    <textarea id="feed-msg" rows="2" placeholder="Send to Central AI..."></textarea>
-    <button id="feed-send">Send</button>
+    <textarea id="feed-msg" rows="1" placeholder="Message Central AI..." oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+    <button id="feed-send">&#10148;</button>
   </div>
 </div>
 
-<script src="/app.js?v=1773715376"></script>
-<script src="/app-panels.js?v=1773715376"></script>
-<script src="/app-settings.js?v=1773715376"></script>
+<script src="/app.js?v=1773716853"></script>
+<script src="/app-panels.js?v=1773716853"></script>
+<script src="/app-settings.js?v=1773716853"></script>
 </body>
 </html>

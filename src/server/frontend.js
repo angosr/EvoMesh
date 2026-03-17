@@ -629,6 +629,8 @@ function initFeed() {
     es.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
+        // Skip user-message from SSE (already displayed locally when sent)
+        if (msg.type === 'user-message') return;
         appendFeedMessage(msg);
       } catch {}
     };
@@ -696,9 +698,7 @@ async function sendFeedMsg() {
       body: JSON.stringify({ message: text }),
     });
     const data = await res.json();
-    if (data.ok) {
-      appendFeedMessage({ type: 'system', text: '✓ Sent to Central AI', time: new Date().toISOString() });
-    } else {
+    if (!data.ok) {
       appendFeedMessage({ type: 'system', text: `Error: ${data.error}`, time: new Date().toISOString() });
     }
   } catch { appendFeedMessage({ type: 'system', text: 'Failed to send', time: new Date().toISOString() }); }
