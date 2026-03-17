@@ -143,7 +143,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
       const filename = `${ts}_user_command.md`;
       fs.writeFileSync(path.join(inboxDir, filename),
-        `---\nfrom: user\npriority: high\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
+        `---\nfrom: user\npriority: P0\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
 
       // Also try to send directly to central AI's tmux session (host mode)
       const sessionName = `evomesh-${process.env.USER || "user"}-central`;
