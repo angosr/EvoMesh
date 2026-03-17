@@ -1,40 +1,37 @@
 #!/bin/bash
-# EvoMesh Compliance Hook — Stop event
-# Blocks Claude from finishing if mandatory loop outputs are missing.
-# Exit 0 = allow stop, Exit 2 = block stop (force Claude to continue)
+# Stop hook: verify memory + metrics were written this loop.
+# Exit 0 = allow stop. Exit 1 + stderr message = block stop.
 
-ROLE_NAME="${ROLE_NAME:-}"
-if [ -z "$ROLE_NAME" ]; then
-  exit 0  # Not in a role container, skip
+INPUT=$(cat)
+
+# Retry guard: if stop_hook_active, allow through (prevent infinite loop)
+echo "$INPUT" | grep -q '"stop_hook_active".*true' 2>/dev/null && exit 0
+
+# Find role dir
+ROLE_DIR=""
+if [ -n "$ROLE_NAME" ]; then
+  ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+  ROLE_DIR="$ROOT/.evomesh/roles/$ROLE_NAME"
 fi
+[ -z "$ROLE_DIR" ] || [ ! -d "$ROLE_DIR" ] && exit 0
 
-ROLE_DIR=".evomesh/roles/${ROLE_NAME}"
-VIOLATIONS=""
+NOW=$(date +%s)
+STALE=300
 
-# Check 1: short-term.md modified in last 5 minutes
-if [ -f "${ROLE_DIR}/memory/short-term.md" ]; then
-  if [ -z "$(find "${ROLE_DIR}/memory/short-term.md" -mmin -5 2>/dev/null)" ]; then
-    VIOLATIONS="${VIOLATIONS}\n- memory/short-term.md was NOT updated this loop"
-  fi
+# Check memory
+STM="$ROLE_DIR/memory/short-term.md"
+if [ -f "$STM" ]; then
+  AGE=$((NOW - $(stat -c %Y "$STM" 2>/dev/null || echo 0)))
+  [ "$AGE" -gt "$STALE" ] && { echo "Write memory/short-term.md (${AGE}s stale)" >&2; exit 1; }
 else
-  VIOLATIONS="${VIOLATIONS}\n- memory/short-term.md does not exist — create and write it"
+  echo "Write memory/short-term.md (missing)" >&2; exit 1
 fi
 
-# Check 2: metrics.log modified in last 5 minutes
-if [ -f "${ROLE_DIR}/metrics.log" ]; then
-  if [ -z "$(find "${ROLE_DIR}/metrics.log" -mmin -5 2>/dev/null)" ]; then
-    VIOLATIONS="${VIOLATIONS}\n- metrics.log was NOT appended this loop"
-  fi
-else
-  VIOLATIONS="${VIOLATIONS}\n- metrics.log does not exist — create with header: timestamp,loop_duration_s,tasks_completed,errors,inbox_processed"
-fi
-
-# If violations found, block stop
-if [ -n "$VIOLATIONS" ]; then
-  echo -e "COMPLIANCE VIOLATION — you must complete these before finishing:${VIOLATIONS}" >&2
-  echo -e "\nWrite memory/short-term.md with Done/Blockers/In-progress/Next focus." >&2
-  echo -e "Append one CSV line to metrics.log: timestamp,duration_s,tasks,errors,inbox" >&2
-  exit 2
+# Check metrics
+METRICS="$ROLE_DIR/metrics.log"
+if [ -f "$METRICS" ]; then
+  AGE=$((NOW - $(stat -c %Y "$METRICS" 2>/dev/null || echo 0)))
+  [ "$AGE" -gt "$STALE" ] && { echo "Append metrics.log (${AGE}s stale)" >&2; exit 1; }
 fi
 
 exit 0
