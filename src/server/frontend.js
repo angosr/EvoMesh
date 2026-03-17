@@ -267,14 +267,15 @@ async function renderAccountUsage() {
         </div>
       </div>`;
     }).join('');
-    // Update in-place to avoid flicker (remove + recreate causes flash)
+    // Update in-place — only write if content changed (avoids DOM flicker)
+    const newHtml = `<h3 style="color:var(--text-dim);margin:0 0 6px;font-size:11px;font-family:var(--font-mono);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Account Usage</h3>` + html;
     let section = document.getElementById('account-usage-section');
     if (!section) {
       section = document.createElement('div');
       section.id = 'account-usage-section';
       el.insertBefore(section, el.firstChild);
     }
-    section.innerHTML = `<h2 style="color:var(--accent);margin:0 0 8px;font-size:14px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` + html;
+    if (section.innerHTML !== newHtml) section.innerHTML = newHtml;
   } catch {}
 }
 
