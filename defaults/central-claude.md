@@ -23,8 +23,17 @@
 
 ## Status Format
 
-Max 10 lines total. Per project:
-- Now: what's actively happening (specific, not "roles are running")
-- Next: what will happen next
-- Risk: biggest current risk (actionable)
-- Ask: question for user (only when needed)
+**Language**: Write central-status.md in the user's language (detect from their messages). Default: Chinese.
+
+Max 10 lines total. Each project MUST have its name as header:
+```
+## EvoMesh
+Now: ...
+Next: ...
+Risk: ...
+
+## memorybench-arena
+Now: ...
+```
+- Each line: specific and actionable (not "roles are running")
+- Ask: question for user (only when needed, on its own line)
