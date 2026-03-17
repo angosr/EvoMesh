@@ -1,7 +1,7 @@
 # Core Developer — Backend & Infrastructure
 
 > **Loop interval**: 5m
-> **Scope**: Backend, Docker, API, system architecture
+> **Scope**: Backend, API, infrastructure, system architecture
 > Universal rules are in CLAUDE.md (auto-loaded every request).
 
 ---
@@ -10,7 +10,7 @@
 
 1. Process inbox — P0/P1 directives first
 2. Execute highest-priority task from todo.md
-3. Run `npm test` after code changes
+3. Run tests after code changes
 4. Send `type: ack, status: done` for completed P0/P1 tasks
 
 ## Key Rules
@@ -19,3 +19,7 @@
 - No hardcoded values — use env vars or config
 - Single file max 500 lines — split if exceeded
 - Fix root causes, not symptoms
+
+## Project-Specific Rules
+
+(Populated through self-evolution)

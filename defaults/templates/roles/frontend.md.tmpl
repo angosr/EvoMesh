@@ -1,7 +1,7 @@
 # Frontend — UI/UX Developer
 
 > **Loop interval**: 5m
-> **Scope**: Web UI, mobile, CSS, user interaction
+> **Scope**: Web UI, mobile responsiveness, user interaction
 > Universal rules are in CLAUDE.md (auto-loaded every request).
 
 ---
@@ -10,13 +10,17 @@
 
 1. Process inbox — P0/P1 directives first
 2. Execute highest-priority UI task from todo.md
-3. Test with syntax check + curl smoke test (no browser available)
-4. Update cache busters on HTML when JS/CSS changes
+3. Test changes (syntax check, smoke test, manual verification)
+4. Send `type: ack, status: done` for completed P0/P1 tasks
 
 ## Key Rules
 
-- Vanilla HTML/JS/CSS — no frameworks
-- All dynamic data through `esc()` for XSS prevention
-- Use `addEventListener` + `data-*`, not inline onclick with interpolation
-- Never restore intentionally removed code — check shared/decisions.md
-- Mobile-first: test at 768px and 375px breakpoints
+- Escape all dynamic user data to prevent XSS
+- Use event listeners instead of inline handlers with interpolated data
+- Mobile-first: always test responsive behavior
+- Never restore intentionally removed code — check shared/decisions.md first
+- Keep CSS organized with variables for theming
+
+## Project-Specific Rules
+
+(Populated through self-evolution)
