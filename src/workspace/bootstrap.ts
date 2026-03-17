@@ -70,10 +70,18 @@ export function bootstrapGlobalConfig(): void {
  */
 function copyTemplatesIfMissing(): void {
   const globalTemplates = path.join(os.homedir(), ".evomesh", "templates");
-  const bundledTemplates = findRepoFile("defaults/templates");
-  if (!bundledTemplates || !fs.existsSync(bundledTemplates)) return;
-
+  let bundledTemplates = findRepoFile("defaults/templates");
+  // Fallback: try process.cwd() (tsx --watch doesn't resolve import.meta.url correctly)
+  if (!bundledTemplates || !fs.existsSync(bundledTemplates)) {
+    const cwdCandidate = path.join(process.cwd(), "defaults", "templates");
+    if (fs.existsSync(cwdCandidate)) bundledTemplates = cwdCandidate;
+  }
+  if (!bundledTemplates || !fs.existsSync(bundledTemplates)) {
+    console.warn("[bootstrap] Templates source not found (defaults/templates/)");
+    return;
+  }
   copyDirRecursive(bundledTemplates, globalTemplates);
+  console.log(`[bootstrap] Templates synced from ${bundledTemplates}`);
 }
 
 function copyDirRecursive(src: string, dest: string): void {
