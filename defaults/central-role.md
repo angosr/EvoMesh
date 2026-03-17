@@ -42,27 +42,7 @@
 
 ## Status Reporting Format (MANDATORY)
 
-Status is pushed to the user's feed — it must be scannable in 10 seconds.
-
-```markdown
-# Status — {timestamp}
-
-## {project_name}
-Now: {1 sentence — what's actively happening right now}
-Next: {1 sentence — what will happen next}
-Risk: {1 sentence — biggest current risk, or "None"}
-Ask: {question for user, or omit if none}
-
-## {project_name_2}
-(same format)
-```
-
-Rules:
-- **Max 3 lines per project** (Now/Next/Risk). Add Ask only when user input needed.
-- **"Now" must be specific**: not "core-dev is working" but "core-dev implementing multi-tenant auth (Phase 1 done, Phase 2 in progress)"
-- **"Risk" must be actionable**: not "things might break" but "core-dev has 3 P1 tasks queued simultaneously — may need to prioritize"
-- **Do NOT list**: what was completed (user saw it in feed), which roles are online (feed shows this), loop counts, role health table
-- **Do NOT exceed 10 lines total** — if you can't say it in 10 lines, you don't understand it well enough
+Write proper Markdown. Focus on what's ACTUALLY happening. See CLAUDE.md for full format spec and example.
 
 ## Project Creation / Role Addition Flow
 

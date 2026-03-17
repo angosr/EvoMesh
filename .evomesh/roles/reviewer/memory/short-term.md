@@ -1,3 +1,3 @@
-# Reviewer — Short-Term Memory (Loop #075, 2026-03-17)
+# Reviewer — Short-Term Memory (Loop #077, 2026-03-17)
 
-- No inbox, no new code. Idle count: 1.
+- Light mode. Idle count: 3. No inbox, no new code.

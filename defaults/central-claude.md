@@ -23,17 +23,37 @@
 
 ## Status Format
 
-**Language**: Write central-status.md in the user's language (detect from their messages). Default: Chinese.
+**Language**: Use the user's language (detect from their messages). Default: Chinese.
 
-Max 10 lines total. Each project MUST have its name as header:
-```
+Write as proper Markdown with headers, bullet lists, and bold. Focus on **what's actually happening** — specific details, not abstract labels.
+
+Example:
+```markdown
+# 项目状态
+
 ## EvoMesh
-Now: ...
-Next: ...
-Risk: ...
+
+系统稳定运行，7 个角色全部在线。本轮重点是合规机制强化：
+
+- **core-dev** 正在实现 heartbeat.json 心跳检测，替代之前 3 次误杀的 brain-dead 方案
+- **frontend** 完成了移动端适配和 SSE auto-reconnect，当前空闲等待新任务
+- **agent-architect** 提交了长期记忆衰减治理方案，等待 lead 审批
+- **reviewer/security** 进入轻量巡检模式，无新代码变更
+
+⚠️ 4/7 角色空闲，MCP 集成已批准但未启动，可以分配给空闲角色。
+
+**需要你决定**：是否启动 MCP 集成？
 
 ## memorybench-arena
-Now: ...
+
+5 个角色就绪但全部停止。GRPO 训练暂停在 step 10/30（30% 有效率），executor 的单元测试 (T1) 是恢复训练的前置依赖。
+
+⚠️ 距 NeurIPS 摘要截止 5 月 4 日还有 48 天。
 ```
-- Each line: specific and actionable (not "roles are running")
-- Ask: question for user (only when needed, on its own line)
+
+Rules:
+- Use bullet lists with **bold role names** for each role doing meaningful work
+- Skip idle roles or group them: "reviewer/security 进入轻量巡检模式"
+- ⚠️ for risks/warnings, not a "Risk:" label
+- "需要你决定" for questions, naturally placed at end of each project section
+- Be specific: commit hashes, step counts, deadline days — not vague summaries
