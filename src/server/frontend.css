@@ -204,7 +204,10 @@
   .dash-action.danger { color: #ef4444; border-color: #3b1010; }
   .dash-action.danger:hover { background: #3b1010; color: #fff; }
   .dash-action.loading, .dash-action:disabled { opacity: 0.5; cursor: wait; pointer-events: none; }
-  .acct-select { background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; padding: 2px 4px; border-radius: 4px; font-size: 10px; cursor: pointer; max-width: 100px; }
+  .acct-select, .mode-select { background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; padding: 2px 4px; border-radius: 4px; font-size: 10px; cursor: pointer; max-width: 100px; }
+  .onboarding { text-align: center; padding: 30px 20px; }
+  .onboarding h3 { color: var(--accent); margin-bottom: 12px; }
+  .onboarding ol { text-align: left; display: inline-block; margin: 12px 0; line-height: 1.8; color: var(--text-dim); }
 
   /* Grid — adaptive layout based on panel count */
   #panels.grid { display: grid; gap: 2px; height: 100%; }

@@ -1,7 +1,10 @@
-## 2026-03-17 Loop 18
+## 2026-03-17 Loop 20
 
-- **Done**: Idle loop. User refined feed implementation: type renamed (role-update→role, central-status→central), project labels added, Central AI polling removed (SSE-only now), CSS tweaks. Server SSE endpoint created (5a518c4). Three-layer resilience feature added (78a8f64).
+- **Done**:
+  - Added Stop button for running roles (calls /stop API, red danger style)
+  - Added launch mode dropdown (docker/host) per role (saves to project.yaml via /config API)
+  - Added empty dashboard onboarding card (Welcome + Central AI instructions)
+  - All tests pass, syntax clean
 - **Blockers**: None
-- **In-progress**: Nothing — feed rewrite shipped and refined
-- **Idle count**: 1
-- **Next focus**: Await new tasks from lead inbox or user directives.
+- **In-progress**: Nothing
+- **Next focus**: Verify in browser

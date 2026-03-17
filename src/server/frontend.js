@@ -488,6 +488,27 @@ async function restartRole(slug, roleName) {
   try { addFeedMessage(`Restarting <strong>${esc(roleName)}</strong>...`, 'system'); const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, {method:'POST'}); const d = await r.json(); if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> restarting`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 5000); } } catch { addFeedMessage('Failed', 'system'); }
 }
 
+async function stopRole(slug, roleName) {
+  if (!confirm(`Stop "${roleName}"?`)) return;
+  try {
+    const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/stop`, { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) { addFeedMessage(`<strong>${esc(roleName)}</strong> stopped`, 'system'); closePanel(`${slug}/${roleName}`); setTimeout(fetchAll, 3000); }
+  } catch { addFeedMessage('Failed to stop', 'system'); }
+}
+
+async function saveLaunchMode(slug, roleName, mode) {
+  try {
+    const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ launch_mode: mode }),
+    });
+    const d = await r.json();
+    if (d.ok) addFeedMessage(`<strong>${esc(roleName)}</strong> launch mode → ${esc(mode)} (restart to apply)`, 'system');
+  } catch { addFeedMessage('Failed to save launch mode', 'system'); }
+}
+
 // ==================== Chat / Feed ====================
 let lastRoleStates = {}, serverConnected = true;
 function addFeedMessage(html, cls='status') { console.log(`[${cls}] ${html.replace(/<[^>]*>/g,'')}`); }
