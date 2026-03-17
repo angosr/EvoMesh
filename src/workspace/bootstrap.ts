@@ -81,7 +81,32 @@ export function bootstrapGlobalConfig(): void {
     console.log("[bootstrap] Deployed Claude Code hooks (.claude/settings.json)");
   }
 
+  // Generate AGENTS.md from CLAUDE.md (universal sections only)
+  generateAgentsMd();
+
   console.log("[bootstrap] ~/.evomesh/ skeleton created");
+}
+
+/**
+ * Extract universal rules from CLAUDE.md → AGENTS.md.
+ * Skips EvoMesh-specific sections (Loop Flow, Communication, etc.)
+ */
+function generateAgentsMd(): void {
+  const claudePath = path.join(process.cwd(), "CLAUDE.md");
+  if (!fs.existsSync(claudePath)) return;
+  try {
+    const content = fs.readFileSync(claudePath, "utf-8");
+    const sections = content.split(/^## /m).slice(1); // skip title
+    const universalHeaders = ["Git", "Code Quality"];
+    const universal = sections.filter(s =>
+      universalHeaders.some(h => s.startsWith(h))
+    );
+    if (!universal.length) return;
+    const agentsMd = `# AGENTS.md\n\n> Auto-generated from CLAUDE.md. Universal rules for any AI agent.\n\n${universal.map(s => "## " + s).join("\n")}`;
+    const agentsPath = path.join(process.cwd(), "AGENTS.md");
+    fs.writeFileSync(agentsPath, agentsMd, "utf-8");
+    console.log("[bootstrap] Generated AGENTS.md from CLAUDE.md");
+  } catch {}
 }
 
 /**
