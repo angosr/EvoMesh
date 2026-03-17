@@ -1,268 +1,141 @@
-# EvoMesh Base Protocol
+# EvoMesh Base Protocol v3
 
-> All roles MUST follow this protocol. It defines shared conventions for communication, memory, commits, and conflict resolution.
+> 所有角色必须遵守。简洁 = 遵守率。每条规则都有存在理由。
 
 ---
 
-## 1. Inbox Communication Protocol
+## 1. Loop 流程
 
-### Message Format
+每轮 loop 按此顺序执行，不可跳过：
 
-Every inbox message is a Markdown file with YAML frontmatter:
+1. `git pull --rebase`（冲突时 stash 后重试）
+2. 读取：ROLE.md + todo.md + inbox/ + memory/short-term.md + shared/decisions.md
+3. 处理 inbox（P0 必须本轮响应，处理后移入 inbox/processed/）
+4. 执行角色工作
+5. 写 `memory/short-term.md`（覆盖，格式见下）
+6. 追加 `metrics.log`（一行 CSV，不 commit）
+7. 更新 todo.md
+8. `git add <仅自己的文件>` → commit → `git pull --rebase` → push
 
+**空闲时**：写 "无任务, idle"。连续 3 轮空闲 → 轻量模式（仅查 inbox + 写 memory/metrics）。
+
+> **为什么**：统一流程保证角色状态可追踪，memory 是角色间唯一的状态观测窗口。
+
+---
+
+## 2. 记忆
+
+| 文件 | 用途 | 限制 | Git |
+|---|---|---|---|
+| `memory/short-term.md` | 当前 loop 上下文 | ≤50 行，每轮覆盖 | .gitignore |
+| `memory/long-term.md` | 跨 loop 经验 | ≤200 行，仅追加 | commit |
+| `metrics.log` | 性能数据 CSV | 仅追加 | .gitignore |
+
+**short-term 格式**：
+```
+## YYYY-MM-DD Loop N
+- **Done**: ...
+- **Blockers**: ...
+- **In-progress**: ...
+- **Next focus**: ...
+```
+
+**metrics.log 格式**：`timestamp,duration_s,tasks_done,errors,inbox_processed`
+
+**归档**：long-term > 200 行 → 旧条目移入 `memory/archive.md`。
+
+> **为什么**：short-term 是其他角色和 Mission Control 观测你状态的唯一方式。空 memory = 角色失联。
+
+---
+
+## 3. Inbox 通信
+
+**文件名**：`YYYYMMDDTHHMM_from_topic.md`
+
+**Frontmatter**（必填 5 项）：
 ```yaml
 ---
-# Required (always include)
 from: role-name
-to: role-name          # or "all" for broadcast
+to: role-name    # "all" = 广播
 priority: P0|P1|P2
 type: task|proposal|feedback|report|ack
 date: YYYY-MM-DDTHH:MM
-# Optional (include when relevant)
-thread-id: ...         # links related messages (use first message filename)
-ref: ...               # references another message
-status: pending|accepted|rejected|done
 ---
 ```
 
-### Filename Convention
+**优先级**：P0 = 下一轮响应 | P1 = 2 轮内 | P2 = 1 天内
 
-`YYYYMMDDTHHMM_from_topic.md`
+**P0 直通**：安全/稳定性 P0 直接发给相关角色 + lead，不等 lead 中转。
 
-Example: `20260316T2100_agent-architect_collaboration-improvements.md`
+**P0/P1 完成后**：发 `type: ack, status: done` 给发送者。
 
-### Rules
-
-- Always include `from`, `to`, `priority`, `type`, `date` fields
-- Use ISO 8601 T separator in filenames and dates (not underscore)
-- Broadcast messages (`to: all`): place in sender's outbox or each recipient's inbox
-- Acknowledge receipt of P0 messages within 1 loop
-- Include `thread-id` when replying to or continuing a conversation
-
-### Priority Definitions
-
-| Priority | Meaning | Response Time |
-|----------|---------|--------------|
-| P0 | Critical — security, crash, data loss | Next loop |
-| P1 | Important — bugs, logic errors, blockers | Within 2 loops |
-| P2 | Normal — improvements, suggestions | Within 1 day |
-
-### P0 Direct Channel Exception
-
-For P0 security/stability issues: send directly to the relevant role's inbox AND to lead simultaneously. Do not wait for lead to relay.
-
-### Completion Acknowledgment (MANDATORY for P0/P1 tasks)
-
-When you complete a P0 or P1 task received via inbox, send `type: ack, status: done` back to the sender's inbox. Include a one-line summary of what was done. Not required for P2 tasks.
-
-### Recommended Body Structure (guidance, not mandatory)
-
-- **task**: Description + Acceptance Criteria + Context
-- **proposal**: Problem + Proposed Solution + Expected Impact + Self-Attack
-- **feedback**: Target (file/line) + Issue + Suggested Fix
-- **report**: Summary + Findings + Recommendations
-- **ack**: Brief acknowledgment, no structure needed
+> **为什么**：文件通信 = git 可追踪、无额外基础设施、离线角色重启后自动处理积压。
 
 ---
 
-## 2. Memory Lifecycle
+## 4. 协调拓扑
 
-Each role has two memory files:
-- `memory/short-term.md` — current loop context
-- `memory/long-term.md` — persistent knowledge
+**Hub-and-spoke**：跨角色通信经过 lead，除了：
+- P0 直通（安全/稳定性问题直达相关角色 + lead）
+- Bug 修复直通（reviewer/security → core-dev/frontend，抄送 lead）
+- ack 直接回复发送者
 
-### Short-Term Memory (max 50 lines)
-
-Overwritten each loop. Current context: what was done, blockers, in-progress, next focus. See section 4 step 6 for required format.
-
-### Long-Term Memory (max 200 lines)
-
-Append-only. Learned patterns, resolved issues, role-specific knowledge that persists across loops.
-
-### Archive Trigger
-
-- When short-term > 50 lines → summarize key items to long-term, then clear
-- When long-term > 200 lines → move entries older than 7 days to `memory/archive.md`
-- When archive.md > 500 lines → summarize oldest 50% into a `## Summary` section at top
-
-### Required Per Loop (ENFORCED)
-
-Every role MUST write `memory/short-term.md` every loop. No exceptions.
-A role with empty short-term memory is considered non-functional.
-
-Required content:
-1. What was done this loop
-2. Any blockers encountered
-3. In-progress work state
-4. Next loop focus
+> **为什么**：lead 单点协调防止冲突。直通例外避免紧急问题延迟。
 
 ---
 
-## 3. Commit Conventions
+## 5. Git 与文件
 
-### Format
+- Commit 格式：`{type}({scope}/{role}): {description}`
+- `git add` 仅自己的文件。**禁止 `git add -A` 或 `git add .`**
+- **禁止**：`rm -rf`、`git push --force`、`git reset --hard`
+- 单文件 > 500 行必须拆分
+- 修改前先读现有代码
+- 不启动后台进程（服务器、watcher、daemon）
 
-```
-{type}({scope}/{role}): {description}
-```
-
-Example: `feat(server/core-dev): add brain-dead recovery`
-
-The `{role}` identifies which role made the commit.
-
-### Types
-
-| Type | Use |
-|------|-----|
-| feat | New feature |
-| fix | Bug fix |
-| refactor | Code restructuring (no behavior change) |
-| docs | Documentation only |
-| test | Adding/fixing tests |
-| chore | Build, config, tooling |
-| lead | Lead loop actions (strategic docs, task dispatch) |
-
-### Rules
-
-- Scope = area affected: `server`, `docker`, `frontend`, `roles`, `templates`, etc.
-- One logical change per commit. Imperative mood. Under 72 chars.
-- **No Co-Authored-By** — do NOT add Co-Authored-By trailer to commits.
+> **为什么**：多角色并行在同一分支工作，精准 git add 防止覆盖他人修改。
 
 ---
 
-## 4. Loop Flow (Universal — MANDATORY)
+## 6. 共享文档
 
-Every role MUST follow this exact loop. Skipping any step is a protocol violation.
+- `blueprint.md` / `status.md`：仅 lead 可写
+- `shared/decisions.md`：**仅追加**，新条目加在底部，永不编辑已有条目
+- `shared/blockers.md`：各角色写自己的阻塞，解决时追加解决记录
+- `project.yaml`：仅 Server API 可写，角色不得直接编辑
 
-1. `git pull --rebase` (stash if needed)
-2. Read own ROLE.md + todo.md + inbox/ + **memory/short-term.md** (restore previous loop context)
-3. Read **`shared/decisions.md`** — binding architectural decisions that override local assumptions
-4. **Process inbox** (MANDATORY, even on "clean" cycles with no code changes): acknowledge P0 messages, read tasks/feedback, act on directives
-5. Execute role-specific work
-6. **Write `memory/short-term.md`** (MANDATORY, overwrite each loop):
-   ```
-   ## YYYY-MM-DD Loop N
-   - **Done**: [bullet list of what was accomplished]
-   - **Blockers**: [any issues encountered, or "None"]
-   - **In-progress**: [work started but not finished]
-   - **Next focus**: [what to do next loop]
-   ```
-7. Update todo.md (mark completed ✅, add new tasks from inbox). For P1+ tasks, include `AC:` acceptance criteria — objectively verifiable completion conditions.
-7b. **Append `metrics.log`** (MANDATORY, one CSV line per loop, NOT committed to git):
-   `timestamp,loop_duration_s,tasks_completed,errors,inbox_processed`
-   Create file with header if it doesn't exist.
-8. Git commit and push:
-   1. `git add <only your own modified files>` — **NEVER use `git add -A` or `git add .`**
-   2. `git commit`
-   3. `git pull --rebase` (resolve conflicts if any)
-   4. `git push` — if push fails: `git stash && git pull --rebase && git stash pop && git push`
-
-**If you have nothing to do**: write that in short-term memory ("No pending tasks, idle"). Do NOT leave memory empty.
-
-### Adaptive Throttle (idle conservation)
-
-Track consecutive idle loops (no tasks completed, no inbox processed) in short-term memory.
-- **3+ consecutive idle loops** → enter **light mode**: only check inbox + git log for new commits. Skip full scans, reviews, or research. Write memory + metrics only.
-- **New work detected** (inbox message or new commits in scope) → resume full loop immediately.
-- Light mode reduces API usage while keeping the role responsive to new work.
+> **为什么**：仅追加避免多角色并发写入时 git 冲突。单一写入者消除所有权争议。
 
 ---
 
-## 5. Conflict Resolution
+## 7. 自我演进
 
-### File Conflicts
+1. 每 10 轮审查自己的 ROLE.md：删无效规则、合并重复、保持简洁
+2. 改动提议发 lead inbox，附 metrics 证据
+3. 批准后记录到 `evolution.log`
+4. 🔒 标记的规则不可通过自我演进修改（仅用户/lead 可改）
 
-- If `git pull --rebase` has conflicts: resolve conservatively (keep both changes if possible)
-- Never force-push. Never `git reset --hard`
-- If unsure: stash your changes, pull, then re-apply manually
-
-### Decision Conflicts
-
-- If two roles disagree: escalate to lead via inbox
-- Lead's decision is final and recorded in `shared/decisions.md`
-- All roles can propose reversals via inbox with evidence
-
-### Shared Document Rules
-
-- `blueprint.md` and `status.md`: only lead writes, all others read-only
-- `shared/decisions.md`: lead writes decisions, any role can propose via inbox
-- `shared/blockers.md`: any role can write their own blockers
-
-### Config File Ownership
-
-- `project.yaml`: **only Server API writes** (via Web UI operations). Roles must NOT edit directly.
-- Central AI creating a **new** project: writes a new `project.yaml` in the new project directory (no conflict)
-- Central AI modifying an **existing** project's `project.yaml`: must send request to lead via inbox, not edit directly
-- `workspace.yaml`: only Server API and Central AI may write
+> **为什么**：角色持续优化自己的 prompt = 系统自举的核心。🔒 规则防止演化漂移。
 
 ---
 
-## 6. Coordination Topology
+## 8. 熔断
 
-**Hub-and-spoke**: Lead is the coordinator. All cross-role communication goes through lead's inbox, except:
+连续 3 轮出错 → 写 `heartbeat.json` 标记 `circuit-open` → 发 P0 告警给 lead → 停止工作（继续写心跳）→ 等 lead reset。
 
-- **P0 direct channel**: P0 security/stability issues go directly to the relevant role AND lead
-- **Bug fix direct channel**: reviewer/security → core-dev/frontend for specific, actionable bug fixes (CC lead)
-- **Acknowledgments**: `type: ack` messages can go directly to the sender
+> **为什么**：防止错误角色污染 git 历史和消耗资源。
 
 ---
 
-## 7. File and Code Rules
+## 9. Skills
 
-- No hardcoded values (usernames, paths, ports) — use env vars or config
-- No `rm -rf`, `git push --force`, `git reset --hard`
-- No file > 500 lines — split if exceeded
-- Read existing code before modifying
-- **No long-running background processes** in containers — do not start servers, watchers, or daemons for testing. Use `curl` against existing infrastructure.
+项目级 skill 在 `.claude/skills/` 目录，所有角色共享。Skill = 文件夹 + `SKILL.md`。
 
----
+**安装**：
+- 从 Anthropic 官方仓库：`/plugin marketplace add anthropics/skills` → 选择安装
+- 从 GitHub：`git clone` 后复制 skill 文件夹到 `.claude/skills/`
+- 自定义：创建 `skill-name/SKILL.md`，写 name + description + 指令
 
-## 8. Prompt Hygiene
+**发现有用的新 skill** → 记录到 evolution.log → 通知 lead → lead 决定是否加入项目。
 
-- Every line in ROLE.md must produce **observable behavior change**. If not, delete it.
-- Roles self-audit their ROLE.md every 10 loops: remove dead rules, merge duplicates, trim unused conditions.
-- base-protocol.md target: <250 lines. Brevity = compliance.
-
----
-
-## 9. Self-Evolution Protocol
-
-Each role tracks performance and evolves its own prompt:
-
-1. **Measure**: Append one line to `metrics.log` per loop (CSV, `.gitignore`'d):
-   `timestamp,loop_duration_s,tasks_completed,errors,inbox_processed`
-2. **Reflect**: Every 10 loops, review own ROLE.md against metrics. Ask: "What rules helped? What rules were ignored or counterproductive?"
-3. **Propose**: Send ROLE.md change proposal to lead inbox with evidence from metrics.
-4. **Apply**: Lead approves/rejects. Approved changes logged in `evolution.log`.
-
----
-
-## 10. Shared Document Conventions
-
-**Append-only rule**: `shared/decisions.md` and `shared/blockers.md` are append-only. New entries go at the **bottom**. Never edit or delete existing entries. This prevents git merge conflicts on concurrent writes.
-
-**Entry format for decisions.md**:
-```markdown
-## [{date}] {title}
-
-**决策**: {what was decided}
-**原因**: {why}
-**提出者**: {role-name}
-**状态**: active | superseded-by-{date}
-```
-
-**To change a decision**: Add a new entry with `supersedes: [{old-date}] {old-title}`. Mark old entry's status as `superseded-by-{new-date}`. Never edit the old entry directly.
-
-**blockers.md**: Each role appends their own blockers. To resolve, append a resolution entry — do not delete the original.
-
----
-
-## 11. Circuit Breaker
-
-If **3 consecutive loops** produce errors (exceptions, push failures, inbox processing errors):
-
-1. Write `"status": "circuit-open"` to `heartbeat.json`
-2. Send P0 alert to lead inbox: `"Circuit breaker tripped — {error summary}"`
-3. Stop executing work. Continue writing heartbeat (idle mode).
-4. Wait for reset: lead sends `type: ack, thread-id: circuit-breaker-reset` to inbox.
-5. On reset: clear error counter, resume normal operation.
+> **为什么**：skill 是 Claude Code 的原生扩展机制，让角色获得专项能力而不污染 ROLE.md。

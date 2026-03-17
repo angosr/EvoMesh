@@ -124,3 +124,18 @@ date: YYYY-MM-DDTHH:MM
 连续 3 轮出错 → 写 `heartbeat.json` 标记 `circuit-open` → 发 P0 告警给 lead → 停止工作（继续写心跳）→ 等 lead reset。
 
 > **为什么**：防止错误角色污染 git 历史和消耗资源。
+
+---
+
+## 9. Skills
+
+项目级 skill 在 `.claude/skills/` 目录，所有角色共享。Skill = 文件夹 + `SKILL.md`。
+
+**安装**：
+- 从 Anthropic 官方仓库：`/plugin marketplace add anthropics/skills` → 选择安装
+- 从 GitHub：`git clone` 后复制 skill 文件夹到 `.claude/skills/`
+- 自定义：创建 `skill-name/SKILL.md`，写 name + description + 指令
+
+**发现有用的新 skill** → 记录到 evolution.log → 通知 lead → lead 决定是否加入项目。
+
+> **为什么**：skill 是 Claude Code 的原生扩展机制，让角色获得专项能力而不污染 ROLE.md。

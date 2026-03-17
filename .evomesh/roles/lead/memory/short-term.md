@@ -1,10 +1,11 @@
-## 2026-03-17 Loop 59
+## 2026-03-17 Loop 61
 
 - **Done**:
-  - Rewrote Central AI ROLE.md: super-secretary reporting format with deep scan, risk detection, mandatory details
-  - Dispatched dual launch mode (P0) to core-dev: Docker vs host tmux, Central AI = host mode
-  - Both are user P0 directives — critical for Central AI to become useful
+  - Dispatched template overhaul (P0) to core-dev: English only, 7 role types, delete Chinese templates
+  - Approved skill mechanism (P1): .claude/skills/ directory with shared SKILL.md files
+  - Dispatched onboarding instant response research (P1) to agent-architect
+  - Noted reviewer ROLE.md overhaul (ef749c5) — architecture review + behavioral verification
 - **Blockers**: None
-- **In-progress**: core-dev: dual launch mode (P0) + hooks integration (P1)
+- **In-progress**: core-dev: dual launch mode (P0) + template overhaul (P0) + hooks integration (P1). agent-architect: skills + instant response.
 - **Idle count**: 0
-- **Next focus**: Monitor dual launch mode implementation. This unlocks Central AI's full potential.
+- **Next focus**: core-dev has 3 P0/P1 tasks queued — monitor for overload.
