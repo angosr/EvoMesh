@@ -320,7 +320,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     try {
-      const homeDir = os.homedir();
+      const lu = session.linuxUser || process.env.USER || "user";
+      const homeDir = lu === (process.env.USER || "user") ? os.homedir() : `/home/${lu}`;
       const detected = fs.readdirSync(homeDir, { withFileTypes: true })
         .filter(e => e.isDirectory() && e.name.startsWith(".claude"))
         .map(e => ({
@@ -339,7 +340,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     try {
-      const homeDir = os.homedir();
+      const lu = session.linuxUser || process.env.USER || "user";
+      const homeDir = lu === (process.env.USER || "user") ? os.homedir() : `/home/${lu}`;
       const accounts = fs.readdirSync(homeDir, { withFileTypes: true })
         .filter(e => e.isDirectory() && e.name.startsWith(".claude"))
         .map(e => {
