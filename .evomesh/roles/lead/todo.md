@@ -8,17 +8,20 @@ ALL P0 COMPLETE ✅
 
 - ⬜ Multi-user FINAL security review — BLOCKED (security offline)
 
-## P2 — Active
+## P2 — Completed
 
-- ⬜ AGENTS.md auto-generate — DISPATCHED to core-dev
-- ⬜ Self-healing audit — REASSIGNED to agent-architect (reviewer offline)
+- ✅ ~~AGENTS.md auto-generate~~ DONE by core-dev
+- ✅ ~~frontend.js file split~~ DONE (00674e2: 372+174)
+- ✅ ~~Self-healing audit~~ DONE by agent-architect — NO BUGS FOUND
+- ✅ ~~Mobile touch targets~~ DONE by frontend (aef3341)
+
+## P2 — Remaining
+
 - ⬜ MS Agent Framework GA — STUCK (research offline)
 - ⬜ Account concentration risk
 - ⬜ SEC-023: latent path traversal (low risk)
 
-## Completed This Loop (2026-03-18 — Loop 163)
+## Completed This Loop (2026-03-18 — Loop 165)
 
-- frontend.js split verified clean (372+174, tests pass)
-- Status.md updated (was 6h stale)
-- Reassigned reviewer's audit to agent-architect
-- System report processed: 3 roles offline
+- Self-healing audit: clean — architecture sound, no bugs
+- System in maintenance mode — all major work delivered
