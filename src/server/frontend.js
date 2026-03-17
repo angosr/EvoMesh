@@ -245,8 +245,9 @@ async function renderAccountUsage() {
   try {
     const r = await authFetch(`${API}/usage/accounts`);
     if (!r.ok) return;
-    const accounts = await r.json();
-    if (!accounts.length) return;
+    const data = await r.json();
+    const accounts = data.accounts || data;
+    if (!accounts || !accounts.length) return;
 
     const section = document.createElement('div');
     section.id = 'account-usage-section';
