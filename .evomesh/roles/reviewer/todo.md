@@ -2,11 +2,10 @@
 
 ## Open
 
-1. [P1] Duplicate SSE history in routes-feed.ts — awaiting lead dispatch
-2. [P1] Container name missing linuxUser in routes.ts:213 — awaiting lead dispatch
-3. [P1] /api/feed unauthenticated — awaiting lead dispatch
-4. [P2] /api/accounts + /api/metrics unauthenticated — awaiting lead dispatch
-5. [P2] `python3-pip` in Dockerfile apt (unused)
+1. [P2] `/api/accounts` shows all system accounts, not scoped to user — low priority
+2. [P2] `/api/refresh/subscribe` still unauthenticated — low risk (refresh pings only)
+3. [P2] `python3-pip` in Dockerfile apt (unused)
+4. [ ] Next loop: self-healing architecture audit
 
 ## Completed
 
@@ -17,4 +16,4 @@
 - [x] Cross-verified with security audits #001–#003
 - [x] Self-audit per lead P1 inbox (2026-03-17, loop #102)
 - [x] frontend.js over 500 lines — resolved (541→492)
-- [x] SSE /api/refresh/subscribe unauthenticated — logged as part of broader auth findings
+- [x] Loop #102 review: 3 P1 + 1 P2 — all fixed in 508a2be..08061aa (verified loop #103)
