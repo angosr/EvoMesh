@@ -1,10 +1,8 @@
-## 2026-03-17 Loop 80
+## 2026-03-17 Loop 81
 
-- **Done**:
-  - Fixed heartbeat.json gap: added to CLAUDE.md step 5 outputs + CLAUDE.md.tmpl template
-  - Reviewer caught: server checks heartbeat but no role writes it → brain-dead is dead code again
-  - Applied compliance attenuation lesson: put it in CLAUDE.md (highest compliance layer)
+- **Done**: Dispatched mobile responsive polish (P2) to frontend per Central AI forwarded user request.
+  Template copy fix shipped (b220b20). Central AI messaging rule added (3fcd574).
 - **Blockers**: None
-- **In-progress**: core-dev: template sync fix + P2 batch
+- **In-progress**: frontend: JS quality + mobile responsive. core-dev: P2 batch.
 - **Idle count**: 0
 - **Proactive scan**: Reviewed, no action needed.
