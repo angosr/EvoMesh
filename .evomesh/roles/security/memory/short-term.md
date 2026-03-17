@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 43
+## 2026-03-17 Loop 44
 
-- **Done**: Reviewed Central AI brain-dead removal (Docker code deleted, host mode managed by ensureCentralAI). Clean.
+- **Done**: Reviewed SSE feed endpoints (/api/feed, /api/feed/stream) + Docker restart policy. Auth protected, JSON-serialized, known file paths. Clean.
 - **Next focus**: Monitoring mode.
