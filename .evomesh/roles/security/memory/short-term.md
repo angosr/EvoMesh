@@ -1,4 +1,4 @@
-## 2026-03-17 Loop 44
+## 2026-03-17 Loop 45
 
-- **Done**: Reviewed SSE feed endpoints (/api/feed, /api/feed/stream) + Docker restart policy. Auth protected, JSON-serialized, known file paths. Clean.
+- **Done**: Reviewed routes-feed.ts extraction — pure refactor, code identical. No new logic or auth changes. Clean.
 - **Next focus**: Monitoring mode.
