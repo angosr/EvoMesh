@@ -163,7 +163,7 @@ function startRoleHost(
   // Start tmux session with claude
   const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
   execFileSync("tmux", [
-    "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
+    "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
   ], { cwd: path.resolve(root), stdio: "ignore" });
 
   // Start ttyd pointing at tmux session

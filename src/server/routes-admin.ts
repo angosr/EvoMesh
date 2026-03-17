@@ -54,7 +54,7 @@ function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string }
     // Start tmux session with claude
     const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
     execFileSync("tmux", [
-      "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
+      "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
     ], { cwd: homeDir, stdio: "ignore" });
 
     // Start ttyd pointing at tmux session
