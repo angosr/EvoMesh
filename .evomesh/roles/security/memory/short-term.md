@@ -1,6 +1,6 @@
-## 2026-03-17 Loop 86
+## 2026-03-18 Loop 87
 
-- **Done**: Exited light mode. Processed lead P1: self-audit + MCP security assessment. Reviewed MCP settings UI (esc'd, read-only) + bootstrap hooks deployment. Filed MCP assessment to devlog + lead inbox. Self-audit findings in evolution.log. Updated todo with SEC-014/015 + MCP pre-deployment items.
+- **Done**: Processed lead P1 — multi-user threat model. 7 threats, 2 P0 blockers (cross-user API data leaks, container cross-access via shared network). 3 P1 (terminal hijack, shared persistent files, useradd privilege). Sent to lead.
 - **Blockers**: Cannot git pull
 - **In-progress**: SEC-016 (no TLS) awaiting deployment
-- **Next focus**: Monitor MCP implementation for SSRF/credential risks. 6 P2 items open.
+- **Next focus**: Monitor multi-user implementation for P0 blocker resolution.
