@@ -1,37 +1,46 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-16T23:45
+> Last updated: 2026-03-17T22:00
 
-## Current Phase: Collaboration → Self-Evolution
+## Current Phase: Self-Evolution (Stable)
 
-Core infrastructure stable. Shared protocols established. Now implementing self-evolution mechanisms.
+All infrastructure operational. Protocols v2 implemented. Self-evolution mechanisms active (metrics, prompt hygiene, self-audits). System entering MCP Integration milestone.
 
-## System Health: ALL 7 ROLES ACTIVE
-- **lead**: Operational — 11 loops completed, all P0s resolved
-- **core-dev**: Productive — registry.json ✅, mission-control API ✅, all security fixes ✅. P0/P1 clear
-- **frontend**: Productive — Mission Control panel ✅, mobile optimization ✅, smoke tests ✅
-- **reviewer**: Effective — 7 review cycles, findings driving fixes
-- **security**: Effective — initial audit + 3 follow-up audits, path traversal found+fixed
-- **research**: Highly productive — 5 loops, 13 topics, 10 architecture recommendations delivered
-- **agent-architect**: Now active — protocol v2 proposal delivered and APPROVED
+## System Health
 
-## Milestone: Protocol v2 Approved
-Agent-architect's consolidated proposal approved:
-- Self-evolution protocol (metrics.log + 10-loop self-audit + lead approval)
-- Prompt hygiene rules (<200 line target, dead rule pruning)
-- Memory storage strategy (short-term ephemeral, long-term in git)
-- Inbox frontmatter simplification (5 required fields)
-Awaiting implementation.
+- **lead**: Loop 119 — active, dispatching MCP milestone tasks + self-audits
+- **core-dev**: Idle (5 loops) — P1 compliance hooks dispatched, research spec ready
+- **frontend**: Idle — JS quality refactor COMPLETE (767→492 lines, XSS safe). All 20 tasks done. MCP UI prep dispatched.
+- **reviewer**: Idle — 7 review cycles complete, all P0/P1/P2 findings resolved. Self-audit dispatched.
+- **security**: Idle — P0/P1 all clear. SEC-016 (no TLS) pending. Self-audit + MCP security assessment dispatched.
+- **research**: Idle — 13 deep-dive topics complete, 10 architecture recommendations. Agent SDK eval P1 pending in inbox.
+- **agent-architect**: Idle — protocol v2 + base-protocol sections 8-11 complete. MCP protocol design P1 dispatched.
 
-## Current Work Items
-1. **agent-architect**: Implement protocol v2 in base-protocol.md (approved)
-2. **agent-architect**: Design Central AI project creation flow (user P0, next priority)
-3. **frontend**: Continue Mission Control refinement
-4. **research**: P2 monitoring mode (Agent SDK, ecosystem)
+## Completed Milestones
+
+1. ✅ Protocol v2 — implemented in base-protocol.md (self-evolution, prompt hygiene, memory strategy, frontmatter)
+2. ✅ Central AI project creation flow — designed + templates created
+3. ✅ Compliance Chain Attenuation — decision made, hooks spec ready, awaiting core-dev wiring
+4. ✅ File-Based Architecture validated as Implicit Reducer Pattern (LangGraph comparison)
+5. ✅ JS Quality Refactor — frontend.js 767→492 lines, 6 files, 0 duplication
+6. ✅ Stop Hook deployed — `750f240`
+7. ✅ Health monitoring extracted — `df77acb`
+8. ✅ Feed SSE fix — show current state on connect — `e74103b`
+
+## Current Work Items (Loop 119 Dispatch)
+
+1. **core-dev**: P1 — Wire compliance hooks (research spec ready)
+2. **research**: P1 — Agent SDK evaluation for intra-role parallelism
+3. **agent-architect**: P1 — MCP integration protocol design
+4. **frontend**: P2 — MCP server management UI scaffolding
+5. **reviewer**: P1 — Self-audit + architecture audit
+6. **security**: P1 — Self-audit + MCP security pre-assessment
 
 ## Architecture Validated
-- Research confirms file-based communication is unique differentiator
-- Anthropic Agent SDK validates our lead+sub-agent topology
-- Our persistence via git is a competitive moat (Agent SDK is ephemeral)
-- Academic papers (EvoMAC, WMAC 2026) validate hub-spoke governance + self-evolution approach
+
+- File-based communication = unique differentiator (research confirmed)
+- Anthropic Agent SDK validates lead+sub-agent topology
+- Git persistence = competitive moat (Agent SDK is ephemeral)
+- Academic papers (EvoMAC, WMAC 2026) validate hub-spoke governance + self-evolution
+- File conventions = implicit reducer pattern (append-only, single-writer, partitioned)

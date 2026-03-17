@@ -23,16 +23,20 @@ All infrastructure operational. Protocols established. System is self-evolving v
 2. ✅ Docker container backend (replace tmux on host)
 3. ✅ Central AI design and initial implementation
 4. ✅ Central AI operational with Loop + Registry closed-loop + Mission Control
-5. 🔄 Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing
-6. ⬜ MCP integration (fetch-mcp for research approved, more planned)
+5. ✅ Self-bootstrapping: self-evolution protocol live, metrics collecting, prompt hygiene executing, compliance hooks designed
+6. 🔄 MCP integration (fetch-mcp for research approved, protocol design + security assessment in progress)
 7. ⬜ Multi-user with Linux user isolation
 8. ⬜ Mobile app
 
-## Next Milestone: Item 6 — MCP Integration
+## Next Milestone: Item 6 — MCP Integration (ACTIVE)
 - fetch-mcp for research role approved, awaiting implementation
 - github-mcp for reviewer deferred
 - puppeteer-mcp for frontend deferred (needs headless browser in Docker)
-- This is the next proactive goal to push forward
+- **In progress (Loop 119)**:
+  - agent-architect: Protocol design — config storage, deployment, per-role server assignment
+  - security: Attack surface pre-assessment (SSRF, data exfiltration, prompt injection risks)
+  - frontend: UI scaffolding for MCP server management
+  - Parallel: core-dev finishing compliance hooks (prerequisite infrastructure)
 
 ## Key Decisions
 - File-based communication — git-native audit trails (validated by research as unique differentiator)
@@ -43,3 +47,6 @@ All infrastructure operational. Protocols established. System is self-evolving v
 - Adaptive throttle: 3+ idle loops → light mode
 - Completion acks mandatory for P0/P1 tasks
 - No background processes in containers
+- Compliance chain attenuation: critical rules enforced via hooks (100%) not just LLM compliance (~50%)
+- XSS prevention: addEventListener + data-* attributes, never inline handlers
+- File-based architecture = implicit reducer pattern (validated vs LangGraph)
