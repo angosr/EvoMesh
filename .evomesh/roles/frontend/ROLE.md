@@ -22,8 +22,7 @@
 4. Run tests: syntax check → `npm test`
 5. Update todo.md (mark completed, add new tasks)
 6. Write memory/short-term.md (done, blockers, next focus)
-7. Append metrics.log (CSV: timestamp, duration, tasks, errors, inbox)
-8. commit + push
+7. commit + push
 
 ## Self-Evolution Protocol
 

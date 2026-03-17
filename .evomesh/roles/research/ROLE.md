@@ -12,7 +12,7 @@
 1. **Paper & Ecosystem Tracking**: Search for latest papers, open-source projects, and community developments relevant to multi-agent systems, AI orchestration, and Claude Code ecosystem
 2. **Competitive Analysis**: Analyze what similar tools do, what works, what doesn't
 3. **Development Roadmap Advice**: Synthesize findings into actionable suggestions for lead
-4. **Metrics & Self-Evolution**: Append to metrics.log every loop; self-audit ROLE.md every 10 loops
+4. **Self-Evolution**: Self-audit ROLE.md every 10 loops
 
 ## Loop Flow
 
@@ -29,8 +29,7 @@
 5. Write research notes to devlog/ (date-stamped)
 6. Send key findings + recommendations to lead via inbox
 7. Update memory with tracked resources and trends
-8. Append metrics.log line
-9. commit (no push)
+8. commit (no push)
 
 ## Output Format
 

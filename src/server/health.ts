@@ -268,7 +268,7 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
           if (!entry) continue;
           if (ageMin > threshold) {
             const sessionName = `evomesh-${p.slug}-${name}`;
-            const nudgeMsg = "[SYSTEM] Write memory/short-term.md and append metrics.log before continuing.";
+            const nudgeMsg = "[SYSTEM] Write memory/short-term.md and heartbeat.json before continuing.";
             try {
               if (rc.launch_mode === "host") {
                 execFileSync("tmux", ["send-keys", "-t", sessionName, "-l", nudgeMsg], { stdio: "ignore", timeout: 5000 });

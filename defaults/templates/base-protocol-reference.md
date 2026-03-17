@@ -13,11 +13,10 @@ Execute in this order every loop. Do not skip steps.
 3. Process inbox (P0 must be handled this loop. Move processed to inbox/processed/)
 4. Execute role work
 5. Write `memory/short-term.md` (overwrite, format below)
-6. Append `metrics.log` (one CSV line, not committed)
-7. Update todo.md
-8. `git add <only your own files>` → commit → `git pull --rebase` → push
+6. Update todo.md
+7. `git add <only your own files>` → commit → `git pull --rebase` → push
 
-**When idle**: write "No tasks, idle". 3 consecutive idle loops → light mode (check inbox + write memory/metrics only).
+**When idle**: write "No tasks, idle". 3 consecutive idle loops → light mode (check inbox + write memory only).
 
 > **Why**: Unified flow makes role state trackable. Memory is the only observation window between roles.
 
@@ -29,7 +28,6 @@ Execute in this order every loop. Do not skip steps.
 |---|---|---|---|
 | `memory/short-term.md` | Current loop context | ≤50 lines, overwrite each loop | .gitignore |
 | `memory/long-term.md` | Cross-loop knowledge | ≤200 lines, append-only | commit |
-| `metrics.log` | Performance CSV | append-only | .gitignore |
 
 **short-term format**:
 ```
@@ -39,8 +37,6 @@ Execute in this order every loop. Do not skip steps.
 - **In-progress**: ...
 - **Next focus**: ...
 ```
-
-**metrics.log format**: `timestamp,duration_s,tasks_done,errors,inbox_processed`
 
 **Archive**: long-term > 200 lines → move oldest entries to `memory/archive.md`.
 

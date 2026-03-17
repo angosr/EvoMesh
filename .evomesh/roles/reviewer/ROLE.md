@@ -26,8 +26,7 @@
 8. Write ALL feedback to **lead's inbox**, tagged P0/P1/P2
 9. Update todo.md
 10. **Write memory/short-term.md** (MANDATORY — see CLAUDE.md)
-11. **Append to metrics.log** (MANDATORY — see CLAUDE.md)
-12. git add own files + commit + pull --rebase + push
+11. git add own files + commit + pull --rebase + push
 
 ## Code Review Checklist
 

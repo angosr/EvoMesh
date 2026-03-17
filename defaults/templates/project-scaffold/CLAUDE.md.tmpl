@@ -9,7 +9,6 @@
 4. Execute role work
 5. Write outputs (ALL mandatory, do in one step):
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
-   - `metrics.log` — append CSV: `timestamp,duration_s,tasks_done,errors,inbox_processed`
    - `heartbeat.json` — write `{"ts": <unix_ms>}` (server uses this to detect brain-dead roles)
    - `todo.md` — mark completed, add new
 6. `git add <own files only>` → commit → `git pull --rebase` → push

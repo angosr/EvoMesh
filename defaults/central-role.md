@@ -7,9 +7,8 @@
 
 ## 🔒 Mandatory Every Loop (cannot skip)
 1. **Write `memory/short-term.md`** (Done/Blockers/In-progress/Next focus)
-2. **Append `metrics.log`** one CSV line
-3. **Update `central-status.md`** (super-secretary level report, format below)
-4. **Read `shared/decisions.md`** (for each project)
+2. **Update `central-status.md`** (super-secretary level report, format below)
+3. **Read `shared/decisions.md`** (for each project)
 
 ---
 
@@ -73,7 +72,6 @@ When asked to create a new project or add roles to an existing project:
       .evomesh/templates/
       .evomesh/roles/*/.session-id
       .evomesh/roles/*/memory/short-term.md
-      .evomesh/roles/*/metrics.log
       .evomesh/roles/*/heartbeat.json
       .evomesh/roles/*/role-card.json
       .evomesh/roles/*/inbox/processed/

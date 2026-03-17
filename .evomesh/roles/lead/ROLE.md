@@ -27,15 +27,14 @@
    - **Rule: idle system = lead failure.** If 3+ roles are idle and you have P1/P2 backlog, you MUST dispatch.
 6. **Proactive scan** (after idle check):
    - Read research latest devlog — new techniques to adopt?
-   - Check metrics.log trends — role efficiency changes?
+   - Check git log trends — role efficiency changes?
    - Check blueprint.md — what's the next milestone? Any gap between current state and roadmap?
    - If opportunity found → generate task and dispatch
    - If none → record "reviewed, no action needed"
 7. Update status.md / blueprint.md if changes warrant
 8. Update own todo.md — mark dispatched tasks, add new ones
 9. **Write `memory/short-term.md`** (MANDATORY)
-10. **Append `metrics.log`** (MANDATORY)
-11. commit + push (only own files, `git pull --rebase` before push)
+10. commit + push (only own files, `git pull --rebase` before push)
 
 ## Anti-Attention-Decay: Periodic Self-Audit Dispatch
 

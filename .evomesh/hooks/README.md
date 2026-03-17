@@ -51,14 +51,13 @@ Add to `docker/entrypoint.sh` AFTER Claude's loop finishes (fallback git enforce
 ```bash
 # Force-add mandatory loop files (Layer 4: deterministic git enforcement)
 git add ".evomesh/roles/${ROLE_NAME}/memory/short-term.md" 2>/dev/null
-git add ".evomesh/roles/${ROLE_NAME}/metrics.log" 2>/dev/null
 git add ".evomesh/roles/${ROLE_NAME}/todo.md" 2>/dev/null
 ```
 
 ## How it works
 
 - `verify-loop-compliance.sh` runs as a **Stop hook** — fires when Claude tries to finish responding
-- If `short-term.md` or `metrics.log` were NOT modified in the last 5 minutes → exit 2 (blocks stop)
+- If `short-term.md` was NOT modified in the last 5 minutes → exit 1 (blocks stop)
 - Claude is forced to continue and write the missing files
 - Requires `ROLE_NAME` environment variable (already set by entrypoint.sh)
 
@@ -67,7 +66,6 @@ git add ".evomesh/roles/${ROLE_NAME}/todo.md" 2>/dev/null
 ```bash
 # Simulate: should PASS (files recently modified)
 touch .evomesh/roles/test-role/memory/short-term.md
-touch .evomesh/roles/test-role/metrics.log
 ROLE_NAME=test-role .evomesh/hooks/verify-loop-compliance.sh; echo "Exit: $?"
 
 # Simulate: should FAIL (files not recently modified)

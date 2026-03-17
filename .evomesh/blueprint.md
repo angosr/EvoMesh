@@ -34,7 +34,7 @@ All infrastructure operational. Multi-user isolation implemented. Account usage 
 - Docker containers per role — isolation, resource limits, persistence
 - Hub-and-spoke coordination with P0 direct-channel + bug-fix direct channel
 - Registry closed-loop: config = source of truth, registry.json = derived snapshot
-- Self-evolution: metrics.log → 10-loop reflection → ROLE.md proposals → lead approval
+- Self-evolution: 10-loop reflection → ROLE.md proposals → lead approval
 - Adaptive throttle: 3+ idle loops → light mode
 - Compliance chain attenuation: critical rules enforced via hooks (100%) not just LLM compliance (~50%)
 - XSS prevention: addEventListener + data-* attributes, never inline handlers

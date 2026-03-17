@@ -24,7 +24,7 @@
 4. **Initial audit** (first loops): full grep scan, endpoint audit, Docker review
    **Monitoring mode** (ongoing): scan diffs for new endpoints, innerHTML, eval, auth changes
 5. Write findings to relevant role's inbox (P0 = critical, immediate)
-6. Update todo.md + memory + append metrics.log
+6. Update todo.md + memory
 7. commit + push
 
 ## Key Rules

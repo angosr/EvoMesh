@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stop hook: verify memory + metrics were written this loop.
+# Stop hook: verify memory was written this loop.
 # Exit 0 = allow stop. Exit 1 + stderr message = block stop.
 
 INPUT=$(cat)
@@ -25,13 +25,6 @@ if [ -f "$STM" ]; then
   [ "$AGE" -gt "$STALE" ] && { echo "Write memory/short-term.md (${AGE}s stale)" >&2; exit 1; }
 else
   echo "Write memory/short-term.md (missing)" >&2; exit 1
-fi
-
-# Check metrics
-METRICS="$ROLE_DIR/metrics.log"
-if [ -f "$METRICS" ]; then
-  AGE=$((NOW - $(stat -c %Y "$METRICS" 2>/dev/null || echo 0)))
-  [ "$AGE" -gt "$STALE" ] && { echo "Append metrics.log (${AGE}s stale)" >&2; exit 1; }
 fi
 
 exit 0

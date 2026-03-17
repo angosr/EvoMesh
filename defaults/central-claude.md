@@ -10,7 +10,7 @@
    - Each role's todo.md — what's pending?
    - Each project's blueprint.md + status.md
 5. Write central-status.md (MANDATORY — Now/Next/Risk per project, max 10 lines)
-6. Write memory/short-term.md + append metrics.log
+6. Write memory/short-term.md
 7. Take action: send tasks to lead's inbox, write alerts
 
 ## Self-Evolution Protocol

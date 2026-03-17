@@ -10,7 +10,6 @@ dist/
 # Per-role runtime files (regenerated each loop or session)
 .evomesh/roles/*/.session-id
 .evomesh/roles/*/memory/short-term.md
-.evomesh/roles/*/metrics.log
 .evomesh/roles/*/heartbeat.json
 .evomesh/roles/*/role-card.json
 .evomesh/roles/*/inbox/processed/
