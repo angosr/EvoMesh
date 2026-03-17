@@ -55,6 +55,11 @@ if kill -0 $SERVER_PID 2>/dev/null; then
   echo "  First visit: create admin account at /login"
   echo "  Then use Central AI to add your project"
   echo ""
+  echo "  ⚠ SECURITY: Server uses HTTP. For production, add TLS:"
+  echo "    Option A: nginx reverse proxy + Let's Encrypt (certbot)"
+  echo "    Option B: Cloudflare Tunnel (zero-config TLS)"
+  echo "    See deploy/README.md for details."
+  echo ""
 else
   echo "ERROR: Server failed to start. Check /tmp/evomesh.log"
   exit 1
