@@ -1,143 +1,201 @@
 # EvoMesh
 
-基于 Claude Code 的多角色自演进开发框架。
+A self-evolving multi-role orchestrator for [Claude Code](https://claude.com/claude-code). Multiple AI roles collaborate on projects autonomously through file-based communication and git-native workflows.
 
-EvoMesh 不构建新 Agent，而是复用 Claude Code 的原生能力，通过结构化角色模板和自演进协议，让多个 Claude Code 实例以不同角色协作开发。提供 Web UI 进行可视化管理。
+[中文文档](README.zh-CN.md)
 
-## 功能
+## What is EvoMesh?
 
-- **多角色编排** — 多个 Claude Code 实例以 lead、executor、reviewer 等角色并行工作
-- **自演进协议** — 角色可审查和优化自己的提示词、记忆和工作流程
-- **角色间协作** — inbox 消息机制、共享文档、任务分派
-- **Web Dashboard** — 浏览器管理所有角色，内嵌终端，实时状态
-- **多用户认证** — admin/viewer 角色权限，密码认证
-- **多项目支持** — 一个实例管理多个项目
-- **会话恢复** — 角色重启后自动恢复 Claude Code 会话
+EvoMesh doesn't build a new agent framework. Instead, it leverages Claude Code's native capabilities — running multiple instances with different roles (lead, core-dev, reviewer, security, etc.) that collaborate through structured protocols, shared documents, and inbox-based messaging. All coordination artifacts are git-tracked, providing full auditability.
 
-## 安装
+**Key insight**: File-based communication with git is a genuine differentiator. No other multi-agent framework provides git-native audit trails. This approach was independently validated by academic research (AgentGit, WMAC 2026).
+
+## Features
+
+- **Multi-Role Orchestration** — 7 built-in role templates: lead, core-dev, frontend, reviewer, security, research, agent-architect
+- **Self-Evolution Protocol** — Roles audit and optimize their own prompts, memory, and workflows every 10 loops
+- **Central AI** — A super-secretary that monitors all projects, dispatches tasks, and reports status
+- **Web Dashboard** — Browser-based management with embedded terminals, real-time SSE feed, dark/light themes
+- **Dual Launch Mode** — Docker containers (isolated) or host tmux (full access) per role
+- **File-Based Communication** — Inbox messages, shared decisions, todo tracking — all git-tracked
+- **Multi-Project Support** — One instance manages multiple projects with independent role sets
+- **Multi-User Auth** — Admin/owner/user roles with Linux user isolation (multi-tenant)
+- **One-Click Deploy** — `./setup.sh` handles everything
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js >= 18
+- Docker
+- Claude Code CLI (installed and logged in)
+- tmux + ttyd (optional, for host mode)
+
+### Install
 
 ```bash
-# 前置要求
-# - Node.js >= 20
-# - Claude Code CLI (已安装并登录)
-# - tmux
-
 git clone https://github.com/angosr/EvoMesh.git
 cd EvoMesh
-npm install
-npm link
+./setup.sh
 ```
 
-## 快速开始
+`setup.sh` installs dependencies, builds the Docker image, and optionally sets up a systemd service.
 
-### 初始化项目
+### Start
 
 ```bash
-cd your-project
-evomesh init
+npm start                    # Start server (default port 8123)
+# or
+npx tsx --watch src/server/index.ts
 ```
 
-按提示输入项目名称和语言（zh/en），将在当前目录创建 `.evomesh/` 结构和默认 lead 角色。
+Open `http://your-server:8123` in a browser. Create an admin account on first visit.
 
-### 创建角色
+### Create a Project
 
-```bash
-evomesh role create executor   # 创建执行者角色
-evomesh role create reviewer   # 创建审查者角色
-evomesh role list              # 查看所有角色
-```
+Projects are created through Central AI (the right-panel chat interface):
 
-### 启动角色
+1. Open the Web Dashboard
+2. Type in the right panel: "Create a project for /path/to/my-repo"
+3. Central AI analyzes the codebase, recommends roles, and scaffolds everything
+4. Click "Start" on each role in the dashboard
 
-```bash
-evomesh start              # 启动所有角色（tmux 后台）
-evomesh start lead         # 启动单个角色
-evomesh start lead --fg    # 前台模式（调试用）
-evomesh status             # 查看运行状态
-evomesh attach lead        # 连接到角色终端
-evomesh stop               # 停止所有角色
-```
-
-### 启动 Web UI
-
-```bash
-evomesh serve              # 启动 Web 界面 (默认端口 8080)
-evomesh serve --port 3000  # 指定端口
-```
-
-首次访问会要求创建管理员账户。
-
-## 项目结构
+## Architecture
 
 ```
-your-project/
-├── .evomesh/
-│   ├── project.yaml          # 项目配置
-│   ├── blueprint.md           # 战略蓝图 (lead 维护)
-│   ├── status.md              # 项目现况 (lead 维护)
-│   ├── shared/                # 共享文档
-│   │   ├── decisions.md       # 技术决策
-│   │   └── blockers.md        # 阻塞问题
-│   ├── devlog/                # 开发日志
-│   ├── runtime/               # PID 文件、日志
-│   └── roles/
-│       ├── lead/
-│       │   ├── ROLE.md        # 角色提示词
-│       │   ├── loop.md        # 循环入口
-│       │   ├── todo.md        # 待办任务
-│       │   ├── archive.md     # 已完成任务
-│       │   ├── evolution.log  # 演进日志
-│       │   ├── inbox/         # 收件箱
-│       │   └── memory/        # 短期/长期记忆
-│       ├── executor/
-│       └── reviewer/
+┌─────────────────────────────────────────────────┐
+│                   Web Dashboard                  │
+│  ┌──────────┐  ┌──────────────┐  ┌───────────┐ │
+│  │ Projects  │  │  Terminals   │  │ SSE Feed  │ │
+│  │ & Roles   │  │  (ttyd WS)   │  │ (realtime)│ │
+│  └──────────┘  └──────────────┘  └───────────┘ │
+└─────────────────────┬───────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────┐
+│              Express Server (:8123)               │
+│  Auth │ API │ Registry (15s) │ SSE Feed │ Proxy  │
+└──┬──────────────┬──────────────────┬────────────┘
+   │              │                  │
+   ▼              ▼                  ▼
+┌────────┐  ┌──────────┐     ┌──────────────┐
+│Central │  │  Docker   │     │ ~/.evomesh/  │
+│  AI    │  │Containers │     │ registry.json│
+│(host   │  │(per role) │     │ workspace.yaml│
+│ tmux)  │  │ttyd+claude│     │ templates/   │
+└────────┘  └──────────┘     └──────────────┘
 ```
 
-## 角色模板
+### Role Communication
 
-| 角色 | 职责 | 默认周期 |
-|------|------|----------|
-| **Lead** | 战略规划、全角色审查、任务分派 | 20 分钟 |
-| **Executor** | 代码实现、测试、提交 | 10 分钟 |
-| **Reviewer** | 代码审查、安全扫描 | 15 分钟 |
+Roles communicate through **file-based inbox messages** with YAML frontmatter:
 
-每个角色是一个独立的 Claude Code 实例，通过 ROLE.md 中的提示词定义行为。角色可以通过自演进协议修改自己的提示词和工作流程。
-
-## 多账号支持
-
-不同角色可使用不同的 Claude Code 账号：
+```
+.evomesh/roles/core-dev/inbox/20260317T1200_lead_new-feature.md
+```
 
 ```yaml
-# .evomesh/project.yaml
-accounts:
-  main: ~/.claude
-  "2": ~/.claude2
-
-roles:
-  lead:
-    account: "2"
-  executor:
-    account: main
+---
+from: lead
+to: core-dev
+priority: P0
+type: task
+date: 2026-03-17T12:00
+---
+# Implement new feature X
+...
 ```
 
-## Web UI
+### Self-Evolution
 
-Web Dashboard 提供：
-- 三栏可调节布局（项目列表、终端、角色状态）
-- 标签页式终端（每个角色一个终端）
-- 多用户认证（admin 可管理用户，viewer 只读）
-- 多项目管理
-- 移动端适配
+Every 10 loops, each role:
+1. Reviews its own ROLE.md against performance metrics
+2. Proposes optimizations (remove dead rules, add learned patterns)
+3. Sends proposal to lead for approval
+4. Approved changes are logged in `evolution.log`
 
-## 技术栈
+## Role Templates
 
-- **运行时**: Node.js + TypeScript
-- **进程管理**: tmux + node-pty
-- **Web**: Express 5 + 单文件 SPA
-- **终端代理**: ttyd + WebSocket
-- **认证**: PBKDF2-SHA512
-- **配置**: YAML
+| Role | Responsibility | Loop Interval |
+|------|---------------|---------------|
+| **Lead** | Strategic direction, task dispatch, goal generation | 10m |
+| **Core-Dev** | Backend implementation, Docker, API | 5m |
+| **Frontend** | Web UI, mobile responsiveness, UX | 5m |
+| **Reviewer** | Code quality, architecture review | 10m |
+| **Security** | Vulnerability scanning, attack surface analysis | 15m |
+| **Research** | Papers, frameworks, competitive analysis | 30m |
+| **Agent-Architect** | Collaboration protocols, memory design | 30m |
 
-## 许可证
+Custom roles can be created via Central AI or by adding templates to `defaults/templates/roles/`.
+
+## Configuration
+
+### Project Config (`.evomesh/project.yaml`)
+
+```yaml
+name: my-project
+roles:
+  lead:
+    type: lead
+    loop_interval: 10m
+    account: default
+    launch_mode: docker    # or "host"
+  core-dev:
+    type: worker
+    loop_interval: 5m
+    account: "2"
+```
+
+### Multi-Account Support
+
+Different roles can use different Claude Code accounts:
+
+```yaml
+accounts:
+  default: ~/.claude
+  "2": ~/.claude2
+  "3": ~/.claude3
+```
+
+Account distribution is automatic — `smartInit` assigns accounts via round-robin from least-loaded.
+
+## Tech Stack
+
+- **Runtime**: Node.js + TypeScript
+- **Server**: Express 5
+- **Containers**: Docker (per-role isolation)
+- **Terminals**: ttyd + tmux (WebSocket-based)
+- **Auth**: PBKDF2-SHA512 with timing-safe comparison
+- **Config**: YAML
+- **Real-time**: Server-Sent Events (SSE)
+- **Frontend**: Vanilla HTML/JS/CSS (no framework)
+
+## Project Structure
+
+```
+EvoMesh/
+├── src/                    # TypeScript source
+│   ├── server/             # Express server, routes, auth, feed
+│   ├── process/            # Container lifecycle, port allocation
+│   └── config/             # Schema, bootstrap
+├── docker/                 # Dockerfile + entrypoint.sh
+├── defaults/               # Default templates (source of truth)
+│   ├── central-role.md     # Central AI ROLE.md
+│   └── templates/          # Role + project scaffold templates
+├── .evomesh/               # Project-specific config & roles
+├── setup.sh                # One-click deployment
+└── CLAUDE.md               # Universal rules for all roles
+```
+
+## Contributing
+
+Contributions welcome. Please follow the commit convention:
+
+```
+{type}({scope}): {description}
+```
+
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
+
+## License
 
 MIT
