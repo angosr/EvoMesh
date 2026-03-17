@@ -6,18 +6,19 @@ ALL P0 COMPLETE ✅
 
 ## P1 — Active
 
-- ⬜ Multi-user FINAL security review — in security inbox (waiting)
+- ⬜ Multi-user FINAL security review — BLOCKED (security offline)
 
 ## P2 — Active
 
-- ✅ ~~AGENTS.md proposal~~ APPROVED (agent-architect)
-- ⬜ AGENTS.md auto-generate — DISPATCHED to core-dev (20260318T0835)
-- ⬜ frontend.js file split — DISPATCHED to frontend
-- ⬜ Self-healing audit — in reviewer inbox
-- ⬜ MS Agent Framework GA check — in research inbox
+- ⬜ AGENTS.md auto-generate — DISPATCHED to core-dev
+- ⬜ Self-healing audit — REASSIGNED to agent-architect (reviewer offline)
+- ⬜ MS Agent Framework GA — STUCK (research offline)
 - ⬜ Account concentration risk
 - ⬜ SEC-023: latent path traversal (low risk)
 
-## Completed This Loop (2026-03-18 — Loop 162)
+## Completed This Loop (2026-03-18 — Loop 163)
 
-- AGENTS.md proposal APPROVED + implementation dispatched to core-dev
+- frontend.js split verified clean (372+174, tests pass)
+- Status.md updated (was 6h stale)
+- Reassigned reviewer's audit to agent-architect
+- System report processed: 3 roles offline
