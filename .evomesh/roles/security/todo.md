@@ -24,12 +24,20 @@
 - [x] Review entrypoint.sh privilege drop → PASS
 - [x] Dependency review → PASS (no known CVEs)
 
+## P1 — MCP Pre-Deployment
+
+- [ ] Block cloud metadata endpoints in fetch-mcp URL filtering
+- [ ] Ensure github-mcp uses env var tokens, not inline
+- [ ] Log MCP server starts/stops to feed
+
 ## P2 — Open
 
 - [ ] SEC-006: Strengthen password policy (min 8 chars)
-- [ ] SEC-007: Add session expiry/rotation
+- [ ] SEC-007: Add session expiry/rotation (7-day partial via session persistence)
 - [ ] SEC-008: Add login rate limiting
 - [ ] SEC-009: Move token from localStorage to httpOnly cookie
+- [ ] SEC-014: Host tmux mode — no container isolation (accepted tradeoff)
+- [ ] SEC-015: Session tokens cleartext on disk (~/.evomesh/sessions.json)
 - [x] SEC-013: Remove dead /api/complete-path endpoint → FIXED (endpoint removed)
 
 ## P2 — Fixed/Closed
