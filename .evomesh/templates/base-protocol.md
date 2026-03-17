@@ -42,7 +42,7 @@
 
 **metrics.log 格式**：`timestamp,duration_s,tasks_done,errors,inbox_processed`
 
-**归档**：long-term > 200 行 → 旧条目移入 `memory/archive.md`。
+**归档**：long-term > 200 行 → 删除最旧的条目，保留最有价值的经验。
 
 > **为什么**：short-term 是其他角色和 Mission Control 观测你状态的唯一方式。空 memory = 角色失联。
 
