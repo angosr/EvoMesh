@@ -138,41 +138,13 @@
 </div>
 <div class="resize-handle" id="rh-right"></div>
 
-<!-- Right Panel: Mission Control -->
+<!-- Right Panel: Unified Feed -->
 <div id="chat-sidebar">
   <h2><span class="pulse"></span> Mission Control <button class="mc-close" onclick="toggleChat()" title="Close">&times;</button></h2>
-  <div id="mc-tabs">
-    <button class="mc-tab active" data-mc-tab="activity">Activity</button>
-    <button class="mc-tab" data-mc-tab="issues">Issues</button>
-    <button class="mc-tab" data-mc-tab="tasks">Tasks</button>
-    <button class="mc-tab" data-mc-tab="central">Central AI</button>
-  </div>
-  <!-- Activity Feed -->
-  <div class="mc-panel active" id="mc-activity">
-    <div id="mc-activity-feed"></div>
-    <div id="mc-activity-empty" class="mc-empty">No activity yet. Waiting for roles...</div>
-  </div>
-  <!-- Issues / Alerts -->
-  <div class="mc-panel" id="mc-issues">
-    <div id="mc-issues-list"></div>
-    <div id="mc-issues-empty" class="mc-empty">No issues detected.</div>
-  </div>
-  <!-- Tasks Overview -->
-  <div class="mc-panel" id="mc-tasks">
-    <div id="mc-tasks-list"></div>
-    <div id="mc-tasks-empty" class="mc-empty">No tasks found.</div>
-  </div>
-  <!-- Central AI — chat style -->
-  <div class="mc-panel" id="mc-central">
-    <div class="mc-status-toggle" onclick="this.parentElement.classList.toggle('status-collapsed')">
-      <span class="mc-toggle-arrow">&#9660;</span> Central AI Status
-    </div>
-    <div id="central-status" class="mc-central-status"></div>
-    <div id="central-feed" class="mc-central-feed"></div>
-    <div class="mc-chat-input">
-      <textarea id="central-input" rows="2" placeholder="Send command to Central AI..."></textarea>
-      <button id="central-send" onclick="sendToCentral()">Send</button>
-    </div>
+  <div id="feed"></div>
+  <div id="feed-input">
+    <textarea id="feed-msg" rows="2" placeholder="Send to Central AI..."></textarea>
+    <button id="feed-send">Send</button>
   </div>
 </div>
 

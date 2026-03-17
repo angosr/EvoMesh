@@ -3,18 +3,19 @@
 ## Completed
 - [x] Dashboard table responsive on mobile (stacked card layout)
 - [x] XSS fix: inline onclick → addEventListener + data-* attributes
-- [x] Mission Control panel: 4-tab layout (Activity, Issues, Tasks, Central AI)
-- [x] Mission Control API consumption (sort, type mapping, fallback)
+- [x] Mission Control panel: 4-tab layout → **REPLACED** with unified feed
 - [x] Mobile Mission Control: full-screen, touch-friendly, keyboard-safe
 - [x] Loading state for action buttons (withLoading helper)
-- [x] Settings page: loading state on password/user buttons, confirm shadowing fix
-- [x] Copy dialog: proper modal with "Copy All" button, CSS classes, no inline handlers
-- [x] Smoke test suite (15 tests: syntax, XSS, HTML integrity, CSS, function refs)
+- [x] Settings page: loading state on password/user buttons
+- [x] Copy dialog: proper modal with "Copy All" button
+- [x] Smoke test suite (15 tests)
+- [x] Mobile terminal scrolling — batched + momentum
+- [x] Swipe-to-close for mobile sidebar and right panel
+- [x] Dark/light theme toggle
+- [x] **Unified feed rewrite**: deleted all MC tabs/panels, replaced with SSE-driven message stream
 
 ## P1 — Current Issues
-- [x] Mobile terminal scrolling — improved with batched requests + momentum inertia
-- [x] `/api/mission-control` endpoint done — Tasks tab now renders from API, placeholder updated
+(None)
 
 ## P2 — Improvements
-- [x] Swipe-to-close for mobile sidebar (swipe left) and Mission Control (swipe right)
-- [x] Dark/light theme toggle with localStorage persistence
+- [ ] Verify feed works end-to-end in browser after server restart

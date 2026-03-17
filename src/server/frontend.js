@@ -616,29 +616,35 @@ async function startAndOpenCentral() {
   }
 }
 
-// ==================== Mission Control ====================
-function initMissionControl() {
-  // Tab switching
-  document.querySelectorAll('.mc-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.mc-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.mc-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      const panel = document.getElementById(`mc-${tab.dataset.mcTab}`);
-      if (panel) panel.classList.add('active');
-      // Hide bottom quick-input when Central AI tab is active (it has its own input)
-      const mcCmd = document.getElementById('mc-command');
-      if (mcCmd) mcCmd.style.display = tab.dataset.mcTab === 'central' ? 'none' : '';
-    });
-  });
+// ==================== Unified Feed ====================
+const ROLE_COLORS = { lead: '#ef4444', 'core-dev': '#22c55e', frontend: '#3b82f6', reviewer: '#a855f7', security: '#f97316', research: '#06b6d4', 'agent-architect': '#ec4899' };
 
-  // Start polling
-  refreshMissionControl();
-  setInterval(refreshMissionControl, 5000);
+function initFeed() {
+  const feed = document.getElementById('feed');
+  if (!feed) return;
 
-  // Central AI status (less frequent)
+  // SSE stream for role updates
+  try {
+    const es = new EventSource(`${API}/feed/stream?token=${encodeURIComponent(AUTH_TOKEN)}`);
+    es.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        appendFeedMessage(msg);
+      } catch {}
+    };
+  } catch {}
+
+  // Periodic Central AI status as feed message
   refreshCentralStatus();
-  setInterval(refreshCentralStatus, 10000);
+  setInterval(refreshCentralStatus, 15000);
+
+  // Send button
+  const sendBtn = document.getElementById('feed-send');
+  const msgInput = document.getElementById('feed-msg');
+  if (sendBtn) sendBtn.addEventListener('click', sendFeedMsg);
+  if (msgInput) msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFeedMsg(); }
+  });
 
   // Try to start central AI if not running
   authFetch(`${API}/admin/status`).then(r => r.json()).then(s => {
@@ -646,225 +652,53 @@ function initMissionControl() {
   }).catch(() => {});
 }
 
-async function refreshMissionControl() {
-  try {
-    const res = await authFetch(`${API}/mission-control`);
-    if (!res.ok) {
-      // API not implemented yet — build from existing data
-      renderMCFromState();
-      return;
-    }
-    const data = await res.json();
-    if (data.activity) renderMCActivity(data.activity);
-    if (data.issues) renderMCIssues(data.issues);
-    if (data.tasks) renderMCTasks(data.tasks);
-  } catch {
-    // Fallback: build from existing project/role state
-    renderMCFromState();
-  }
-}
-
-// Fallback: build activity/issues from existing fetchAll data
-function renderMCFromState() {
-  const feed = document.getElementById('mc-activity-feed');
-  const empty = document.getElementById('mc-activity-empty');
+function appendFeedMessage(msg) {
+  const feed = document.getElementById('feed');
   if (!feed) return;
+  const div = document.createElement('div');
+  div.className = `feed-item feed-${msg.type || 'system'}`;
 
-  const items = [];
-  const seen = new Set();
-  for (const p of state.projects) {
-    for (const r of p.roles) {
-      const key = `${p.slug}/${r.name}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      items.push({
-        project: p.name,
-        role: r.name,
-        type: r.type || 'worker',
-        running: r.running,
-        needsLogin: r.needsLogin,
-      });
-    }
-  }
+  const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-  if (!items.length) {
-    feed.innerHTML = '';
-    if (empty) empty.style.display = '';
-    return;
-  }
-
-  if (empty) empty.style.display = 'none';
-  const now = new Date();
-  const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-
-  feed.innerHTML = items.map(it => {
-    const roleClass = it.type === 'lead' ? ' lead' : '';
-    const status = it.needsLogin ? '<span style="color:var(--red)">needs login</span>'
-      : it.running ? '<span style="color:var(--green)">running</span>'
-      : '<span style="color:var(--text-faint)">stopped</span>';
-    return `<div class="mc-activity-item">
-      <span class="mc-time">${esc(timeStr)}</span>
-      <span class="mc-project">${esc(it.project)}</span>
-      <span class="mc-role${roleClass}">${esc(it.role)}</span>
-      <span class="mc-status">${status}</span>
-    </div>`;
-  }).join('');
-
-  // Build issues from state (login-needed, stopped roles)
-  const issuesList = document.getElementById('mc-issues-list');
-  const issuesEmpty = document.getElementById('mc-issues-empty');
-  if (!issuesList) return;
-
-  const issues = [];
-  for (const p of state.projects) {
-    for (const r of p.roles) {
-      if (r.needsLogin) issues.push({ priority: 'p0', title: `${r.name} needs login`, meta: p.name, slug: p.slug, role: r.name });
-      else if (!r.running) issues.push({ priority: 'p1', title: `${r.name} stopped`, meta: p.name, slug: p.slug, role: r.name });
-    }
-  }
-
-  if (!issues.length) {
-    issuesList.innerHTML = '';
-    if (issuesEmpty) issuesEmpty.style.display = '';
+  if (msg.type === 'role-update') {
+    const color = ROLE_COLORS[msg.role] || '#888';
+    div.innerHTML = `<span class="feed-role" style="color:${color}">${esc(msg.role || '')}</span>
+      <span class="feed-time">${esc(time)}</span>
+      <div class="feed-text">${esc(msg.text || '')}</div>`;
+  } else if (msg.type === 'central-status') {
+    div.innerHTML = `<span class="feed-role" style="color:#ef4444">Central AI</span>
+      <span class="feed-time">${esc(time)}</span>
+      <div class="feed-text">${esc(msg.text || '')}</div>`;
+  } else if (msg.type === 'user-message') {
+    div.innerHTML = `<div class="feed-text">${esc(msg.text || '')}</div>`;
   } else {
-    if (issuesEmpty) issuesEmpty.style.display = 'none';
-    issuesList.innerHTML = issues.map(is => `<div class="mc-issue ${esc(is.priority)}">
-      <div class="mc-issue-title">${esc(is.title)}</div>
-      <div class="mc-issue-meta">${esc(is.meta)}</div>
-      <div class="mc-issue-actions">
-        <button data-action="mc-restart" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Restart</button>
-        <button data-action="mc-open" data-slug="${esc(is.slug)}" data-role="${esc(is.role)}">Open</button>
-      </div>
-    </div>`).join('');
-    issuesList.querySelectorAll('[data-action="mc-restart"]').forEach(btn => {
-      btn.addEventListener('click', () => withLoading(btn, () => restartRole(btn.dataset.slug, btn.dataset.role)));
-    });
-    issuesList.querySelectorAll('[data-action="mc-open"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const p = state.projects.find(proj => proj.slug === btn.dataset.slug);
-        if (p) {
-          const r = p.roles.find(role => role.name === btn.dataset.role);
-          openTerminal(btn.dataset.slug, p.name, btn.dataset.role, r?.terminal);
-        }
-      });
-    });
+    div.innerHTML = `<div class="feed-text feed-system-text">${esc(msg.text || '')}</div>`;
   }
 
-  // Tasks: show empty state in fallback mode
-  const tasksList = document.getElementById('mc-tasks-list');
-  const tasksEmpty = document.getElementById('mc-tasks-empty');
-  if (tasksList && tasksEmpty) {
-    tasksList.innerHTML = '';
-    tasksEmpty.style.display = '';
-    tasksEmpty.textContent = 'No open tasks';
-  }
-}
-
-function renderMCActivity(activity) {
-  const feed = document.getElementById('mc-activity-feed');
-  const empty = document.getElementById('mc-activity-empty');
-  if (!feed) return;
-  if (!activity.length) { feed.innerHTML = ''; if (empty) empty.style.display = ''; return; }
-  if (empty) empty.style.display = 'none';
-  // Sort by time descending (newest first)
-  const sorted = [...activity].sort((a, b) => (b.time || '').localeCompare(a.time || ''));
-  feed.innerHTML = sorted.map(a => {
-    const roleClass = a.type === 'lead' ? ' lead' : '';
-    return `<div class="mc-activity-item">
-      <span class="mc-time">${esc(a.time || '')}</span>
-      <span class="mc-project">${esc(a.project || '')}</span>
-      <span class="mc-role${roleClass}">${esc(a.role || '')}</span>
-      <span class="mc-status">${esc(a.status || '')}</span>
-    </div>`;
-  }).join('');
-}
-
-function renderMCIssues(issues) {
-  const list = document.getElementById('mc-issues-list');
-  const empty = document.getElementById('mc-issues-empty');
-  if (!list) return;
-  if (!issues.length) { list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
-  if (empty) empty.style.display = 'none';
-  // Map issue type to CSS class: stopped→p0 (red), stale→p1 (yellow), p0-pending→p0
-  const typeToClass = { stopped: 'p0', stale: 'p1', 'p0-pending': 'p0' };
-  const typeLabel = { stopped: 'STOPPED', stale: 'STALE', 'p0-pending': 'P0' };
-  list.innerHTML = issues.map(is => {
-    const cls = typeToClass[is.type] || is.priority || 'p2';
-    const badge = typeLabel[is.type] || is.type || '';
-    return `<div class="mc-issue ${esc(cls)}">
-      <span class="mc-issue-badge">${esc(badge)}</span>
-      <div class="mc-issue-title">${esc(is.title || '')}</div>
-      <div class="mc-issue-meta">${esc(is.meta || '')}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderMCTasks(tasks) {
-  const list = document.getElementById('mc-tasks-list');
-  const empty = document.getElementById('mc-tasks-empty');
-  if (!list) return;
-  if (!tasks.length) { list.innerHTML = ''; if (empty) empty.style.display = ''; return; }
-  if (empty) empty.style.display = 'none';
-  // Sort by priority: P0 → P1 → P2
-  const prioOrder = { p0: 0, p1: 1, p2: 2 };
-  const sorted = [...tasks].sort((a, b) => (prioOrder[a.priority] ?? 9) - (prioOrder[b.priority] ?? 9));
-  list.innerHTML = sorted.map(t => `<div class="mc-task">
-    <span class="mc-task-priority ${esc(t.priority || 'p2')}">${esc((t.priority || 'P2').toUpperCase())}</span>
-    <div>
-      <div class="mc-task-text">${esc(t.text || '')}</div>
-      <div class="mc-task-role">${esc(t.role || '')} · ${esc(t.project || '')}</div>
-    </div>
-  </div>`).join('');
-}
-
-function simpleMarkdown(md) {
-  return md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^\| (.+)/gm, (_, row) => {
-      const cells = row.split('|').map(c => c.trim()).filter(Boolean);
-      return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
-    })
-    .replace(/^\|[-| ]+\|?$/gm, '')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
-    .replace(/(<tr>.*<\/tr>\n?)+/g, m => `<table class="mc-table">${m}</table>`)
-    .replace(/\n{2,}/g, '<br>');
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  while (feed.children.length > 200) feed.removeChild(feed.firstChild);
 }
 
 async function refreshCentralStatus() {
-  const el = document.getElementById('central-status');
-  if (!el) return;
   try {
     const res = await authFetch(`${API}/admin/central-status`);
     if (res.ok) {
       const text = await res.text();
-      el.innerHTML = text ? simpleMarkdown(text) : '<em>Central AI running. Waiting for first status update...</em>';
+      if (text && text.trim()) {
+        appendFeedMessage({ type: 'central-status', text: text.slice(0, 500), time: new Date().toISOString() });
+      }
     }
-  } catch { el.innerHTML = '<em>Central AI offline</em>'; }
+  } catch {}
 }
 
-function addCentralMessage(html, cls) {
-  const feed = document.getElementById('central-feed');
-  if (!feed) return;
-  const div = document.createElement('div');
-  div.className = `feed-msg ${cls || 'status'}`;
-  div.innerHTML = html;
-  feed.appendChild(div);
-  feed.scrollTop = feed.scrollHeight;
-  while (feed.children.length > 100) feed.removeChild(feed.firstChild);
-}
-
-async function sendToCentral() {
-  const input = document.getElementById('central-input');
+async function sendFeedMsg() {
+  const input = document.getElementById('feed-msg');
   const text = input?.value?.trim();
   if (!text) return;
-  const btn = document.getElementById('central-send');
+  const btn = document.getElementById('feed-send');
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
-  addCentralMessage(`<strong style="color:var(--accent)">You</strong> ${esc(text)}`, 'user');
+  appendFeedMessage({ type: 'user-message', text, time: new Date().toISOString() });
   input.value = '';
   try {
     const res = await authFetch(`${API}/admin/message`, {
@@ -874,32 +708,14 @@ async function sendToCentral() {
     });
     const data = await res.json();
     if (data.ok) {
-      addCentralMessage(`<span style="color:var(--green)">&#10003; Sent to Central AI inbox. It will process on next loop.</span>`, 'system');
+      appendFeedMessage({ type: 'system', text: '✓ Sent to Central AI', time: new Date().toISOString() });
     } else {
-      addCentralMessage(`<span style="color:var(--red)">Error: ${esc(data.error)}</span>`, 'system');
+      appendFeedMessage({ type: 'system', text: `Error: ${data.error}`, time: new Date().toISOString() });
     }
-  } catch { addCentralMessage(`<span style="color:var(--red)">Failed to send</span>`, 'system'); }
+  } catch { appendFeedMessage({ type: 'system', text: 'Failed to send', time: new Date().toISOString() }); }
   if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
   input.focus();
 }
-
-function quickSendToCentral() {
-  const input = document.getElementById('mc-quick-input');
-  const text = input?.value?.trim();
-  if (!text) return;
-  input.value = '';
-  // Switch to Central AI tab and send from there
-  document.querySelectorAll('.mc-tab').forEach(t => t.classList.toggle('active', t.dataset.mcTab === 'central'));
-  document.querySelectorAll('.mc-panel').forEach(p => p.classList.toggle('active', p.id === 'mc-central'));
-  document.getElementById('mc-command').style.display = 'none';
-  const centralInput = document.getElementById('central-input');
-  if (centralInput) { centralInput.value = text; sendToCentral(); }
-}
-
-// Enter to send
-document.getElementById('central-input')?.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendToCentral(); }
-});
 
 // ==================== Init ====================
 (async () => {
@@ -917,7 +733,7 @@ document.getElementById('central-input')?.addEventListener('keydown', e => {
     const refreshEs = new EventSource(`${API}/refresh/subscribe?token=${encodeURIComponent(AUTH_TOKEN)}`);
     refreshEs.onmessage = () => { fetchAll(); };
   } catch {}
-  initMissionControl();
+  initFeed();
 })();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });
 window.addEventListener('beforeunload', saveLayout);
