@@ -1,10 +1,12 @@
-import { leadRoleMd, leadLoopMd } from "./lead.js";
-import { executorRoleMd, executorLoopMd } from "./executor.js";
-import { reviewerRoleMd, reviewerLoopMd } from "./reviewer.js";
-import { leadRoleMdEn, leadLoopMdEn } from "./lead-en.js";
-import { executorRoleMdEn, executorLoopMdEn } from "./executor-en.js";
-import { reviewerRoleMdEn, reviewerLoopMdEn } from "./reviewer-en.js";
-import type { RoleConfig, Lang } from "../../config/schema.js";
+import { leadRoleMdEn, leadLoopMdEn } from "./lead.js";
+import { executorRoleMdEn, executorLoopMdEn } from "./executor.js";
+import { reviewerRoleMdEn, reviewerLoopMdEn } from "./reviewer.js";
+import { coreDevRoleMd, coreDevLoopMd } from "./core-dev.js";
+import { frontendRoleMd, frontendLoopMd } from "./frontend.js";
+import { agentArchitectRoleMd, agentArchitectLoopMd } from "./agent-architect.js";
+import { securityRoleMd, securityLoopMd } from "./security.js";
+import { researchRoleMd, researchLoopMd } from "./research.js";
+import type { RoleConfig } from "../../config/schema.js";
 
 export interface RoleTemplate {
   roleMd: (projectName: string) => string;
@@ -12,70 +14,79 @@ export interface RoleTemplate {
   defaultConfig: Omit<RoleConfig, "account">;
 }
 
-const TEMPLATES_ZH: Record<string, RoleTemplate> = {
-  lead: {
-    roleMd: leadRoleMd,
-    loopMd: leadLoopMd,
-    defaultConfig: {
-      type: "lead", loop_interval: "20m", evolution_upgrade_every: 30,
-      scope: [".evomesh/blueprint.md", ".evomesh/status.md", ".evomesh/roles/*/inbox/", "docs/"],
-      description: "项目总控，审查所有角色，维护战略蓝图",
-    },
-  },
-  executor: {
-    roleMd: executorRoleMd,
-    loopMd: executorLoopMd,
-    defaultConfig: {
-      type: "worker", loop_interval: "10m", evolution_upgrade_every: 20,
-      scope: ["src/", "tests/"],
-      description: "代码实现，测试，提交",
-    },
-  },
-  reviewer: {
-    roleMd: reviewerRoleMd,
-    loopMd: reviewerLoopMd,
-    defaultConfig: {
-      type: "worker", loop_interval: "15m", evolution_upgrade_every: 25,
-      scope: ["src/", "tests/", "docs/"],
-      description: "代码审查，质量把控",
-    },
-  },
-};
-
-const TEMPLATES_EN: Record<string, RoleTemplate> = {
+export const TEMPLATES: Record<string, RoleTemplate> = {
   lead: {
     roleMd: leadRoleMdEn,
     loopMd: leadLoopMdEn,
     defaultConfig: {
-      type: "lead", loop_interval: "20m", evolution_upgrade_every: 30,
+      type: "lead", loop_interval: "8m", evolution_upgrade_every: 30,
       scope: [".evomesh/blueprint.md", ".evomesh/status.md", ".evomesh/roles/*/inbox/", "docs/"],
-      description: "Project lead, reviews all roles, maintains strategic blueprint",
+      description: "Project lead — strategy, docs, role coordination",
     },
   },
   executor: {
     roleMd: executorRoleMdEn,
     loopMd: executorLoopMdEn,
     defaultConfig: {
-      type: "worker", loop_interval: "10m", evolution_upgrade_every: 20,
+      type: "worker", loop_interval: "5m", evolution_upgrade_every: 20,
       scope: ["src/", "tests/"],
       description: "Code implementation, testing, commits",
+    },
+  },
+  "core-dev": {
+    roleMd: coreDevRoleMd,
+    loopMd: coreDevLoopMd,
+    defaultConfig: {
+      type: "worker", loop_interval: "5m", evolution_upgrade_every: 20,
+      scope: ["src/", "docker/", "test/"],
+      description: "Main feature development — backend, Docker, API",
+    },
+  },
+  frontend: {
+    roleMd: frontendRoleMd,
+    loopMd: frontendLoopMd,
+    defaultConfig: {
+      type: "worker", loop_interval: "5m", evolution_upgrade_every: 20,
+      scope: ["src/server/frontend*", "src/server/*.html"],
+      description: "UI/UX developer — web, mobile, interaction",
     },
   },
   reviewer: {
     roleMd: reviewerRoleMdEn,
     loopMd: reviewerLoopMdEn,
     defaultConfig: {
+      type: "worker", loop_interval: "10m", evolution_upgrade_every: 25,
+      scope: ["src/", "test/", "docs/"],
+      description: "Code review — quality, correctness, best practices",
+    },
+  },
+  "agent-architect": {
+    roleMd: agentArchitectRoleMd,
+    loopMd: agentArchitectLoopMd,
+    defaultConfig: {
+      type: "worker", loop_interval: "10m", evolution_upgrade_every: 25,
+      scope: [".evomesh/", "docs/"],
+      description: "Multi-agent collaboration specialist",
+    },
+  },
+  security: {
+    roleMd: securityRoleMd,
+    loopMd: securityLoopMd,
+    defaultConfig: {
       type: "worker", loop_interval: "15m", evolution_upgrade_every: 25,
-      scope: ["src/", "tests/", "docs/"],
-      description: "Code review, quality assurance",
+      scope: ["src/", "docker/"],
+      description: "Security audit — vulnerabilities, hardcodes, injection",
+    },
+  },
+  research: {
+    roleMd: researchRoleMd,
+    loopMd: researchLoopMd,
+    defaultConfig: {
+      type: "worker", loop_interval: "15m", evolution_upgrade_every: 25,
+      scope: ["devlog/", "docs/"],
+      description: "Frontier research — papers, open source, trends",
     },
   },
 };
 
-export function getTemplates(lang: Lang = "zh"): Record<string, RoleTemplate> {
-  return lang === "en" ? TEMPLATES_EN : TEMPLATES_ZH;
-}
-
-// Default export for backward compat
-export const TEMPLATES = TEMPLATES_ZH;
-export const TEMPLATE_NAMES = Object.keys(TEMPLATES_ZH);
+export const TEMPLATE_NAMES = Object.keys(TEMPLATES);
