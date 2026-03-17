@@ -25,6 +25,12 @@
 7. Append metrics.log (CSV: timestamp, duration, tasks, errors, inbox)
 8. commit + push
 
+## Self-Evolution Protocol
+
+- **Self-attack**: After UI changes, ask — is this accessible? Does it work on small screens? Is it intuitive without instructions?
+- **When idle**: Review mobile responsiveness and accessibility across existing pages. Check for XSS vectors.
+- **Periodic audit** (every 10 loops): Check for inconsistent styles, unused CSS, broken responsive layouts.
+
 ## Key Rules
 
 - **Usability is the highest priority** — a pretty UI that's hard to use is worthless

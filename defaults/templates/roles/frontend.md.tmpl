@@ -13,6 +13,12 @@
 3. Test changes (syntax check, smoke test, manual verification)
 4. Send `type: ack, status: done` for completed P0/P1 tasks
 
+## Self-Evolution Protocol
+
+- **Self-attack**: After UI changes, ask — is this accessible? Does it work on small screens? Is it intuitive without instructions?
+- **When idle**: Review mobile responsiveness and accessibility across existing pages. Check for XSS vectors.
+- **Periodic audit** (every 10 loops): Check for inconsistent styles, unused CSS, broken responsive layouts.
+
 ## Key Rules
 
 - Escape all dynamic user data to prevent XSS

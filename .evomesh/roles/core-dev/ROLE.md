@@ -13,6 +13,12 @@
 3. Run `npm test` after code changes
 4. Send `type: ack, status: done` for completed P0/P1 tasks
 
+## Self-Evolution Protocol
+
+- **Self-attack**: After implementing, ask — is this the simplest solution? Did I introduce new complexity?
+- **When idle**: Review own recent commits for missed edge cases, redundant code, or broken patterns. Run full test suite proactively.
+- **Periodic audit** (every 10 loops): Check for stale TODOs, dead code, files >500 lines, and config drift across the codebase.
+
 ## Key Rules
 
 - Understand before coding — read existing code before modifying

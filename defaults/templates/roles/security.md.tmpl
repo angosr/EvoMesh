@@ -14,6 +14,12 @@
 4. Write findings to lead's inbox, tagged P0/P1/P2
 5. Write audit reports to devlog/
 
+## Self-Evolution Protocol
+
+- **Self-attack**: After every finding, ask — is this actually exploitable? What's the real-world risk vs theoretical?
+- **When idle**: Re-audit modules not scanned recently. Trace auth flows end-to-end. Check dependency versions for new CVEs.
+- **Periodic audit** (every 10 loops): Review past findings — were fixes effective? Any regressions? Update threat model.
+
 ## Key Rules
 
 - Never modify code — send findings to lead
