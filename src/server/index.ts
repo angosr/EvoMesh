@@ -44,6 +44,31 @@ export function startServer(port: number, initialRoot?: string) {
   migrateIfNeeded();
 
   const sessions = new Map<string, SessionInfo>();
+  const SESSION_FILE = path.join(os.homedir(), ".evomesh", "sessions.json");
+
+  // Restore sessions from disk (survive server restart)
+  try {
+    if (fs.existsSync(SESSION_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+      for (const [token, info] of Object.entries(data)) {
+        const s = info as SessionInfo & { createdAt?: string };
+        if (s.createdAt && Date.now() - new Date(s.createdAt).getTime() > maxAge) continue;
+        sessions.set(token, { username: s.username, role: s.role });
+      }
+      if (sessions.size > 0) console.log(`[auth] Restored ${sessions.size} sessions`);
+    }
+  } catch {}
+
+  function persistSessions() {
+    try {
+      const data: Record<string, SessionInfo & { createdAt: string }> = {};
+      for (const [token, info] of sessions) {
+        data[token] = { ...info, createdAt: new Date().toISOString() };
+      }
+      fs.writeFileSync(SESSION_FILE, JSON.stringify(data), "utf-8");
+    } catch {}
+  }
 
   // --- Session helpers ---
   function extractToken(req: { headers: { authorization?: string }; query?: any; url?: string }): string | undefined {
@@ -75,6 +100,7 @@ export function startServer(port: number, initialRoot?: string) {
       setupAdmin(name, password);
       const token = generateSessionToken();
       sessions.set(token, { username: name, role: "admin" });
+      persistSessions();
       res.json({ ok: true, token, username: name, role: "admin" });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
@@ -86,6 +112,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (!user) { res.status(401).json({ error: "Invalid username or password" }); return; }
     const token = generateSessionToken();
     sessions.set(token, { username: user.username, role: user.role });
+    persistSessions();
     res.json({ ok: true, token, username: user.username, role: user.role });
   });
 
