@@ -36,6 +36,11 @@ export function formatBytes(bytes: number): string {
  * Check if the request has a session with at least the given project role.
  * Returns true if authorized, sends 403 and returns false otherwise.
  */
+/** Extract linuxUser from request session for multi-user scoping. */
+export function reqLinuxUser(req: any): string | undefined {
+  return (req._session as SessionInfo | undefined)?.linuxUser;
+}
+
 export function requireProjectRole(req: any, res: any, projectPath: string, minRole: ProjectRole): boolean {
   const session = req._session as SessionInfo | undefined;
   if (!session) { res.status(401).json({ error: "Not authenticated" }); return false; }
@@ -106,7 +111,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   app.get("/api/projects", (req, res) => {
     try {
       const session = (req as any)._session as SessionInfo | undefined;
-      const projects = ctx.getProjects();
+      const projects = ctx.getProjects(session?.linuxUser);
       // Admin sees all; others see only accessible projects
       const accessible = session?.role === "admin"
         ? projects
@@ -171,7 +176,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   });
 
   app.delete("/api/projects/:slug", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     // Stop all containers for this project
@@ -192,7 +197,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   // --- Project status ---
 
   app.get("/api/projects/:slug/status", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "viewer")) return;
     try {
@@ -225,7 +230,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   // --- Chat ---
 
   app.post("/api/projects/:slug/chat", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "member")) return;
     const { message } = req.body;
@@ -249,7 +254,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   });
 
   app.get("/api/projects/:slug/chat/history", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.json({ messages: [] }); return; }
     if (!requireProjectRole(req, res, project.root, "viewer")) return;
     try {
@@ -350,7 +355,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   // --- Project members ---
 
   app.get("/api/projects/:slug/members", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "viewer")) return;
     const members = listMembers(project.root);
@@ -358,7 +363,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   });
 
   app.post("/api/projects/:slug/members", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { username, role } = req.body;
@@ -371,7 +376,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   });
 
   app.delete("/api/projects/:slug/members/:username", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     try {

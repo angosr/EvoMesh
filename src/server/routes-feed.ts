@@ -5,7 +5,7 @@ import { loadConfig } from "../config/loader.js";
 import { roleDir } from "../utils/paths.js";
 import { isRoleRunning } from "../process/container.js";
 import { errorMessage } from "../utils/error.js";
-import { requireProjectRole } from "./routes.js";
+import { requireProjectRole, reqLinuxUser } from "./routes.js";
 import type { SessionInfo } from "./auth.js";
 import type { ServerContext } from "./index.js";
 
@@ -13,7 +13,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
 
   // --- Mission Control: aggregated role data ---
   app.get("/api/mission-control", (req, res) => {
-    const firstProject = ctx.getProjects()[0];
+    const firstProject = ctx.getProjects(reqLinuxUser(req))[0];
     if (!firstProject) { res.json({ activity: [], issues: [], tasks: [], ts: new Date().toISOString() }); return; }
     if (!requireProjectRole(req, res, firstProject.root, "viewer")) return;
     try {

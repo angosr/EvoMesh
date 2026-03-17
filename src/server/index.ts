@@ -30,8 +30,8 @@ export interface ServerContext {
   port: number;
   sessions: Map<string, SessionInfo>;
   ttydProcesses: Map<string, TtydProcess>;
-  getProjects: () => ProjectEntry[];
-  getProject: (slug: string) => ProjectEntry | undefined;
+  getProjects: (linuxUser?: string) => ProjectEntry[];
+  getProject: (slug: string, linuxUser?: string) => ProjectEntry | undefined;
   checkNeedsLogin: (accountDir: string) => boolean;
   extractToken: (req: { headers: { authorization?: string }; query?: any; url?: string }) => string | undefined;
 }

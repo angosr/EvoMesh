@@ -10,7 +10,7 @@ import {
 } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
-import { ROLE_NAME_RE, requireProjectRole, allocatePort } from "./routes.js";
+import { ROLE_NAME_RE, requireProjectRole, allocatePort, reqLinuxUser } from "./routes.js";
 import { markRoleRunning, markRoleStopped } from "./health.js";
 
 export function registerRoleRoutes(app: import("express").Express, ctx: ServerContext): void {
@@ -18,7 +18,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   // --- Role lifecycle ---
 
   app.post("/api/projects/:slug/roles/:name/start", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
@@ -38,7 +38,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   });
 
   app.post("/api/projects/:slug/roles/:name/stop", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     stopRole(project.root, req.params.name);
@@ -53,7 +53,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   });
 
   app.post("/api/projects/:slug/roles/:name/restart", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
@@ -80,7 +80,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   // --- Role logs ---
 
   app.get("/api/projects/:slug/roles/:name/log", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "viewer")) return;
     const logs = getRoleLogs(project.root, req.params.name);
@@ -94,7 +94,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   });
 
   app.post("/api/projects/:slug/roles", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { name, template, account } = req.body;
@@ -109,7 +109,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   });
 
   app.delete("/api/projects/:slug/roles/:name", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
@@ -126,7 +126,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   // --- Resource config ---
 
   app.post("/api/projects/:slug/roles/:name/config", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
@@ -161,7 +161,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
   // --- Account switching ---
 
   app.post("/api/projects/:slug/roles/:name/account", (req, res) => {
-    const project = ctx.getProject(req.params.slug);
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const roleName = req.params.name;
