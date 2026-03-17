@@ -360,19 +360,27 @@ export function startServer(port: number, initialRoot?: string) {
             }
           }
 
-          // Brain-dead detection: running but memory stale >30min
+          // Brain-dead detection: running but BOTH memory stale AND no recent commits >30min
           if (running) {
             try {
               const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
               const stmStat = fs.statSync(stmPath);
-              const ageMs = Date.now() - stmStat.mtimeMs;
+              const memAgeMs = Date.now() - stmStat.mtimeMs;
               const lastTime = lastRestart.get(key) || 0;
-              if (ageMs > 30 * 60 * 1000 && Date.now() - lastTime > RESTART_COOLDOWN) {
-                const entry = ctx.ttydProcesses.get(key);
-                if (!entry?.userStopped) {
-                  console.log(`[brain-dead] ${name} memory stale ${Math.round(ageMs / 60000)}min, force-restarting`);
-                  stopRole(p.root, name);
-                  // Next cycle: autoRestartCrashed will detect it as crashed and restart
+              if (memAgeMs > 30 * 60 * 1000 && Date.now() - lastTime > RESTART_COOLDOWN) {
+                // Dual signal: also check git commits — if role committed recently, it's alive
+                let hasRecentCommit = false;
+                try {
+                  const gitLog = execFileSync("git", ["log", "--oneline", "--since=30 minutes ago", `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
+                  hasRecentCommit = gitLog.trim().length > 0;
+                } catch {}
+                if (!hasRecentCommit) {
+                  const entry = ctx.ttydProcesses.get(key);
+                  if (!entry?.userStopped) {
+                    console.log(`[brain-dead] ${name} memory stale ${Math.round(memAgeMs / 60000)}min AND no recent commits, force-restarting`);
+                    stopRole(p.root, name);
+                    // Next cycle: autoRestartCrashed will detect it as crashed and restart
+                  }
                 }
               }
             } catch {} // file doesn't exist yet — skip
