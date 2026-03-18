@@ -59,6 +59,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
     if (!requireProjectRole(req, res, firstProject.root, "viewer")) return;
     try {
       const now = Date.now();
+      const lu = reqLinuxUser(req);
       const relTime = (ms: number) => {
         const m = Math.floor(ms / 60000);
         if (m < 1) return "just now";
@@ -67,7 +68,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
         if (h < 24) return `${h}h ago`;
         return `${Math.floor(h / 24)}d ago`;
       };
-      const projects = ctx.getProjects();
+      const projects = ctx.getProjects(lu);
       const activity: Array<{ project: string; role: string; time: string; text: string; mtime: number }> = [];
       const issues: Array<{ project: string; slug: string; role: string; type: string; title: string; meta: string }> = [];
       const tasks: Array<{ priority: string; text: string; project: string; role: string; done: boolean }> = [];
@@ -183,12 +184,13 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
       }
     } catch (e: unknown) { console.error(`[feed] failed to send SSE history: ${errorMessage(e)}`); }
 
+    const feedLinuxUser = session.linuxUser;
     const lastMtime = new Map<string, number>();
     const lastText = new Map<string, string>(); // dedup: skip if same text as last broadcast
 
     const check = () => {
       try {
-        const projects = ctx.getProjects();
+        const projects = ctx.getProjects(feedLinuxUser);
         const activeKeys = new Set<string>();
         for (const p of projects) {
           let config;
