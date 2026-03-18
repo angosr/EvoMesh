@@ -152,6 +152,11 @@ function _getActiveTerminal() {
 
 function toggleCompose() { _composeOpen ? closeCompose() : openCompose(); }
 
+function _updateComposeBtn() {
+  const btn = document.getElementById('compose-toggle-btn');
+  if (btn) btn.classList.toggle('active', _composeOpen);
+}
+
 function openCompose() {
   if (state.layout !== 'tabs') return;
   const target = _getActiveTerminal();
@@ -162,6 +167,7 @@ function openCompose() {
   document.getElementById('compose-target').textContent = target.role;
   bar.classList.add('open');
   _composeOpen = true;
+  _updateComposeBtn();
   textarea.focus();
 }
 
@@ -170,6 +176,7 @@ function closeCompose() {
   if (!bar) return;
   bar.classList.remove('open');
   _composeOpen = false;
+  _updateComposeBtn();
 }
 
 async function sendCompose() {
