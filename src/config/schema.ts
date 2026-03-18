@@ -14,6 +14,7 @@ export interface RoleConfig {
   cpus?: string;    // e.g. "1.5" → docker --cpus
   mcp?: Record<string, McpServerConfig>;  // MCP servers for this role
   launch_mode?: "docker" | "host";  // Container launch mode
+  idle_policy?: "reset" | "compact" | "stop" | "ignore";  // What to do when role is idle
 }
 
 export interface GitConfig {

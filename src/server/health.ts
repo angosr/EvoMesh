@@ -578,23 +578,31 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             continue;
           }
 
-          // Threshold reached — take action
+          // Threshold reached — take action based on idle_policy
+          const policy = (rc as any).idle_policy || (rc.type === "lead" ? "compact" : "reset");
           const sessionName = containerName(p.slug, name);
 
-          if (rc.type === "lead") {
-            // Lead: compact only — cron persists through /compact
+          if (policy === "ignore") {
+            idleCount.set(key, 0);
+            continue;
+          } else if (policy === "stop") {
+            try {
+              stopRoleManaged(ctx, p.root, p.slug, name, { userStopped: false });
+              console.log(`[idle-cleanup] Stopped idle role ${name} (policy: stop)`);
+              notifyFeed(ctx, name, p.slug, `idle → stopped (policy: stop)`);
+            } catch (e) { console.error(`[idle-cleanup] Failed to stop ${name}:`, e); }
+          } else if (policy === "compact") {
             try {
               sendToRole(sessionName, rc.launch_mode, "/compact");
-              console.log(`[idle-cleanup] Sent /compact to lead ${name}`);
+              console.log(`[idle-cleanup] Sent /compact to ${name}`);
               notifyFeed(ctx, name, p.slug, `idle, sent /compact`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
           } else {
-            // Worker: /clear wipes cron, must re-send /loop
+            // "reset" (default for workers): /clear + /loop
             const roleRootRel = `.evomesh/roles/${name}`;
             const loopInterval = rc.loop_interval || "10m";
             const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
             try {
-              // Ctrl-C first to interrupt any in-progress work, then /clear, then /loop
               sendToRoleInterrupt(sessionName, rc.launch_mode);
               sendToRoleSequence(sessionName, rc.launch_mode, [
                 { message: "/clear", delaySec: 2 },

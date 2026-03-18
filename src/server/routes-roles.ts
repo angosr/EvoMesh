@@ -121,11 +121,18 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
-      const { memory, cpus, launch_mode } = req.body;
+      const { memory, cpus, launch_mode, idle_policy } = req.body;
       rc.memory = memory || undefined;
       rc.cpus = cpus || undefined;
       if (launch_mode === "docker" || launch_mode === "host") {
         rc.launch_mode = launch_mode;
+      }
+      if (idle_policy !== undefined) {
+        const VALID_POLICIES = ["reset", "compact", "stop", "ignore"];
+        if (!VALID_POLICIES.includes(idle_policy)) {
+          res.status(400).json({ error: `Invalid idle_policy. Must be one of: ${VALID_POLICIES.join(", ")}` }); return;
+        }
+        rc.idle_policy = idle_policy;
       }
       writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
@@ -138,7 +145,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         startRoleManaged(ctx, project.root, project.slug, roleName, fresh.roles[roleName], fresh, ttydPort);
       }
 
-      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, restarted: wasRunning });
+      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, restarted: wasRunning });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
