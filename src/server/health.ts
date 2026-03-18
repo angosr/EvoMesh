@@ -42,21 +42,16 @@ function sendToRole(sessionName: string, launchMode: string | undefined, message
   }
 }
 
-/** Send multiple messages with delays between them (runs in background shell). */
+/** Send multiple messages with delays between them. Uses setTimeout to avoid shell quoting. */
 function sendToRoleSequence(sessionName: string, launchMode: string | undefined, steps: { message: string; delaySec: number }[]): void {
-  const parts: string[] = [];
+  let cumulativeDelay = 0;
   for (const step of steps) {
-    if (step.delaySec > 0) parts.push(`sleep ${step.delaySec}`);
-    if (launchMode === "host") {
-      parts.push(`tmux send-keys -t ${sessionName} -l '${step.message.replace(/'/g, "'\\''")}'`);
-      parts.push("sleep 0.5");
-      parts.push(`tmux send-keys -t ${sessionName} Enter`);
-    } else {
-      const escaped = step.message.replace(/'/g, "'\\''");
-      parts.push(`docker exec ${sessionName} gosu ${gosuUser} bash -c 'tmux -f /dev/null send-keys -t claude -l '"'"'${escaped}'"'"' 2>/dev/null; sleep 0.5; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null'`);
-    }
+    cumulativeDelay += step.delaySec * 1000;
+    const delay = cumulativeDelay;
+    setTimeout(() => {
+      try { sendToRole(sessionName, launchMode, step.message); } catch {}
+    }, delay);
   }
-  execFileSync("bash", ["-c", `( ${parts.join("\n")} ) &`], { stdio: "ignore" });
 }
 
 // --- Desired state persistence: which roles SHOULD be running ---
