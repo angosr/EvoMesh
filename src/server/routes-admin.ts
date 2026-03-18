@@ -187,6 +187,10 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
         execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c", tmuxCmds + scrollCmds], { stdio: "ignore" });
       }
       res.json({ ok: true });
-    } catch { res.status(500).json({ error: "Failed" }); }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`Scroll failed for ${cname}:`, msg);
+      res.status(500).json({ error: "Failed", container: cname, detail: msg });
+    }
   });
 }
