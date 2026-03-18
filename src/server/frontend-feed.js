@@ -139,52 +139,37 @@ async function sendFeedMsg() {
   input?.focus();
 }
 
-// ==================== Quick Compose — overlays active terminal panel (tabs only) ====================
+// ==================== Compose bar — docked input at bottom of #main (tabs only) ====================
 let _composeOpen = false;
 
-// Get the slug/role for the currently active terminal panel
 function _getActiveTerminal() {
   const key = state.activePanel;
   if (!key || key === 'dashboard' || key === 'settings') return null;
   const parts = key.split('/');
-  if (parts.length !== 2) return null;
-  if (!state.openPanels[key]) return null;
+  if (parts.length !== 2 || !state.openPanels[key]) return null;
   return { slug: parts[0], role: parts[1], key };
 }
 
-function _updateComposeFab() {
-  const fab = document.getElementById('compose-fab');
-  if (!fab) return;
-  // Only show in tabs mode when a terminal panel is active
-  const show = state.layout === 'tabs' && _getActiveTerminal() && !_composeOpen;
-  fab.classList.toggle('hidden', !show);
-}
-
-function toggleCompose() {
-  _composeOpen ? closeCompose() : openCompose();
-}
+function toggleCompose() { _composeOpen ? closeCompose() : openCompose(); }
 
 function openCompose() {
-  if (state.layout !== 'tabs') return; // tabs only
+  if (state.layout !== 'tabs') return;
   const target = _getActiveTerminal();
   if (!target) return;
-  const dialog = document.getElementById('compose-dialog');
+  const bar = document.getElementById('compose-bar');
   const textarea = document.getElementById('compose-textarea');
-  const titleEl = document.getElementById('compose-target');
-  if (!dialog) return;
-  titleEl.textContent = `Send to ${target.role}`;
-  dialog.classList.add('open');
+  if (!bar) return;
+  document.getElementById('compose-target').textContent = target.role;
+  bar.classList.add('open');
   _composeOpen = true;
-  _updateComposeFab();
-  setTimeout(() => textarea.focus(), 50);
+  textarea.focus();
 }
 
 function closeCompose() {
-  const dialog = document.getElementById('compose-dialog');
-  if (!dialog) return;
-  dialog.classList.remove('open');
+  const bar = document.getElementById('compose-bar');
+  if (!bar) return;
+  bar.classList.remove('open');
   _composeOpen = false;
-  _updateComposeFab();
 }
 
 async function sendCompose() {
@@ -194,8 +179,7 @@ async function sendCompose() {
   if (!text) return;
   const target = _getActiveTerminal();
   if (!target) return;
-  const origLabel = btn?.textContent;
-  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  if (btn) btn.disabled = true;
   textarea.value = '';
   textarea.style.height = 'auto';
   try {
@@ -206,89 +190,97 @@ async function sendCompose() {
     });
     const data = await res.json();
     if (!data.ok) {
-      textarea.value = text; // restore on failure
+      textarea.value = text;
       appendFeedMessage({ type: 'system', text: `Send failed: ${data.error || 'unknown'}`, time: new Date().toISOString() });
     }
   } catch {
-    textarea.value = text; // restore on failure
+    textarea.value = text;
     appendFeedMessage({ type: 'system', text: 'Failed to send to terminal', time: new Date().toISOString() });
   }
-  if (btn) { btn.disabled = false; btn.textContent = origLabel; }
+  if (btn) btn.disabled = false;
   textarea.focus();
 }
 
-// Global keyboard shortcut: Ctrl+/ to toggle compose
+// Global shortcuts
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-    e.preventDefault();
-    toggleCompose();
-    return;
-  }
-  if (e.key === 'Escape' && _composeOpen) {
-    e.preventDefault();
-    closeCompose();
-    return;
-  }
+  if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); toggleCompose(); return; }
+  if (e.key === 'Escape' && _composeOpen) { e.preventDefault(); closeCompose(); return; }
 });
 
 function initCompose() {
   const textarea = document.getElementById('compose-textarea');
   const sendBtn = document.getElementById('compose-send');
   const closeBtn = document.getElementById('compose-close');
-  const fab = document.getElementById('compose-fab');
   if (!textarea) return;
 
   textarea.addEventListener('keydown', e => {
-    // Ctrl+Enter / Cmd+Enter → send
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      sendCompose();
-      return;
+    // Enter sends (Shift+Enter for newline)
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      if (textarea.value.includes('\n')) return; // multiline: let Enter work normally
+      e.preventDefault(); sendCompose(); return;
     }
-    // Single Enter sends unless multiline (Shift+Enter was used before)
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !e.ctrlKey && !e.metaKey) {
-      if (textarea.value.includes('\n')) return;
-      e.preventDefault();
-      sendCompose();
-      return;
-    }
-    // PageUp/PageDown → scroll terminal while typing (integrated experience)
+    // PageUp/PageDown → scroll terminal while typing
     if (e.key === 'PageUp' || e.key === 'PageDown') {
       e.preventDefault();
-      if (typeof queueScroll === 'function') {
-        queueScroll(e.key === 'PageUp' ? 'up' : 'down', 20);
-      }
+      if (typeof queueScroll === 'function') queueScroll(e.key === 'PageUp' ? 'up' : 'down', 20);
       return;
     }
-    // Arrow Up/Down with Ctrl → scroll terminal by small steps
+    // Ctrl+Arrow → small scroll
     if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
-      if (typeof queueScroll === 'function') {
-        queueScroll(e.key === 'ArrowUp' ? 'up' : 'down', 5);
-      }
+      if (typeof queueScroll === 'function') queueScroll(e.key === 'ArrowUp' ? 'up' : 'down', 5);
       return;
     }
   });
 
+  // Auto-resize
   textarea.addEventListener('input', () => {
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+    textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px';
   });
 
   if (sendBtn) sendBtn.addEventListener('click', sendCompose);
   if (closeBtn) closeBtn.addEventListener('click', closeCompose);
-  if (fab) fab.addEventListener('click', toggleCompose);
 
-  // Guard against iframe stealing focus while compose is open.
-  // xterm.js inside ttyd iframes calls terminal.focus() on load/reconnect,
-  // which pulls browser focus into the iframe. Detect and restore.
+  // Guard: iframe xterm.js steals focus on load/reconnect → reclaim
   window.addEventListener('blur', () => {
     if (!_composeOpen) return;
-    // window.blur fires when focus moves into an iframe — reclaim it
     setTimeout(() => {
-      if (_composeOpen && document.activeElement !== textarea) {
-        textarea.focus();
-      }
+      if (_composeOpen && document.activeElement !== textarea) textarea.focus();
     }, 50);
   });
+
+  // Resize handle — drag to adjust compose bar height
+  const resizeHandle = document.getElementById('compose-resize-handle');
+  const bar = document.getElementById('compose-bar');
+  if (resizeHandle && bar) {
+    let startY, startH;
+    const onStart = (y) => {
+      startY = y; startH = bar.offsetHeight;
+      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
+      document.body.style.cursor = 'ns-resize';
+    };
+    const onMove = (y) => {
+      const h = Math.max(60, Math.min(startH + (startY - y), window.innerHeight * 0.6));
+      bar.style.height = h + 'px';
+    };
+    const onEnd = () => {
+      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
+      document.body.style.cursor = '';
+    };
+    resizeHandle.addEventListener('mousedown', e => {
+      e.preventDefault(); onStart(e.clientY);
+      const mm = ev => onMove(ev.clientY);
+      const mu = () => { onEnd(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+      document.addEventListener('mousemove', mm);
+      document.addEventListener('mouseup', mu);
+    });
+    resizeHandle.addEventListener('touchstart', e => {
+      e.preventDefault(); onStart(e.touches[0].clientY);
+      const tm = ev => { ev.preventDefault(); onMove(ev.touches[0].clientY); };
+      const te = () => { onEnd(); document.removeEventListener('touchmove', tm); document.removeEventListener('touchend', te); };
+      document.addEventListener('touchmove', tm, { passive: false });
+      document.addEventListener('touchend', te);
+    }, { passive: false });
+  }
 }

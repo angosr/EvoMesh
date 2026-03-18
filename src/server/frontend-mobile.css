@@ -135,12 +135,12 @@
   .copy-modal { width: 95vw; max-width: none; padding: 14px; }
   .copy-modal-content { font-size: 12px; }
 
-  /* Quick Compose: mobile adjustments */
-  #compose-fab { bottom: 12px; right: 12px; width: 48px; height: 48px; font-size: 20px; }
-  #compose-dialog { max-height: 50%; }
-  #compose-textarea { font-size: 16px; min-height: 72px; } /* 16px prevents iOS zoom */
-  .compose-hints { display: none; }
-  #compose-send { padding: 10px 24px; font-size: 14px; min-height: 44px; }
+  /* Compose bar: mobile */
+  #compose-textarea { font-size: 16px; padding: 8px 12px; } /* 16px prevents iOS zoom */
+  #compose-send { width: 40px; height: 40px; font-size: 16px; }
+  #compose-close { width: 40px; height: 40px; font-size: 18px; }
+  .compose-target { display: none; }
+  .compose-keys { display: none; } /* hide shortcut hints on mobile */
 }
 
 /* Extra narrow (320px) */

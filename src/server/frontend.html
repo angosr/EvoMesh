@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/app.css?v=1773818724">
-<link rel="stylesheet" href="/app-mobile.css?v=1773818724">
+<link rel="stylesheet" href="/app.css?v=1773819895">
+<link rel="stylesheet" href="/app-mobile.css?v=1773819895">
 </head>
 <body>
 
@@ -154,21 +154,21 @@
         </div>
       </div>
     </div>
-    <button id="compose-fab" class="hidden" title="Send to terminal (Ctrl+/)">&#9998;</button>
-    <div id="compose-dialog">
-      <div class="compose-header">
-        <span class="compose-title" id="compose-target"></span>
-        <div class="compose-hints">
-          <kbd>Ctrl+Enter</kbd> send
-          <kbd>Shift+Enter</kbd> newline
-          <kbd>Esc</kbd> close
-        </div>
-        <button id="compose-close" class="compose-close-btn" title="Close">&times;</button>
+  </div>
+  <div id="compose-bar">
+    <div id="compose-resize-handle"></div>
+    <div class="compose-row">
+      <span class="compose-target" id="compose-target"></span>
+      <textarea id="compose-textarea" rows="2" placeholder="Send to terminal..."></textarea>
+      <div class="compose-actions">
+        <button id="compose-send" title="Send">&#10148;</button>
+        <button id="compose-close" title="Close">&times;</button>
       </div>
-      <textarea id="compose-textarea" placeholder="Type a message to send to this terminal..." rows="3"></textarea>
-      <div class="compose-footer">
-        <span class="compose-tip">Ctrl+/ to toggle</span>
-        <button id="compose-send">Send</button>
+      <div class="compose-keys">
+        <span><kbd>Enter</kbd> send</span>
+        <span><kbd>Shift+Enter</kbd> newline</span>
+        <span><kbd>PgUp/PgDn</kbd> scroll</span>
+        <span><kbd>Esc</kbd> close</span>
       </div>
     </div>
   </div>
@@ -195,12 +195,12 @@
   </div>
 </nav>
 
-<script src="/app-layout.js?v=1773818724"></script>
-<script src="/app-feed.js?v=1773818724"></script>
-<script src="/app.js?v=1773818724"></script>
-<script src="/app-dashboard.js?v=1773818724"></script>
-<script src="/app-actions.js?v=1773818724"></script>
-<script src="/app-panels.js?v=1773818724"></script>
-<script src="/app-settings.js?v=1773818724"></script>
+<script src="/app-layout.js?v=1773819895"></script>
+<script src="/app-feed.js?v=1773819895"></script>
+<script src="/app.js?v=1773819895"></script>
+<script src="/app-dashboard.js?v=1773819895"></script>
+<script src="/app-actions.js?v=1773819895"></script>
+<script src="/app-panels.js?v=1773819895"></script>
+<script src="/app-settings.js?v=1773819895"></script>
 </body>
 </html>
