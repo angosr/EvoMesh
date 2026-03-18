@@ -467,6 +467,7 @@ async function startAndOpenCentral() {
     };
   } catch {}
   initFeed();
+  initCompose();
 })();
 document.addEventListener('keydown', e => { if (e.ctrlKey && e.key>='1' && e.key<='9') { e.preventDefault(); const k = state.tabOrder[parseInt(e.key)-1]; if (k) switchTo(k); } });
 window.addEventListener('beforeunload', saveLayout);

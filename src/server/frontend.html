@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/app.css?v=1773731760">
-<link rel="stylesheet" href="/app-mobile.css?v=1773731760">
+<link rel="stylesheet" href="/app.css?v=1773818084">
+<link rel="stylesheet" href="/app-mobile.css?v=1773818084">
 </head>
 <body>
 
@@ -165,6 +165,25 @@
   </div>
 </div>
 
+<!-- Quick Compose FAB + Dialog -->
+<button id="compose-fab" title="Quick message (Ctrl+/)">&#9998;</button>
+<div id="compose-dialog">
+  <div class="compose-header">
+    <span class="compose-title">Message Central AI</span>
+    <div class="compose-hints">
+      <kbd>Ctrl+Enter</kbd> send
+      <kbd>Shift+Enter</kbd> newline
+      <kbd>Esc</kbd> close
+    </div>
+    <button id="compose-close" class="compose-close-btn" title="Close">&times;</button>
+  </div>
+  <textarea id="compose-textarea" placeholder="Type your message here..." rows="3"></textarea>
+  <div class="compose-footer">
+    <span class="compose-tip">Ctrl+/ to toggle anytime</span>
+    <button id="compose-send">Send</button>
+  </div>
+</div>
+
 <!-- Mobile bottom navigation -->
 <nav id="mobile-bottom-nav">
   <div class="nav-inner">
@@ -175,12 +194,12 @@
   </div>
 </nav>
 
-<script src="/app-layout.js?v=1773731760"></script>
-<script src="/app-feed.js?v=1773731760"></script>
-<script src="/app.js?v=1773731760"></script>
-<script src="/app-dashboard.js?v=1773731760"></script>
-<script src="/app-actions.js?v=1773731760"></script>
-<script src="/app-panels.js?v=1773731760"></script>
-<script src="/app-settings.js?v=1773731760"></script>
+<script src="/app-layout.js?v=1773818084"></script>
+<script src="/app-feed.js?v=1773818084"></script>
+<script src="/app.js?v=1773818084"></script>
+<script src="/app-dashboard.js?v=1773818084"></script>
+<script src="/app-actions.js?v=1773818084"></script>
+<script src="/app-panels.js?v=1773818084"></script>
+<script src="/app-settings.js?v=1773818084"></script>
 </body>
 </html>

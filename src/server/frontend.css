@@ -371,4 +371,96 @@
   #role-modal .btn-create { background: var(--accent); color: #fff; }
   #role-modal .btn-close { background: var(--bg-hover); color: var(--text-dim); }
 
+  /* === Quick Compose === */
+  #compose-fab {
+    position: fixed; bottom: 20px; right: 20px; z-index: 90;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--accent); color: #fff; border: none;
+    font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 0 0 0 var(--accent-glow);
+    transition: transform 0.2s, box-shadow 0.2s, background 0.15s;
+  }
+  #compose-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 20px var(--accent-glow);
+    background: var(--accent-hover);
+  }
+  #compose-fab:active { transform: scale(0.95); }
+
+  #compose-dialog {
+    position: fixed; bottom: 80px; right: 20px; z-index: 91;
+    width: 440px; max-width: calc(100vw - 40px);
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
+    display: flex; flex-direction: column;
+    transform: translateY(12px) scale(0.95); opacity: 0; pointer-events: none;
+    transition: transform 0.2s ease-out, opacity 0.15s ease-out;
+  }
+  #compose-dialog.open {
+    transform: translateY(0) scale(1); opacity: 1; pointer-events: auto;
+  }
+
+  .compose-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .compose-title {
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    font-family: var(--font-display); letter-spacing: -0.02em;
+  }
+  .compose-hints {
+    margin-left: auto; display: flex; gap: 8px;
+    font-size: 10px; color: var(--text-faint);
+  }
+  .compose-hints kbd {
+    background: var(--bg-input); border: 1px solid var(--border);
+    padding: 1px 4px; border-radius: 3px; font-family: var(--font-mono);
+    font-size: 9px; color: var(--text-dim);
+  }
+  .compose-close-btn {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    font-size: 18px; padding: 2px 6px; line-height: 1;
+    border-radius: var(--radius-sm); transition: all 0.15s;
+  }
+  .compose-close-btn:hover { color: var(--text); background: var(--bg-hover); }
+
+  #compose-textarea {
+    margin: 10px 14px 0; padding: 10px 12px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius-md);
+    font-size: 14px; font-family: var(--font-body);
+    resize: none; outline: none; line-height: 1.5;
+    min-height: 72px; max-height: 200px; overflow-y: auto;
+    transition: border-color 0.15s;
+  }
+  #compose-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  #compose-textarea::placeholder { color: var(--text-faint); }
+
+  .compose-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px 10px;
+  }
+  .compose-tip {
+    font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);
+  }
+  #compose-send {
+    background: var(--accent); color: #fff; border: none;
+    padding: 7px 20px; border-radius: 18px; cursor: pointer;
+    font-size: 12px; font-weight: 600; font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  #compose-send:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  #compose-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* FAB hidden via JS class when compose is open */
+  #compose-fab.hidden { display: none; }
+
   /* Mobile & touch styles: see frontend-mobile.css */

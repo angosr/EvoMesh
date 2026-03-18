@@ -1,7 +1,11 @@
 ## Done
-- Self-audit: read all 7 frontend JS files
-- Fixed memory leak: `seenMessages` Set in feed SSE handler grew unbounded — added cap at 500 entries with oldest-eviction
-- Fixed interval leak: `startAndOpenTerminal` and `startAndOpenCentral` polling intervals not cleaned up on early panel close — stored as `startPoll` on panel state, cleared in `closePanel`
+- Built Quick Compose floating dialog for lag-free message input
+  - FAB button (bottom-right) opens compose dialog over main area
+  - Ctrl+/ toggle, Ctrl+Enter send, Escape close, Shift+Enter newline
+  - Isolated from sidebar DOM rebuilds — no typing lag
+  - Mobile: full-width bottom sheet, 16px font (prevents iOS zoom), hide kbd hints
+  - Auto-resize textarea, focus management, FAB hides when dialog open
+- Refactored sendFeedMsg into shared _sendMessage core for reuse
 
 ## Blockers
 (None)
@@ -10,5 +14,5 @@
 (None)
 
 ## Next focus
-- Continue proactive audit (CSS file, HTML file)
+- UX/Product audit cycle (next idle)
 - P2: migrate inline onclick handlers to addEventListener (needs lead approval)
