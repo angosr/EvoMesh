@@ -13,8 +13,8 @@
    - `todo.md` — mark completed, add new
 6. `git add <own files only>` → commit → `git pull --rebase` → push
 
-Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory/metrics only).
-**Light mode: do NOT git commit/push.** Only commit when you actually changed code or processed inbox.
+Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no commit).
+**Lead NEVER enters light mode.** Light mode exit: any inbox message or lead dispatch.
 
 ## Git
 
@@ -55,6 +55,11 @@ You may modify your own ROLE.md. Rules serve the work, not the other way around.
 ### Self-Audit (alternating with prompt evolution)
 Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-only = skip (c) how to measure?
 
+### Evolution → Action
+Rule changes alone are not improvement. After every evolution cycle:
+- If you found a recurring problem, propose a concrete task to lead (not just a rule change).
+- If you added a rule, verify it triggers within 5 loops. If not, remove it.
+
 ## Code Quality — Anti-Debt Rule
 
 **Same bug fixed 2+ times = mandatory refactor.** Do not add another patch — restructure the code.
@@ -63,6 +68,12 @@ Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-
 - Simplify control flow so the bug class becomes impossible
 - Lead dispatches P1 code quality tasks when regression patterns detected in git log
 Proposal → lead inbox with metrics evidence → log to evolution.log.
+
+## Context Hygiene
+
+- `memory/short-term.md`: overwrite each loop, max 30 lines. Do not accumulate history.
+- `todo.md`: remove completed items older than 5 loops. Stale todos are noise.
+- When idle: "No tasks, idle" is sufficient. Do not write lengthy reflections.
 
 ## EvoMesh Project-Specific
 
