@@ -302,18 +302,21 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
-    if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
+    const VALID = ["up", "down", "esc", "arrow-up", "arrow-down", "arrow-left", "arrow-right"];
+    if (!VALID.includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
     const projectSlug = slugify(path.basename(project.root));
     const cname = containerName(projectSlug, req.params.name);
     const user = process.env.USER || "user";
     try {
       if (direction === "esc") {
-        // Exit copy-mode: send 'q'
         execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "q"], { stdio: "ignore" });
+      } else if (direction.startsWith("arrow-")) {
+        // Send arrow key to terminal (cursor movement)
+        const keyName = { "arrow-up": "Up", "arrow-down": "Down", "arrow-left": "Left", "arrow-right": "Right" }[direction];
+        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", keyName], { stdio: "ignore" });
       } else {
         const n = Math.min(Math.max(parseInt(lines) || 3, 1), 20);
         const cmd = direction === "up" ? "scroll-up" : "scroll-down";
-        // Batch: enter copy-mode + scroll N times in a single shell command
         const tmuxCmds = direction === "up" ? `tmux copy-mode -t claude 2>/dev/null; ` : "";
         const scrollCmds = Array(n).fill(`tmux send-keys -t claude -X ${cmd}`).join("; ");
         execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c", tmuxCmds + scrollCmds], { stdio: "ignore" });

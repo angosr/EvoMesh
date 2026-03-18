@@ -25,26 +25,32 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   overlay.querySelector('.reconnect-btn').addEventListener('click', () => reconnectPanel(key));
   const toolbar = document.createElement('div');
   toolbar.className = 'term-toolbar';
-  const btns = [
-    ['\u25B2', 'up', 5],
-    ['\u21DE', 'up', 20],
-    ['\u21DF', 'down', 20],
-    ['\u25BC', 'down', 5],
-    ['Esc', 'esc', 0],
-    ['\uD83D\uDCCB', 'copy', 0],
+  // D-pad (arrow keys) + page controls
+  const dpad = document.createElement('div'); dpad.className = 'term-dpad';
+  const pageCtrl = document.createElement('div'); pageCtrl.className = 'term-page';
+  const allBtns = [
+    // [label, action, lines, container, cssClass]
+    ['\u2191', 'arrow-up', 0, dpad, 'dpad-up'],
+    ['\u2190', 'arrow-left', 0, dpad, 'dpad-left'],
+    ['\u2192', 'arrow-right', 0, dpad, 'dpad-right'],
+    ['\u2193', 'arrow-down', 0, dpad, 'dpad-down'],
+    ['\u21DE', 'up', 20, pageCtrl, ''],
+    ['\u21DF', 'down', 20, pageCtrl, ''],
+    ['Esc', 'esc', 0, pageCtrl, ''],
   ];
-  for (const [label, action, lines] of btns) {
+  for (const [label, action, lines, container, cls] of allBtns) {
     const btn = document.createElement('button');
     btn.textContent = label;
     btn.title = label;
+    if (cls) btn.className = cls;
     let holdTimer = null;
     const fire = () => termAction(key, action, lines);
     const flash = () => { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 150); };
     const startHold = (e) => {
       e.preventDefault(); e.stopPropagation();
-      flash();
-      fire();
-      if (action === 'up' || action === 'down') {
+      flash(); fire();
+      // Repeat on hold for arrows and scroll
+      if (action.startsWith('arrow-') || action === 'up' || action === 'down') {
         holdTimer = setInterval(fire, 120);
       }
     };
@@ -55,11 +61,37 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     btn.addEventListener('touchstart', startHold, { passive: false });
     btn.addEventListener('touchend', stopHold);
     btn.addEventListener('touchcancel', stopHold);
-    // Fallback: also listen for click in case mousedown is captured by iframe
     btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); flash(); fire(); });
-    toolbar.appendChild(btn);
+    container.appendChild(btn);
   }
-  panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
+  toolbar.appendChild(dpad);
+  toolbar.appendChild(pageCtrl);
+  // Scroll slider on right edge
+  const slider = document.createElement('div'); slider.className = 'term-scroll-track';
+  const thumb = document.createElement('div'); thumb.className = 'term-scroll-thumb';
+  slider.appendChild(thumb);
+  let sliderDragging = false;
+  const sliderScroll = (y) => {
+    const rect = slider.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (y - rect.top) / rect.height));
+    thumb.style.top = (pct * (rect.height - thumb.offsetHeight)) + 'px';
+    // Top = scroll up, bottom = scroll down
+    const lines = Math.ceil(Math.abs(pct - 0.5) * 40);
+    if (lines > 0) queueScroll(pct < 0.5 ? 'up' : 'down', lines);
+  };
+  slider.addEventListener('mousedown', e => {
+    e.preventDefault(); sliderDragging = true; sliderScroll(e.clientY);
+    const mm = ev => { if (sliderDragging) sliderScroll(ev.clientY); };
+    const mu = () => { sliderDragging = false; document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu);
+  });
+  slider.addEventListener('touchstart', e => {
+    e.preventDefault(); sliderDragging = true; sliderScroll(e.touches[0].clientY);
+    const tm = ev => { ev.preventDefault(); if (sliderDragging) sliderScroll(ev.touches[0].clientY); };
+    const te = () => { sliderDragging = false; document.removeEventListener('touchmove', tm); document.removeEventListener('touchend', te); };
+    document.addEventListener('touchmove', tm, { passive: false }); document.addEventListener('touchend', te);
+  }, { passive: false });
+  panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(slider); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   let rTimer = setInterval(() => {
     try {
@@ -329,7 +361,7 @@ function _flushScroll() {
   panels.addEventListener('touchend', e => {
     if (!state.openPanels[state.activePanel]) return;
     // Don't trigger copy dialog when touch originated from toolbar buttons
-    const fromToolbar = e.target.closest('.term-toolbar');
+    const fromToolbar = e.target.closest('.term-toolbar') || e.target.closest('.term-scroll-track');
     const duration = Date.now() - touchStartTime;
     if (!touchMoved && duration > 500 && !fromToolbar) {
       showCopyDialog();
@@ -360,11 +392,11 @@ function termAction(key, action, lines) {
 
   if (action === 'copy') { showCopyDialog(); return; }
 
-  // Esc needs direct API call (not scroll), up/down go through batched queue
-  if (action === 'esc') {
+  // Esc and arrow keys: direct API call. up/down scroll: batched queue.
+  if (action === 'esc' || action.startsWith('arrow-')) {
     authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction: 'esc', lines: 0 }),
+      body: JSON.stringify({ direction: action, lines: 0 }),
     }).catch(() => {});
   } else {
     queueScroll(action, lines);
