@@ -7,8 +7,9 @@ ALL P0 COMPLETE ✅
 ## P1 — Active
 
 - ⬜ Multi-user FINAL security review — BLOCKED (security offline)
-- ✅ ~~Review frontend fix commits~~ DISPATCHED to reviewer (20260318T1030)
-- ✅ ~~Test keyboard scroll injection~~ DISPATCHED to frontend (20260318T1030)
+- ✅ ~~Test keyboard scroll injection~~ VERIFIED by frontend (20260318T1345 ack)
+- ⬜ Review frontend fix commits — DISPATCHED to reviewer, awaiting response
+- ⬜ Container name consolidation — DISPATCHED to core-dev (20260318T1400)
 
 ## P2 — Remaining (blocked/low)
 
@@ -19,4 +20,5 @@ ALL P0 COMPLETE ✅
 ## Completed This Session (2026-03-18)
 
 - Loop 272: Updated stale status.md
-- Loop 273: Fixed 4 user-reported frontend bugs (focus steal, keyboard scroll, IME, stop hook). Dispatched review + test tasks.
+- Loop 273: Fixed 4 user-reported frontend bugs. Dispatched review + test tasks.
+- Loop 274: Processed frontend ack. Fixed scroll API container name (3 regressions → dispatched refactor).
