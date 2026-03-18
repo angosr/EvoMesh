@@ -27,6 +27,7 @@ const NUDGE_COOLDOWN = 5 * 60 * 1000;
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
 
 // --- Tmux command sending (SSOT for host/docker dispatch) ---
+const gosuUser = process.env.USER || "user";
 
 /** Send a single message to a role's tmux session and press Enter. */
 function sendToRole(sessionName: string, launchMode: string | undefined, message: string): void {
@@ -34,9 +35,9 @@ function sendToRole(sessionName: string, launchMode: string | undefined, message
     execFileSync("tmux", ["send-keys", "-t", sessionName, "-l", message], { stdio: "ignore", timeout: 5000 });
     execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore", timeout: 5000 });
   } else {
-    const escaped = message.replace(/"/g, '\\"');
-    execFileSync("docker", ["exec", sessionName, "bash", "-c",
-      `tmux -f /dev/null send-keys -t claude -l "${escaped}" 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
+    const escaped = message.replace(/'/g, "'\\''");
+    execFileSync("docker", ["exec", sessionName, "gosu", gosuUser, "bash", "-c",
+      `tmux -f /dev/null send-keys -t claude -l '${escaped}' 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
     ], { stdio: "ignore", timeout: 5000 });
   }
 }
@@ -52,7 +53,7 @@ function sendToRoleSequence(sessionName: string, launchMode: string | undefined,
       parts.push(`tmux send-keys -t ${sessionName} Enter`);
     } else {
       const escaped = step.message.replace(/'/g, "'\\''");
-      parts.push(`docker exec ${sessionName} bash -c 'tmux -f /dev/null send-keys -t claude -l '"'"'${escaped}'"'"' 2>/dev/null; sleep 0.5; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null'`);
+      parts.push(`docker exec ${sessionName} gosu ${gosuUser} bash -c 'tmux -f /dev/null send-keys -t claude -l '"'"'${escaped}'"'"' 2>/dev/null; sleep 0.5; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null'`);
     }
   }
   execFileSync("bash", ["-c", `( ${parts.join("\n")} ) &`], { stdio: "ignore" });
