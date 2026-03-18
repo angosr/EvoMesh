@@ -1,6 +1,6 @@
-## 2026-03-18 Loop 281
+## 2026-03-18 Loop 282
 
-- **Done**: Processed frontend self-audit ack (Mission Control→Feed rename, onclick compliance gap noted — approved keeping static onclick as-is). Core-dev completed sendToRoleSequence escaping refactor (e3143de). Idle check: agent-architect/research/reviewer/security still haven't picked up loop 279-280 dispatches.
+- **Done**: Processed P0 user feedback on status.md design — redesigned with tables (role status, roadmap gaps, blockers, recent deliverables). Dispatched P1 health.ts monitor fixes to core-dev (idle regex, silent catch, brain-dead threshold). Frontend committed mobile UX overhaul (7ef27e4).
 - **Blockers**: None
-- **In-progress**: Awaiting security P1 multi-user review, reviewer/agent-architect self-audits, research MS Framework GA check
-- **Next focus**: Monitor remaining 4 role responses.
+- **In-progress**: 4 roles still pending dispatched tasks (security, reviewer, agent-architect, research)
+- **Next focus**: Monitor responses. Verify status.md format meets user expectations.

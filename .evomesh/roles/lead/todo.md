@@ -7,10 +7,11 @@ ALL P0 COMPLETE
 ## P1 — Active
 
 - ⬜ Multi-user FINAL security review — DISPATCHED to security (20260318T1500)
-- ⬜ Monitor health.ts P1 fixes (idle regex, silent catch, brain-dead threshold) — user reviewed, pending dispatch
+- ⬜ Monitor health.ts fixes — DISPATCHED to core-dev (20260318T1600)
 
 ## P1 — Done
 
+- ✅ ~~Status.md redesign~~ DONE (P0 user feedback, loop 282)
 - ✅ ~~Idle cleanup review~~ APPROVED (96e616f)
 - ✅ ~~Keyboard scroll verification~~ DONE (frontend ack)
 - ✅ ~~Container name SSOT refactor~~ DONE (core-dev ack, 3e28edd)
