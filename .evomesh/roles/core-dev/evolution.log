@@ -28,3 +28,11 @@ Findings:
 4. ROLE.md: no dead rules. Self-audit idle rule actively triggered (audited all src/ modules, found+fixed 2 security issues).
 5. Idle audit rule is effective — found path traversal (routes-roles.ts) and feed data leak (routes-feed.ts) through proactive auditing.
 No ROLE.md changes needed. All rules triggering correctly.
+
+## 2026-03-18T22:00 — Self-Audit (loop 300 checkpoint)
+Findings:
+1. All rules compliant. Heartbeat, memory, acks all consistent.
+2. todo.md was missing 2 recent completions (idle policy, WS latency fix). Updated.
+3. ROLE.md: no dead rules. 42 lines, lean and effective.
+4. User feedback integrated: simplified idle loops to avoid redundant output.
+No ROLE.md changes needed.
