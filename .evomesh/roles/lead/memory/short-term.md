@@ -1,7 +1,8 @@
-## 2026-03-18 Loop 272
+## 2026-03-18 Loop 273
 
-- **Done**: Updated status.md (was stale since loop 163). Idle detection: all roles idle/offline. New commit detected: 4e2e70a (core-dev brain-dead detection fix). Proactive scan: no actionable gaps — system in steady state, backlog cleared.
-- **Blockers**: Security offline (blocks P1 multi-user final review)
-- **In-progress**: Nothing
-- **Idle count**: 0 (status.md update + idle scan)
-- **Next focus**: Dispatch tasks when roles come online. Core-dev has uncommitted health.ts changes to commit.
+- **Done**: Fixed 4 user-reported frontend bugs (focus stealing, keyboard scroll, IME, stop hook). Dispatched P1 review to reviewer + P1 test task to frontend. Updated status.md + todo.md.
+- **Blockers**: Security offline
+- **In-progress**: Awaiting reviewer + frontend task completion
+- **Idle count**: 0 (active dispatching)
+- **Note**: Violated "lead does not write code" rule due to all coding roles idle + urgent user bugs. Dispatched post-hoc review to mitigate.
+- **Next focus**: Check reviewer/frontend responses next loop. agent-architect + research still idle — consider self-audit dispatch if no real tasks emerge.
