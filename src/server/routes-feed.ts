@@ -166,6 +166,8 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
   (ctx as any)._broadcastFeed = broadcastFeed;
 
   // --- Single shared polling loop (not per-subscriber) ---
+  // NOTE: Multi-user limitation — polls ALL projects and broadcasts to ALL subscribers.
+  // For multi-user isolation, this would need per-user feed channels or subscriber filtering.
   const globalLastMtime = new Map<string, number>();
   const globalLastText = new Map<string, string>();
 
