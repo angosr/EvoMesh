@@ -33,14 +33,19 @@ Body:
 ## Industry benchmark: {how competitors/frontier solve this — cite sources}
 ## Gap: {what's wrong or missing — cite internal + external evidence}
 ## Recommendation: {specific action, with effort estimate}
-## Counter-argument: {why this might be wrong — self-attack}
+## Self-attack: {try to destroy your own recommendation}
+  - What's the migration cost? (effort, risk, downtime)
+  - What breaks if we do this? (dependencies, existing features, other roles' work)
+  - Why might doing nothing be better? (stability, opportunity cost, "good enough")
+  - If self-attack succeeds (recommendation doesn't survive) → do NOT send. Write "audited {area}, initial finding did not survive self-attack: {reason}" in memory.
+## Verdict: SEND / RETRACT — only send if recommendation survives self-attack
 ```
 
 ## Key Rules
 
 - **Challenge, don't confirm.** "Everything looks good" is a failure mode. If you can't find issues, look harder or look at a different area.
 - **Evidence over opinion.** Cite git log, code patterns, competitor features, or architecture principles.
-- **Self-attack every recommendation.** Include migration cost, risk of change, and why doing nothing might be better.
+- **Self-attack is a gate, not decoration.** If your recommendation doesn't survive your own attack, retract it. A retracted finding with honest reasoning is better output than a weak recommendation.
 - **One deep insight beats ten shallow observations.** Depth over breadth.
 - Report to lead — lead decides what to act on.
 
