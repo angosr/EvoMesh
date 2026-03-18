@@ -21,10 +21,12 @@ const lastNudge = new Map<string, number>();
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
+const idleResetCount = new Map<string, number>(); // track how many times we've reset an idle role
 const lastIdleContent = new Map<string, string>(); // detect stuck roles (same content across loops)
 const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
+const MAX_IDLE_RESETS = 2; // stop resetting after 2 attempts — role is genuinely idle
 const START_GRACE_PERIOD = 3 * 60 * 1000; // 3 min grace after start before nudge/idle
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
@@ -524,6 +526,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
               idleCount.set(key, (idleCount.get(key) || 0) + 1);
             } else {
               idleCount.set(key, 0);
+              idleResetCount.delete(key); // role did real work — allow future resets
               lastIdleContent.delete(key);
               continue;
             }
@@ -543,6 +546,14 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             // Stuck: has inbox but no STM update for 3x loop interval — force cleanup
             console.log(`[idle-cleanup] ${name} stuck with unprocessed inbox for ${Math.round(stmAgeMs / 60000)}min — forcing cleanup`);
             notifyFeed(ctx, `[monitor] ${name} stuck ${Math.round(stmAgeMs / 60000)}min with unprocessed inbox, forcing reset`);
+          }
+
+          // Stop resetting if we've already tried multiple times — role is genuinely idle
+          const resets = idleResetCount.get(key) || 0;
+          if (resets >= MAX_IDLE_RESETS) {
+            // Already reset multiple times, still idle — accept it, don't loop forever
+            idleCount.set(key, 0);
+            continue;
           }
 
           // Threshold reached — take action
@@ -570,9 +581,10 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             } catch (e) { console.error(`[idle-cleanup] Failed to send /clear + /loop to ${name}:`, e); }
           }
 
-          // Reset counter and record action time
+          // Reset counter, record action time, increment reset count
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
+          idleResetCount.set(key, resets + 1);
         } catch (e) { console.error(`[idle-cleanup] Error checking ${name}:`, e); }
       }
     }
