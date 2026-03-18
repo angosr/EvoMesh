@@ -50,7 +50,7 @@ function initFeed() {
   const msgInput = document.getElementById('feed-msg');
   if (sendBtn) sendBtn.addEventListener('click', sendFeedMsg);
   if (msgInput) msgInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFeedMsg(); }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendFeedMsg(); }
   });
 
   // Try to start central AI if not running
