@@ -393,12 +393,7 @@
     display: flex; align-items: stretch; gap: 8px;
     padding: 6px 10px; flex: 1; min-height: 0;
   }
-  .compose-target {
-    writing-mode: vertical-rl; text-orientation: mixed;
-    font-size: 10px; color: var(--accent); font-family: var(--font-mono);
-    font-weight: 600; white-space: nowrap; padding: 2px 0;
-    display: flex; align-items: center;
-  }
+  .compose-target { display: none; }
   #compose-textarea {
     flex: 1; background: var(--bg-input); border: 1px solid var(--border);
     color: var(--text); padding: 8px 10px; border-radius: var(--radius-sm);
@@ -423,13 +418,6 @@
     transition: all 0.15s;
   }
   #compose-close:hover { color: var(--text); border-color: var(--text-dim); }
-  .compose-keys {
-    display: flex; flex-direction: column; gap: 2px; justify-content: center; flex-shrink: 0;
-    font-size: 9px; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap;
-  }
-  .compose-keys kbd {
-    background: var(--bg-input); border: 1px solid var(--border);
-    padding: 0 3px; border-radius: 2px; font-size: 9px; color: var(--text-dim);
-  }
+  .compose-keys { display: none; }
 
   /* Mobile & touch styles: see frontend-mobile.css */

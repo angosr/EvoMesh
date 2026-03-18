@@ -223,7 +223,6 @@ function initCompose() {
   textarea.addEventListener('keydown', e => {
     // Enter sends (Shift+Enter for newline)
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-      if (textarea.value.includes('\n')) return; // multiline: let Enter work normally
       e.preventDefault(); sendCompose(); return;
     }
     // PageUp/PageDown → scroll terminal while typing
