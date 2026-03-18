@@ -66,9 +66,11 @@ export function restoreDesiredRoles(ctx: ServerContext): void {
       const ttydPort = allocatePort(ctx);
       startRole(project.root, roleName, rc, config, ttydPort);
       ctx.ttydProcesses.set(key, { port: ttydPort, roleName, projectSlug: slug });
+      lastRestart.set(key, Date.now()); // Prevent brain-dead from immediately killing restored roles
       console.log(`[restore] Started ${roleName} in ${project.name} (port ${ttydPort})`);
-    } catch (e) { console.error(`[restore] Failed to start ${roleName}:`, e); }
+    } catch (e) { console.error(`[restore] Failed to start ${roleName} in ${slug}:`, e); }
   }
+  console.log(`[restore] Desired state: ${JSON.stringify(desired)}, restored roles logged above`);
 }
 
 // --- Account health: check if Claude credentials are valid ---
@@ -202,23 +204,25 @@ export function autoRestartCrashed(ctx: ServerContext): void {
           } catch (e) { console.error(`[auto-restart] Failed to restart ${name}:`, e); }
         }
 
-        // Brain-dead: running but heartbeat stale + no commits → force stop (next cycle restarts)
+        // Brain-dead: running but no activity for extended period → force stop (next cycle restarts)
+        // Uses memory/short-term.md mtime as liveness signal (roles reliably write this, unlike heartbeat.json)
         if (running && shouldRun) {
           try {
-            const hbPath = path.join(roleDir(p.root, name), "heartbeat.json");
-            const hbStat = fs.statSync(hbPath);
-            const hbAgeMs = now - hbStat.mtimeMs;
+            const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
+            const stmStat = fs.statSync(stmPath);
+            const stmAgeMs = now - stmStat.mtimeMs;
             const intervalMin = parseInt(rc.loop_interval) || 10;
-            const hbThreshold = intervalMin * 2 * 60 * 1000;
+            // Only trigger after 30x loop interval (very generous — avoid false positives that killed lead/core-dev)
+            const bdThreshold = intervalMin * 30 * 60 * 1000;
             const lastTime = lastRestart.get(key) || 0;
-            if (hbAgeMs > hbThreshold && (now - lastTime) > 10 * 60 * 1000) {
+            if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
               let hasRecentCommit = false;
               try {
-                const gitLog = execFileSync("git", ["log", "--oneline", `--since=${intervalMin * 2} minutes ago`, `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
+                const gitLog = execFileSync("git", ["log", "--oneline", `--since=${intervalMin * 10} minutes ago`, `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
                 hasRecentCommit = gitLog.trim().length > 0;
               } catch {}
               if (!hasRecentCommit) {
-                console.log(`[brain-dead] ${name} heartbeat ${Math.round(hbAgeMs / 60000)}min stale, restarting`);
+                console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, restarting`);
                 stopRole(p.root, name);
                 lastRestart.set(key, now);
               }
