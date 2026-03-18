@@ -34,7 +34,7 @@
 7. Update status.md / blueprint.md if changes warrant
 8. Update own todo.md — mark dispatched tasks, add new ones
 9. **Write `memory/short-term.md`** (MANDATORY)
-10. If this loop produced real work (dispatches, doc updates, config): commit + push (only own files, `git pull --rebase` before push). If only heartbeat/memory/todo changed: skip commit.
+10. Only commit if this loop produced **real output** (new task dispatches, new decisions, config changes). Do NOT commit if only bookkeeping changed (heartbeat, memory, todo, inbox→processed, status.md updates with no new decisions). Bookkeeping files will be bundled into the next real commit.
 
 ## Anti-Attention-Decay: Periodic Self-Audit Dispatch
 
