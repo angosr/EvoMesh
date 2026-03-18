@@ -90,6 +90,8 @@
   .dot.running { background: var(--green); }
   .dot.stopped { background: var(--text-faint); }
   .dot.disabled { background: var(--red); opacity: 0.5; }
+  .dot.loading { background: var(--accent); animation: dot-pulse 0.8s ease-in-out infinite; }
+  @keyframes dot-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.5); } }
   .role-btn .login-warn { color: var(--red); font-size: 8px; margin-left: 2px; font-weight: 600; }
   .role-btn .info { font-size: 9px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
   .role-btn .role-actions { opacity: 0; margin-left: 2px; display: flex; gap: 1px; transition: opacity 0.15s; }

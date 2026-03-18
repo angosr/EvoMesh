@@ -387,32 +387,44 @@ function restoreLayout() {
 
 // ==================== Admin AI Terminal ====================
 async function toggleCentralAI() {
+  const dot = document.getElementById('central-dot');
+  const toggle = document.getElementById('central-toggle');
+  // Immediate visual feedback — show spinning state
+  if (dot) dot.className = 'dot loading';
+  if (toggle) { toggle.disabled = true; toggle.style.opacity = '0.5'; }
   try {
     const statusRes = await authFetch(`${API}/admin/status`);
     const status = await statusRes.json();
     if (status.enabled === false) {
-      // Enable + start
       await authFetch(`${API}/admin/start`, { method: 'POST' });
     } else {
-      // Disable + stop
       await authFetch(`${API}/admin/stop`, { method: 'POST' });
-      // Close terminal panel if open
       if (state.openPanels['central/ai']) closePanel('central/ai');
     }
     fetchAll();
   } catch (e) { console.error('[central-ai] toggle failed:', e); }
+  if (toggle) { toggle.disabled = false; toggle.style.opacity = ''; }
 }
 
 function openCentralTerminal() {
   const key = 'central/ai';
   if (state.openPanels[key]) { switchTo(key); return; }
+  // Immediate feedback — show loading spinner in dot
+  const dot = document.getElementById('central-dot');
+  if (dot) dot.className = 'dot loading';
+  const btn = document.getElementById('central-btn');
+  if (btn) btn.style.pointerEvents = 'none';
   authFetch(`${API}/admin/status`).then(r => r.json()).then(status => {
+    if (btn) btn.style.pointerEvents = '';
     if (status.running && status.terminal) {
       openTerminal('central', 'Central AI', 'ai', status.terminal);
     } else {
       startAndOpenCentral();
     }
-  }).catch(() => alert('Failed to check Central AI status'));
+  }).catch(() => {
+    if (btn) btn.style.pointerEvents = '';
+    if (dot) dot.className = 'dot stopped';
+  });
 }
 
 async function startAndOpenCentral() {
