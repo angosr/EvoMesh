@@ -1,6 +1,6 @@
-## 2026-03-18 Loop 300
+## 2026-03-18 Loop 301
 
-- **Done**: Loop 300 = self-audit checkpoint. Dispatched P1 self-audit to core-dev + frontend. Cleaned todo (idle policy marked done).
+- **Done**: Processed P0 from central: system stability (roles vanishing, auto-restart gap, tsx watch cascading). Dispatched to core-dev as P0 with detailed spec (lifecycle logging, restart fallback, restore error logging). Self-audits from loop 300 confirmed done (b20c88c, 5648629).
 - **Blockers**: 4 roles offline
-- **In-progress**: Self-audits dispatched
-- **Next focus**: Monitor self-audit responses. Last self-audit: loop 300.
+- **In-progress**: Core-dev P0 stability fix
+- **Next focus**: Monitor P0 response — highest priority.
