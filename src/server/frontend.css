@@ -179,16 +179,14 @@
   .panel .reconnect-overlay .reconnect-btn:hover { background: var(--accent-hover); box-shadow: 0 0 20px var(--accent-glow); }
   .panel .reconnect-overlay .reconnect-msg { color: var(--text-dim); font-size: 13px; }
 
-  /* Terminal toolbar: d-pad + page controls */
-  .term-toolbar { position: absolute; bottom: 8px; left: 8px; right: 50px; z-index: 3; display: flex; justify-content: space-between; align-items: flex-end; opacity: 0.3; transition: opacity 0.2s; pointer-events: none; }
-  .term-toolbar:hover { opacity: 0.9; }
+  /* Terminal toolbar: hidden on desktop, visible on mobile/touch only */
+  .term-toolbar { display: none; position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 3; justify-content: space-between; align-items: flex-end; pointer-events: none; }
   .term-toolbar > * { pointer-events: auto; }
-  .term-toolbar button { background: rgba(12,15,20,0.85); border: 1px solid var(--text-faint); color: var(--text); width: 36px; height: 36px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; user-select: none; -webkit-user-select: none; transition: background 0.15s; display: flex; align-items: center; justify-content: center; padding: 0; }
-  .term-toolbar button:hover { background: var(--bg-hover); }
+  .term-toolbar button { background: rgba(12,15,20,0.85); border: 1px solid var(--text-faint); color: var(--text); width: 44px; height: 44px; border-radius: 8px; cursor: pointer; font-size: 18px; user-select: none; -webkit-user-select: none; transition: background 0.15s; display: flex; align-items: center; justify-content: center; padding: 0; }
   .term-toolbar button:active { background: var(--accent); color: #fff; }
 
   /* D-pad: cross layout */
-  .term-dpad { display: grid; grid-template-columns: 36px 36px 36px; grid-template-rows: 36px 36px; gap: 2px; }
+  .term-dpad { display: grid; grid-template-columns: 44px 44px 44px; grid-template-rows: 44px 44px; gap: 3px; }
   .dpad-up { grid-column: 2; grid-row: 1; }
   .dpad-left { grid-column: 1; grid-row: 2; }
   .dpad-right { grid-column: 3; grid-row: 2; }
@@ -197,16 +195,9 @@
   /* Page controls */
   .term-page { display: flex; gap: 3px; }
 
-  /* Scroll slider on right edge */
-  .term-scroll-track { position: absolute; top: 10%; bottom: 10%; right: 4px; width: 20px; z-index: 3; opacity: 0.2; transition: opacity 0.2s; cursor: ns-resize; border-radius: 10px; background: rgba(12,15,20,0.5); }
-  .term-scroll-track:hover { opacity: 0.7; }
-  .term-scroll-thumb { position: absolute; top: 40%; width: 100%; height: 20%; background: var(--accent); border-radius: 10px; transition: top 0.05s; pointer-events: none; }
-
+  /* Show toolbar only on touch devices */
   @media (pointer: coarse) {
-    .term-toolbar { opacity: 0.7; bottom: 10px; left: 10px; right: 40px; }
-    .term-toolbar button { width: 44px; height: 44px; font-size: 18px; border-radius: 8px; }
-    .term-dpad { grid-template-columns: 44px 44px 44px; grid-template-rows: 44px 44px; gap: 3px; }
-    .term-scroll-track { width: 28px; right: 2px; opacity: 0.4; }
+    .term-toolbar { display: flex; opacity: 0.7; bottom: 10px; left: 10px; right: 10px; }
   }
 
   /* Copy modal */

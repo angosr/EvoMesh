@@ -66,32 +66,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   }
   toolbar.appendChild(dpad);
   toolbar.appendChild(pageCtrl);
-  // Scroll slider on right edge
-  const slider = document.createElement('div'); slider.className = 'term-scroll-track';
-  const thumb = document.createElement('div'); thumb.className = 'term-scroll-thumb';
-  slider.appendChild(thumb);
-  let sliderDragging = false;
-  const sliderScroll = (y) => {
-    const rect = slider.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (y - rect.top) / rect.height));
-    thumb.style.top = (pct * (rect.height - thumb.offsetHeight)) + 'px';
-    // Top = scroll up, bottom = scroll down
-    const lines = Math.ceil(Math.abs(pct - 0.5) * 40);
-    if (lines > 0) queueScroll(pct < 0.5 ? 'up' : 'down', lines);
-  };
-  slider.addEventListener('mousedown', e => {
-    e.preventDefault(); sliderDragging = true; sliderScroll(e.clientY);
-    const mm = ev => { if (sliderDragging) sliderScroll(ev.clientY); };
-    const mu = () => { sliderDragging = false; document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
-    document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu);
-  });
-  slider.addEventListener('touchstart', e => {
-    e.preventDefault(); sliderDragging = true; sliderScroll(e.touches[0].clientY);
-    const tm = ev => { ev.preventDefault(); if (sliderDragging) sliderScroll(ev.touches[0].clientY); };
-    const te = () => { sliderDragging = false; document.removeEventListener('touchmove', tm); document.removeEventListener('touchend', te); };
-    document.addEventListener('touchmove', tm, { passive: false }); document.addEventListener('touchend', te);
-  }, { passive: false });
-  panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(slider); panel.appendChild(overlay);
+  panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   let rTimer = setInterval(() => {
     try {
@@ -361,7 +336,7 @@ function _flushScroll() {
   panels.addEventListener('touchend', e => {
     if (!state.openPanels[state.activePanel]) return;
     // Don't trigger copy dialog when touch originated from toolbar buttons
-    const fromToolbar = e.target.closest('.term-toolbar') || e.target.closest('.term-scroll-track');
+    const fromToolbar = e.target.closest('.term-toolbar');
     const duration = Date.now() - touchStartTime;
     if (!touchMoved && duration > 500 && !fromToolbar) {
       showCopyDialog();
