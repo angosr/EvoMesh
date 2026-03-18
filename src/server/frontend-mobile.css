@@ -59,11 +59,12 @@
   .mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 40; }
   .mobile-overlay.show { display: block; }
 
-  /* Top bar: compact but readable */
+  /* Top bar: hide buttons that duplicate bottom nav */
   #top-bar { flex-wrap: wrap; padding: 6px 8px; min-height: 44px; gap: 4px; }
   #top-bar .panel-title { order: 2; flex: 1; min-width: 60px; font-size: 13px; }
-  .toggle-sidebar-btn { padding: 8px 10px; font-size: 20px; min-width: 40px; text-align: center; }
-  .topbar-icon-btn { padding: 6px 10px; font-size: 20px; min-width: 40px; text-align: center; }
+  .toggle-sidebar-btn { display: none; } /* bottom nav has Menu */
+  .topbar-icon-btn { display: none; } /* bottom nav has Feed + Settings */
+  #compose-toggle-btn { display: inline-flex !important; padding: 6px 10px; font-size: 20px; min-width: 40px; text-align: center; } /* keep compose */
   #layout-controls { order: 3; }
   #layout-controls button { padding: 6px 10px; font-size: 11px; }
   #metrics { display: none !important; }
