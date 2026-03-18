@@ -209,12 +209,14 @@ function switchTo(name) {
   // Close compose when switching to non-terminal panel; update FAB visibility
   if (typeof _composeOpen !== 'undefined' && _composeOpen && (name === 'dashboard' || name === 'settings')) closeCompose();
   if (typeof _updateComposeFab === 'function') _updateComposeFab();
-  // Focus the terminal iframe — but never steal focus from text inputs or compose dialog
-  const sp = state.openPanels[name];
-  if (sp?.iframe) {
-    const ae = document.activeElement;
-    const isTyping = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable);
-    if (!isTyping) sp.iframe.focus();
+  // Focus the terminal iframe — never when compose is open or user is typing
+  if (typeof _composeOpen === 'undefined' || !_composeOpen) {
+    const sp = state.openPanels[name];
+    if (sp?.iframe) {
+      const ae = document.activeElement;
+      const isTyping = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable);
+      if (!isTyping) sp.iframe.focus();
+    }
   }
 }
 
