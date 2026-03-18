@@ -1,6 +1,6 @@
-## 2026-03-18 Loop 279
+## 2026-03-18 Loop 280
 
-- **Done**: Processed 2 inbox acks (frontend keyboard-scroll verified, core-dev container-name refactor done). Idle detection: 5 roles idle. Dispatched 4 tasks: core-dev P2 sendToRoleSequence escaping refactor, security P1 multi-user final review, frontend P1 self-audit, agent-architect P1 self-audit.
+- **Done**: No new inbox. Idle check — all roles still processing loop 279 dispatches (expected). Dispatched 2 more: research P2 MS Framework GA check, reviewer P1 self-audit. Proactive scan: no new commits, no regression pattern.
 - **Blockers**: None
-- **In-progress**: Awaiting dispatched task responses
-- **Next focus**: Monitor task responses. Check research MS Agent Framework GA status.
+- **In-progress**: 6 tasks dispatched across all roles, awaiting responses
+- **Next focus**: Monitor responses. Loop 280 = even → next self-audit batch at 289.
