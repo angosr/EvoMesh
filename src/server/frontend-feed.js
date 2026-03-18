@@ -164,7 +164,8 @@ function openCompose() {
   const bar = document.getElementById('compose-bar');
   const textarea = document.getElementById('compose-textarea');
   if (!bar) return;
-  document.getElementById('compose-target').textContent = target.role;
+  const targetEl = document.getElementById('compose-target');
+  if (targetEl) targetEl.textContent = target.role;
   bar.classList.add('open');
   _composeOpen = true;
   _updateComposeBtn();
