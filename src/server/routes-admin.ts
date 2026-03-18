@@ -171,9 +171,8 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
     if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
-    const lu = reqLinuxUser(req);
     const projectSlug = slugify(path.basename(project.root));
-    const cname = containerName(projectSlug, req.params.name, lu);
+    const cname = containerName(projectSlug, req.params.name);
     const user = process.env.USER || "user";
     try {
       if (direction === "esc") {
