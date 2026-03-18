@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import { loadConfig } from "../config/loader.js";
 import { evomeshDir, expandHome } from "../utils/paths.js";
 import { writeYaml } from "../utils/fs.js";
@@ -154,7 +155,15 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const config = loadConfig(project.root);
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
-      if (rawPath && !config.accounts[accountName]) config.accounts[accountName] = rawPath;
+      if (rawPath && !config.accounts[accountName]) {
+        // Validate account path stays within home directory
+        const resolved = path.resolve(expandHome(rawPath));
+        const homeDir = os.homedir();
+        if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
+          res.status(400).json({ error: "Account path must be within home directory" }); return;
+        }
+        config.accounts[accountName] = rawPath;
+      }
       if (!config.accounts[accountName]) { res.status(400).json({ error: "Account not found" }); return; }
 
       const oldAccount = rc.account;
