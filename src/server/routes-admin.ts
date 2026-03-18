@@ -149,7 +149,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       const sessionName = centralContainerName();
       try {
         execFileSync("tmux", ["send-keys", "-t", sessionName, "-l",
-          `[URGENT] ${message.trim()}`], { stdio: "ignore" });
+          message.trim()], { stdio: "ignore" });
         execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore" });
       } catch {}
 
