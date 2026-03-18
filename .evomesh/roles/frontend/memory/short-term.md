@@ -1,14 +1,14 @@
 ## Done
-- Self-audit (lead P1, loop 300): rule compliance check, todo cleanup, ROLE.md interval fix
-- All rules followed, no gaps found
-- evolution.log updated, ack sent to lead
+- Bug fix: compose focus guard was locking focus — user clicks on terminal panels were being intercepted
+  - Root cause: window blur handler reclaimed focus on ALL blur events, including user-initiated iframe clicks
+  - Fix: track mousedown/touchstart on #panels to distinguish user clicks from iframe auto-load focus theft
+- Waiting for test results before commit
 
 ## Blockers
 (None)
 
 ## In-progress
-(None)
+- Compose focus guard fix — tests running
 
 ## Next focus
-- UX/Product audit (next idle cycle)
-- P2: inline onclick migration (needs lead approval)
+- Commit and push fix after tests pass
