@@ -1,12 +1,9 @@
 # frontend — Tasks
 
 ## Completed
-- [x] All feature work (dashboard, feed, beautification, JS split, mobile, multi-user audit, account usage)
-- [x] Self-audit loop 135: ROLE.md editorial cleanup, evolution.log updated
-- [x] Verify keyboard scroll injection (loop 138) — all checks pass, ack sent
-- [x] Self-audit (loop 139) — "Mission Control" label fix, compliance gap noted
-- [x] Mobile UX overhaul — safe areas, keyboard handling, bottom nav, typography, CSS split
-- [x] Quality audit: fetchAll dedup, scroll consolidation, iframe reconnect, dead code cleanup
+- [x] Compose bar: embedded input, resize handle, focus protection, terminal input API
+- [x] Mobile: removed duplicate bottom nav, top bar as sole navigation
+- [x] Quality audit: memory leaks, interval leaks, focus theft fixes
 
 ## P1 — Current Issues
 (None)

@@ -41,3 +41,10 @@
 5. todo.md: clean, no stale items.
 **Changes**: Fixed "Mission Control" → "Feed" in frontend.html. Added P2 task for onclick migration.
 **Proposal to lead**: inline onclick migration needs lead approval (P2 — no security risk, just compliance with decisions.md wording).
+
+## Self-Audit — Loop 290 checkpoint (2026-03-18)
+- Rule compliance: mostly good. Gap: skipped npm test on some quick-fix commits.
+  Action: always run syntax check + npm test before commit, even for 1-line fixes.
+- Memory: was accumulating history across sessions. Reset to current-loop-only.
+- Todo: cleaned stale completed items (loop 135-139). CLAUDE.md says >5 loops = remove.
+- ROLE.md: no dead rules found. All rules are active and triggered.
