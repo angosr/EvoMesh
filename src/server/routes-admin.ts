@@ -6,7 +6,7 @@ import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
 import { slugify } from "../workspace/config.js";
-import { getContainerState, getContainerPort } from "../process/container.js";
+import { getContainerState, getContainerPort, containerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
 import { requireProjectRole, reqLinuxUser } from "./routes.js";
@@ -171,8 +171,9 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
     if (!["up", "down", "esc"].includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
-    const lu = reqLinuxUser(req) || process.env.USER || "user";
-    const cname = `evomesh-${lu}-${slugify(path.basename(project.root))}-${req.params.name}`;
+    const lu = reqLinuxUser(req);
+    const projectSlug = slugify(path.basename(project.root));
+    const cname = containerName(projectSlug, req.params.name, lu);
     const user = process.env.USER || "user";
     try {
       if (direction === "esc") {
