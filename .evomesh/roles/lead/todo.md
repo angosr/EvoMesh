@@ -2,25 +2,29 @@
 
 ## P0 — Immediate
 
-ALL P0 COMPLETE
+- ⬜ Quality audit: startRole/stopRole state consistency — DISPATCHED to core-dev (20260318T1630)
 
 ## P1 — Active
 
+- ⬜ Quality audit: loadConfig cache — DISPATCHED to core-dev
+- ⬜ Quality audit: admin perms routes-usage — DISPATCHED to core-dev
+- ⬜ Quality audit: fetchAll dedup — DISPATCHED to frontend
+- ⬜ Quality audit: scroll simplification — DISPATCHED to frontend
 - ⬜ Multi-user FINAL security review — DISPATCHED to security (20260318T1500)
-- ⬜ Monitor health.ts fixes — DISPATCHED to core-dev (20260318T1600)
 
 ## P1 — Done
 
-- ✅ ~~Status.md redesign~~ DONE (P0 user feedback, loop 282)
+- ✅ ~~Monitor health.ts fixes~~ DONE (core-dev, 4ad6bfc)
+- ✅ ~~Status.md redesign~~ DONE (loop 282)
 - ✅ ~~Idle cleanup review~~ APPROVED (96e616f)
-- ✅ ~~Keyboard scroll verification~~ DONE (frontend ack)
-- ✅ ~~Container name SSOT refactor~~ DONE (core-dev ack, 3e28edd)
-- ✅ ~~Frontend self-audit~~ DONE (Mission Control→Feed, onclick gap noted)
-- ✅ ~~sendToRoleSequence escaping refactor~~ DONE (core-dev, e3143de)
+- ✅ ~~Container name SSOT refactor~~ DONE (3e28edd)
+- ✅ ~~sendToRoleSequence escaping refactor~~ DONE (e3143de)
+- ✅ ~~Frontend self-audit~~ DONE
 
 ## P2 — Remaining
 
-- ⬜ MS Agent Framework GA — monitoring (research dispatched 20260318T1520)
+- ⬜ Quality audit: dead code cleanup — DISPATCHED to core-dev + frontend
+- ⬜ Quality audit: iframe reconnect detection — DISPATCHED to frontend
+- ⬜ MS Agent Framework GA — monitoring (research dispatched)
 - ⬜ Account concentration risk — low priority
-- ⬜ SEC-023: latent path traversal — low risk, not exploitable
-- ⬜ addEventListener migration (18 static onclick) — approved as-is, low risk
+- ⬜ SEC-023: latent path traversal — low risk
