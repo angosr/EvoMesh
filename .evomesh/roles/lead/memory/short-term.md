@@ -1,6 +1,6 @@
-## 2026-03-18 Loop 280
+## 2026-03-18 Loop 281
 
-- **Done**: No new inbox. Idle check — all roles still processing loop 279 dispatches (expected). Dispatched 2 more: research P2 MS Framework GA check, reviewer P1 self-audit. Proactive scan: no new commits, no regression pattern.
+- **Done**: Processed frontend self-audit ack (Mission Control→Feed rename, onclick compliance gap noted — approved keeping static onclick as-is). Core-dev completed sendToRoleSequence escaping refactor (e3143de). Idle check: agent-architect/research/reviewer/security still haven't picked up loop 279-280 dispatches.
 - **Blockers**: None
-- **In-progress**: 6 tasks dispatched across all roles, awaiting responses
-- **Next focus**: Monitor responses. Loop 280 = even → next self-audit batch at 289.
+- **In-progress**: Awaiting security P1 multi-user review, reviewer/agent-architect self-audits, research MS Framework GA check
+- **Next focus**: Monitor remaining 4 role responses.
