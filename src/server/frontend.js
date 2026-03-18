@@ -50,7 +50,8 @@ function injectTouchScroll(iframe) {
   tryInject();
 }
 
-// Inject keyboard handler into iframe for PageUp/PageDown/Arrow scroll
+// Inject keyboard handler into iframe for PageUp/PageDown scroll
+// Routes through queueScroll (defined in frontend-panels.js) for batched API calls
 function injectKeyboardScroll(iframe, panelKey) {
   const POLL_INTERVAL = 500, MAX_ATTEMPTS = 20;
   let attempts = 0;
@@ -69,13 +70,8 @@ function injectKeyboardScroll(iframe, panelKey) {
         if (!action) return;
         e.preventDefault();
         e.stopPropagation();
-        // Call parent's scroll API directly
-        const parts = panelKey.split('/');
-        if (parts.length !== 2) return;
-        authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ direction: action[0], lines: action[1] }),
-        }).catch(() => {});
+        // Use batched scroll queue instead of direct API call
+        if (typeof queueScroll === 'function') queueScroll(action[0], action[1]);
       });
     } catch { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); }
   }
@@ -103,7 +99,16 @@ document.addEventListener('input', () => {
   }, 2000);
 }, true);
 
+// Dedup guard: prevent concurrent fetchAll requests from stacking up
+let _fetchInProgress = false;
+
 async function fetchAll() {
+  if (_fetchInProgress) return;
+  _fetchInProgress = true;
+  try { await _fetchAllInner(); } finally { _fetchInProgress = false; }
+}
+
+async function _fetchAllInner() {
   try {
     const [projRes, acctRes] = await Promise.all([authFetch(`${API}/projects`), authFetch(`${API}/accounts`)]);
     // Auth failed — redirect to login
@@ -264,8 +269,7 @@ function withLoading(btn, asyncFn) {
 // Account / Role management moved to frontend-actions.js
 
 // ==================== Chat / Feed ====================
-let lastRoleStates = {}, serverConnected = true;
-function addFeedMessage(html, cls='status') { console.log(`[${cls}] ${html.replace(/<[^>]*>/g,'')}`); }
+let serverConnected = true;
 
 // ==================== Metrics ====================
 async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
@@ -343,9 +347,6 @@ function restoreLayout() {
   const handle = document.getElementById(id);
   handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
 });
-
-
-
 
 
 

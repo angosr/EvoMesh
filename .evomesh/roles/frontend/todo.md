@@ -6,6 +6,7 @@
 - [x] Verify keyboard scroll injection (loop 138) — all checks pass, ack sent
 - [x] Self-audit (loop 139) — "Mission Control" label fix, compliance gap noted
 - [x] Mobile UX overhaul — safe areas, keyboard handling, bottom nav, typography, CSS split
+- [x] Quality audit: fetchAll dedup, scroll consolidation, iframe reconnect, dead code cleanup
 
 ## P1 — Current Issues
 (None)

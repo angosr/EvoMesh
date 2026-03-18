@@ -56,12 +56,16 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   let rTimer = setInterval(() => {
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (doc) {
-        const text = doc.body?.innerText || '';
-        if (text.includes('press Enter to reconnect') || text.includes('Connection Closed')) {
-          overlay.classList.add('show');
-        }
-      }
+      if (!doc) return;
+      // Structured detection: ttyd sets a specific overlay element when disconnected,
+      // or the xterm screen disappears. Also detect empty body (failed load).
+      const xtermScreen = doc.querySelector('.xterm-screen');
+      const ttydOverlay = doc.querySelector('#overlay');
+      const bodyText = doc.body?.innerText || '';
+      const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
+        (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
+        (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
+      if (isDisconnected) overlay.classList.add('show');
     } catch {}
   }, 2000);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
@@ -206,38 +210,37 @@ function setLayout(mode) {
   saveLayout();
 }
 
+// ==================== Batched scroll (global — used by keyboard inject too) ====================
+let _scrollPendingUp = 0, _scrollPendingDown = 0, _scrollFlushTimer = null;
+const SCROLL_FLUSH_INTERVAL = 100; // ms — send at most 10 requests/sec
+
+function queueScroll(direction, lines) {
+  if (direction === 'up') _scrollPendingUp += lines;
+  else _scrollPendingDown += lines;
+  if (!_scrollFlushTimer) _scrollFlushTimer = setTimeout(_flushScroll, SCROLL_FLUSH_INTERVAL);
+}
+
+function _flushScroll() {
+  _scrollFlushTimer = null;
+  const key = state.activePanel;
+  if (!key || key === 'dashboard' || key === 'settings') { _scrollPendingUp = _scrollPendingDown = 0; return; }
+  const parts = key.split('/');
+  if (parts.length !== 2) { _scrollPendingUp = _scrollPendingDown = 0; return; }
+  const net = _scrollPendingDown - _scrollPendingUp;
+  _scrollPendingUp = _scrollPendingDown = 0;
+  if (net === 0) return;
+  const direction = net > 0 ? 'down' : 'up';
+  const lines = Math.min(Math.abs(net), 30);
+  authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ direction, lines }),
+  }).catch(() => {});
+}
+
 // ==================== Terminal scroll + copy ====================
 (function() {
   const panels = document.getElementById('panels');
   if (!panels) return;
-
-  // Batched scroll: accumulate lines and flush periodically
-  let pendingUp = 0, pendingDown = 0, flushTimer = null;
-  const FLUSH_INTERVAL = 100; // ms — send at most 10 requests/sec
-
-  function queueScroll(direction, lines) {
-    if (direction === 'up') pendingUp += lines;
-    else pendingDown += lines;
-    if (!flushTimer) flushTimer = setTimeout(flushScroll, FLUSH_INTERVAL);
-  }
-
-  function flushScroll() {
-    flushTimer = null;
-    const key = state.activePanel;
-    if (!key || key === 'dashboard' || key === 'settings') { pendingUp = pendingDown = 0; return; }
-    const parts = key.split('/');
-    if (parts.length !== 2) { pendingUp = pendingDown = 0; return; }
-    // Net direction
-    const net = pendingDown - pendingUp;
-    pendingUp = pendingDown = 0;
-    if (net === 0) return;
-    const direction = net > 0 ? 'down' : 'up';
-    const lines = Math.min(Math.abs(net), 30);
-    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction, lines }),
-    }).catch(() => {});
-  }
 
   panels.addEventListener('wheel', e => {
     if (!state.openPanels[state.activePanel]) return;
@@ -305,18 +308,18 @@ function setLayout(mode) {
 function termAction(key, action, lines) {
   const parts = key.split('/');
   if (parts.length !== 2) return;
-  const slug = parts[0], role = parts[1];
 
   if (action === 'copy') { showCopyDialog(); return; }
 
-  const direction = action === 'esc' ? 'esc' : action;
-  const scrollLines = action === 'esc' ? 0 : lines;
-  authFetch(`${API}/projects/${slug}/roles/${role}/scroll`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ direction, lines: scrollLines }),
-  }).then(r => {
-    if (!r.ok) r.text().then(t => console.error(`Scroll API ${r.status}: ${t}`));
-  }).catch(e => console.error('Scroll API error:', e));
+  // Esc needs direct API call (not scroll), up/down go through batched queue
+  if (action === 'esc') {
+    authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction: 'esc', lines: 0 }),
+    }).catch(() => {});
+  } else {
+    queueScroll(action, lines);
+  }
 }
 
 async function showCopyDialog() {

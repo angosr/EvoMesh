@@ -1,13 +1,12 @@
 ## Done
-- Fixed mobile typing lag: skip DOM rebuilds while user is typing, defer until 2s idle
-- Reduced mobile polling: fetchAll 20s (was 8s), fetchMetrics 15s (was 5s)
-- Fixed focusActiveIframe stealing focus from textarea/input
-- Throttled SSE refresh events to max once per 5s
-- Removed dead renderChatProjectSelect() calls
-- Consolidated duplicate input event listeners
+- Quality audit from lead (P1 task):
+  - fetchAll dedup guard — prevents concurrent requests stacking
+  - Scroll consolidation — keyboard inject + toolbar now use global queueScroll (3 paths: wheel, touch, batched queue)
+  - iframe reconnect — structured detection via ttyd #overlay + xterm-screen presence
+  - Dead code cleanup — removed lastRoleStates, addFeedMessage
 
 ## Blockers
 (None)
 
 ## Next focus
-- User feedback on typing lag fix
+- Send ack to lead for quality audit completion
