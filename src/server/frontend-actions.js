@@ -93,3 +93,19 @@ async function saveLaunchMode(slug, roleName, mode) {
     }
   } catch { appendFeedMessage('Failed to save launch mode', 'system'); }
 }
+
+async function saveIdlePolicy(slug, roleName, policy) {
+  try {
+    const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/config`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idle_policy: policy }),
+    });
+    if (!r.ok) { appendFeedMessage(`Failed to save idle policy for <strong>${esc(roleName)}</strong>: ${r.status}`, 'system'); return; }
+    const d = await r.json();
+    if (d.ok) {
+      appendFeedMessage(`<strong>${esc(roleName)}</strong> idle policy → ${esc(policy)}`, 'system');
+    } else {
+      appendFeedMessage(`Failed to save idle policy for <strong>${esc(roleName)}</strong>`, 'system');
+    }
+  } catch { appendFeedMessage('Failed to save idle policy', 'system'); }
+}

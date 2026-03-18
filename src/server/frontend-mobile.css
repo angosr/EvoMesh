@@ -85,7 +85,7 @@
   #dash-content td:nth-child(4) { gap: 6px; }
   #dash-content .res-input { flex: 1; min-width: 60px; font-size: 13px; padding: 8px; min-height: 40px; }
   #dash-content .dash-action { padding: 10px 14px; font-size: 13px; min-height: 44px; touch-action: manipulation; flex: 1; text-align: center; border-radius: 6px; }
-  #dash-content .acct-select, #dash-content .mode-select { flex: 1; font-size: 13px; padding: 8px; min-height: 44px; }
+  #dash-content .acct-select, #dash-content .mode-select, #dash-content .idle-select { flex: 1; font-size: 13px; padding: 8px; min-height: 44px; }
   .card h3 [data-action="members"] { float: none !important; margin-left: 8px; vertical-align: middle; }
 
   /* Non-dashboard tables keep horizontal scroll */

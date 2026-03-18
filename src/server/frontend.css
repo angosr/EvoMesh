@@ -235,7 +235,7 @@
   .dash-action.danger { color: var(--red); border-color: rgba(248, 113, 113, 0.2); }
   .dash-action.danger:hover { background: rgba(248, 113, 113, 0.1); color: var(--red); border-color: var(--red); }
   .dash-action.loading, .dash-action:disabled { opacity: 0.5; cursor: wait; pointer-events: none; }
-  .acct-select, .mode-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 2px 4px; border-radius: var(--radius-sm); font-size: 10px; cursor: pointer; max-width: 100px; transition: border-color 0.15s; }
+  .acct-select, .mode-select, .idle-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 2px 4px; border-radius: var(--radius-sm); font-size: 10px; cursor: pointer; max-width: 130px; transition: border-color 0.15s; }
   .onboarding { text-align: center; padding: 30px 20px; }
   .onboarding h3 { color: var(--accent); margin-bottom: 12px; }
   .onboarding ol { text-align: left; display: inline-block; margin: 12px 0; line-height: 1.8; color: var(--text-dim); }
