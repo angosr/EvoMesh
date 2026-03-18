@@ -4,12 +4,9 @@
 
 ALL P0 COMPLETE
 
-## P1 — Active
-
-- ⬜ Multi-user security review — REASSIGNED to core-dev (20260318T1800)
-
 ## P1 — Done
 
+- ✅ ~~Multi-user security review~~ DONE (core-dev, b56de18 — 2 cross-user leaks fixed)
 - ✅ ~~Idle dialog UX~~ DONE (frontend, 8af00cf)
 
 ## P2 — Remaining
