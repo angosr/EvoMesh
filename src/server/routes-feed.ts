@@ -9,6 +9,47 @@ import { requireProjectRole, reqLinuxUser } from "./routes.js";
 import type { SessionInfo } from "./auth.js";
 import type { ServerContext } from "./index.js";
 
+/**
+ * Extract meaningful text from short-term.md for the feed.
+ * Returns null if content is pure bookkeeping (no real info to show).
+ */
+function extractFeedText(stm: string): string | null {
+  const NOISE = /^No new inbox|^No tasks|^Nothing new|^updated$|^Idle|^idle|^Check inbox|^Await/i;
+
+  // Try **Done**: pattern first (most roles use this)
+  const doneMatch = stm.match(/^\s*-\s*\*\*Done\*\*:\s*(.+)$/m);
+  if (doneMatch) {
+    const done = doneMatch[1].trim();
+    if (NOISE.test(done)) return null;
+    return done;
+  }
+
+  // Try ## Done section — collect all bullets under it
+  const doneSection = stm.match(/^## Done\n([\s\S]*?)(?=\n## |\n$|$)/m);
+  if (doneSection) {
+    const bullets = doneSection[1].match(/^[-*]\s+(.+)$/gm);
+    if (bullets && bullets.length > 0) {
+      const meaningful = bullets
+        .map(b => b.replace(/^[-*]\s+/, ""))
+        .filter(b => !NOISE.test(b));
+      if (meaningful.length > 0) return meaningful.join("; ");
+    }
+  }
+
+  // Fallback: first meaningful bullet point
+  const allBullets = stm.match(/^[-*]\s+(.+)$/gm);
+  if (allBullets) {
+    for (const b of allBullets) {
+      const text = b.replace(/^[-*]\s+/, "").replace(/\*\*[^*]+\*\*:\s*/, ""); // strip **Label**:
+      if (text.length > 10 && !NOISE.test(text) && !/^Next|^In-progress/i.test(text)) {
+        return text;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function registerFeedRoutes(app: import("express").Express, ctx: ServerContext): void {
 
   // --- Mission Control: aggregated role data ---
@@ -44,10 +85,9 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
             const stat = fs.statSync(stmPath);
             const stm = fs.readFileSync(stmPath, "utf-8");
             const ageMs = now - stat.mtimeMs;
-            const bullets = stm.match(/^- .+$/gm);
-            if (bullets) {
-              const latest = bullets.filter(b => !b.match(/^- (下一|Next|check inbox|idle)/i)).pop() || bullets[bullets.length - 1];
-              activity.push({ project: p.name, role: name, time: relTime(ageMs), text: latest.replace(/^- /, ""), mtime: stat.mtimeMs });
+            const feedText = extractFeedText(stm);
+            if (feedText) {
+              activity.push({ project: p.name, role: name, time: relTime(ageMs), text: feedText, mtime: stat.mtimeMs });
             }
             if (ageMs > 3600000) {
               issues.push({ project: p.name, slug: p.slug, role: name, type: "stale", title: `${name} memory stale`, meta: `${p.name} — ${relTime(ageMs)} outdated` });
@@ -98,7 +138,6 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
       console.error(`[feed] failed to append to feed file: ${errorMessage(e)}`);
       return;
     }
-    // Truncate if too long — guarded by flag to avoid concurrent truncations
     if (feedTruncating) return;
     try {
       const content = fs.readFileSync(FEED_FILE, "utf-8");
@@ -121,7 +160,6 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
     const data = `data: ${JSON.stringify(msg)}\n\n`;
     for (const sub of feedSubscribers) { try { sub.write(data); } catch (e: unknown) { console.error(`[feed] failed to write to SSE subscriber: ${errorMessage(e)}`); } }
   }
-  // Expose for admin message broadcast
   (ctx as any)._broadcastFeed = broadcastFeed;
 
   app.get("/api/feed/stream", (req, res) => {
@@ -144,6 +182,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
     } catch (e: unknown) { console.error(`[feed] failed to send SSE history: ${errorMessage(e)}`); }
 
     const lastMtime = new Map<string, number>();
+    const lastText = new Map<string, string>(); // dedup: skip if same text as last broadcast
 
     const check = () => {
       try {
@@ -163,17 +202,20 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
               if (stat.mtimeMs > prevMtime) {
                 lastMtime.set(key, stat.mtimeMs);
                 const stm = fs.readFileSync(stmPath, "utf-8");
-                const doneMatch = stm.match(/^\s*-\s*\*\*Done\*\*:\s*(.+)$/m);
-                const text = doneMatch ? doneMatch[1] : (stm.match(/^- .+$/m)?.[0]?.replace(/^- /, "") || "updated");
-                broadcastFeed({ type: "role", role: name, project: p.slug, text: text.slice(0, 200) });
+                const text = extractFeedText(stm);
+                // Only broadcast if meaningful AND different from last broadcast for this role
+                if (text && text !== lastText.get(key)) {
+                  lastText.set(key, text);
+                  broadcastFeed({ type: "role", role: name, project: p.slug, text: text.slice(0, 200) });
+                }
               }
             } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking STM for ${name}: ${errorMessage(e)}`); }
           }
         }
-        // Clean up lastMtime entries for roles that no longer exist
+        // Clean up maps for roles that no longer exist
         activeKeys.add("central");
         for (const key of lastMtime.keys()) {
-          if (!activeKeys.has(key)) lastMtime.delete(key);
+          if (!activeKeys.has(key)) { lastMtime.delete(key); lastText.delete(key); }
         }
         try {
           const statusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
@@ -183,9 +225,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
             lastMtime.set("central", stat.mtimeMs);
             if (prevMtime > 0) {
               const status = fs.readFileSync(statusPath, "utf-8");
-              // Send meaningful content — skip only the first title line and code fences
               const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('```'));
-              // Remove first line if it's a top-level title (# Central Status — ...)
               if (lines.length && /^# [^#]/.test(lines[0])) lines.shift();
               const summary = lines.slice(0, 12).join('\n');
               broadcastFeed({ type: "central", text: summary });
@@ -194,8 +234,6 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
         } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking central status: ${errorMessage(e)}`); }
       } catch (e: unknown) { console.error(`[feed] error in SSE check loop: ${errorMessage(e)}`); }
     };
-
-    // History already sent above. No duplicate needed.
 
     feedSubscribers.add(res);
     check();
