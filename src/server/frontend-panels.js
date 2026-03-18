@@ -206,9 +206,13 @@ function switchTo(name) {
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
   if (typeof updateMobileNav === 'function') updateMobileNav(name);
-  // Focus the terminal iframe so keystrokes go to the right place
+  // Focus the terminal iframe — but never steal focus from text inputs or compose dialog
   const sp = state.openPanels[name];
-  if (sp?.iframe) sp.iframe.focus();
+  if (sp?.iframe) {
+    const ae = document.activeElement;
+    const isTyping = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable);
+    if (!isTyping) sp.iframe.focus();
+  }
 }
 
 function refreshGrid() {

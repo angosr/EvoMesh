@@ -190,9 +190,11 @@ async function _fetchAllInner() {
 
 // Restore focus to the active panel's iframe after DOM updates
 function focusActiveIframe() {
+  // Never steal focus when compose dialog is open
+  if (typeof _composeOpen !== 'undefined' && _composeOpen) return;
   const p = state.openPanels[state.activePanel];
   if (p?.iframe) {
-    // Never steal focus from text inputs — this causes typing lag on mobile
+    // Never steal focus from text inputs — this causes typing lag
     const ae = document.activeElement;
     if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
     if (!ae || ae === document.body || ae.tagName === 'BUTTON') {
