@@ -60,6 +60,18 @@ function sendToRole(sessionName: string, launchMode: string | undefined, message
   }
 }
 
+/** Send Ctrl-C (interrupt) + Escape to a role's tmux session. */
+function sendToRoleInterrupt(sessionName: string, launchMode: string | undefined): void {
+  if (launchMode === "host") {
+    execFileSync("tmux", ["send-keys", "-t", sessionName, "C-c"], { stdio: "ignore", timeout: 5000 });
+    execFileSync("tmux", ["send-keys", "-t", sessionName, "Escape"], { stdio: "ignore", timeout: 5000 });
+  } else {
+    execFileSync("docker", ["exec", sessionName, "gosu", gosuUser, "bash", "-c",
+      `tmux -f /dev/null send-keys -t claude C-c 2>/dev/null; tmux -f /dev/null send-keys -t claude Escape 2>/dev/null`
+    ], { stdio: "ignore", timeout: 5000 });
+  }
+}
+
 /** Send multiple messages with delays. Retries each step up to 2 times on failure. */
 function sendToRoleSequence(sessionName: string, launchMode: string | undefined, steps: { message: string; delaySec: number }[]): void {
   let cumulativeDelay = 0;
@@ -423,6 +435,9 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
           const entry = ctx.ttydProcesses.get(key);
           if (!entry) continue;
           if (ageMin > threshold) {
+            // Don't nudge if role is past idle cleanup threshold — cleanup will handle it
+            const staleThresholdMin = intervalMin * 3;
+            if (ageMin > staleThresholdMin) continue;
             const sessionName = containerName(p.slug, name);
             const nudgeMsg = "[SYSTEM] Write memory/short-term.md and heartbeat.json before continuing.";
             try {
@@ -548,6 +563,9 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             notifyFeed(ctx, name, p.slug, `stuck ${Math.round(stmAgeMs / 60000)}min with unprocessed inbox, forcing reset`);
           }
 
+          // Suppress nudging immediately — we're about to reset this role
+          lastNudge.set(key, now);
+
           // Stop resetting if we've already tried multiple times — role is genuinely idle
           const resets = idleResetCount.get(key) || 0;
           if (resets >= MAX_IDLE_RESETS) {
@@ -572,18 +590,22 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             const loopInterval = rc.loop_interval || "10m";
             const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
             try {
-              sendToRole(sessionName, rc.launch_mode, "/clear");
+              // Ctrl-C first to interrupt any in-progress work, then /clear, then /loop
+              sendToRoleInterrupt(sessionName, rc.launch_mode);
               sendToRoleSequence(sessionName, rc.launch_mode, [
-                { message: loopCmd, delaySec: 8 },
+                { message: "/clear", delaySec: 2 },
+                { message: loopCmd, delaySec: 10 },
               ]);
-              console.log(`[idle-cleanup] Sent /clear + /loop to worker ${name}`);
-              notifyFeed(ctx, name, p.slug, `idle/stuck → /clear + /loop`);
+              console.log(`[idle-cleanup] Sent interrupt + /clear + /loop to worker ${name}`);
+              notifyFeed(ctx, name, p.slug, `idle/stuck → interrupt + /clear + /loop`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /clear + /loop to ${name}:`, e); }
           }
 
           // Reset counter, record action time, increment reset count
+          // Also suppress nudging during the reset sequence
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
+          lastNudge.set(key, now);
           idleResetCount.set(key, resets + 1);
         } catch (e) { console.error(`[idle-cleanup] Error checking ${name}:`, e); }
       }
