@@ -27,6 +27,8 @@ const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
 const MAX_IDLE_RESETS = 2; // stop resetting after 2 attempts — role is genuinely idle
+const serverStartTime = Date.now(); // used to suppress actions right after server (re)start
+const SERVER_WARMUP = 5 * 60 * 1000; // 5 min warmup — no idle/nudge actions after server start
 const START_GRACE_PERIOD = 3 * 60 * 1000; // 3 min grace after start before nudge/idle
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
@@ -107,15 +109,44 @@ export function recordRoleStart(key: string): void {
   lastNudge.delete(key);
 }
 
-/** Check if a role is within its post-start grace period. */
+/** Check if a role is within its post-start grace period.
+ * Uses both in-memory state AND container/process uptime for crash-safety. */
 function isInGracePeriod(key: string): boolean {
   const startTime = roleStartTime.get(key);
-  if (!startTime) {
-    // First encounter after server restart — grant grace period now
-    roleStartTime.set(key, Date.now());
-    return true;
+  if (startTime) {
+    return (Date.now() - startTime) < START_GRACE_PERIOD;
   }
-  return (Date.now() - startTime) < START_GRACE_PERIOD;
+  // No in-memory record (server restarted). Check actual container/process uptime.
+  // If the container started recently, it's in grace period.
+  const [slug, roleName] = key.split("/");
+  if (!slug || !roleName) return false;
+  try {
+    const cname = containerName(slug, roleName);
+    // Try docker first
+    const startedAt = execFileSync("docker", ["inspect", "--format", "{{.State.StartedAt}}", cname],
+      { encoding: "utf-8", timeout: 3000 }).trim();
+    if (startedAt) {
+      const containerAge = Date.now() - new Date(startedAt).getTime();
+      roleStartTime.set(key, Date.now() - containerAge); // backfill for future checks
+      return containerAge < START_GRACE_PERIOD;
+    }
+  } catch {
+    // Not a docker container — check tmux session age via /proc
+    try {
+      const pids = execFileSync("pgrep", ["-f", `tmux.*${key.split("/").pop()}`],
+        { encoding: "utf-8", timeout: 3000 }).trim();
+      if (pids) {
+        const pid = pids.split("\n")[0];
+        const stat = fs.statSync(`/proc/${pid}`);
+        const procAge = Date.now() - stat.ctimeMs;
+        roleStartTime.set(key, Date.now() - procAge);
+        return procAge < START_GRACE_PERIOD;
+      }
+    } catch { /* process not found */ }
+  }
+  // Can't determine uptime — grant grace period to be safe
+  roleStartTime.set(key, Date.now());
+  return true;
 }
 
 // --- Desired state persistence: which roles SHOULD be running ---
@@ -414,6 +445,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
 }
 
 export function verifyLoopCompliance(ctx: ServerContext): void {
+  if (Date.now() - serverStartTime < SERVER_WARMUP) return; // no nudging during warmup
   try {
     const now = Date.now();
     const projects = ctx.getProjects();
@@ -505,6 +537,7 @@ function isIdleContent(content: string, key: string): boolean {
  * - Lead: /compact (compress context, keep session)
  */
 export function cleanupIdleRoles(ctx: ServerContext): void {
+  if (Date.now() - serverStartTime < SERVER_WARMUP) return; // no cleanup during warmup
   try {
     const now = Date.now();
     const projects = ctx.getProjects();
