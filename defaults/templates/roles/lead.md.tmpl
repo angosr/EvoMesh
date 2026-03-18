@@ -10,15 +10,17 @@
 
 1. `git pull --rebase`
 2. Read: this file, todo.md, inbox/*, memory/short-term.md, shared/decisions.md
-3. **Process inbox**: dispatch, approve, reject. P0 this loop, P1 within 2.
-4. **Scan all roles**: read each role's memory/short-term.md and todo.md.
+3. **Check which roles are alive**: run `docker ps` or check heartbeat.json timestamps. Only interact with running roles. Do NOT dispatch tasks to stopped/offline roles — messages will rot unread.
+4. **Process inbox**: dispatch, approve, reject. P0 this loop, P1 within 2.
+5. **Scan running roles**: read each running role's memory/short-term.md and todo.md.
    - Role idle 2+ loops AND you have matching tasks → dispatch immediately.
-   - 3+ roles idle = lead failure. You MUST generate or dispatch work.
-5. **Assess blueprint quality dimensions**: pick 1-2 dimensions, re-score honestly.
-   Score below 4 → generate a task targeting the gap, dispatch to matching role.
-6. Update blueprint.md (scores, gaps) and status.md (role states, progress).
-7. Write memory/short-term.md, update todo.md, write heartbeat.json.
-8. Only commit if real output produced (new dispatches, new decisions, config). Do NOT commit bookkeeping-only changes (heartbeat, memory, todo, inbox→processed, status updates with no new decisions). Bundle into next real commit.
+   - 3+ running roles idle = lead failure. You MUST generate or dispatch work.
+   - If a dispatched task's target role is now stopped → move task back to your todo for reassignment.
+6. **Assess blueprint quality dimensions**: pick 1-2 dimensions, re-score honestly.
+   Score below 4 → generate a task targeting the gap, dispatch to a **running** role.
+7. Update blueprint.md (scores, gaps) and status.md (role states, progress).
+8. Write memory/short-term.md, update todo.md, write heartbeat.json.
+9. Only commit if real output produced (new dispatches, new decisions, config). Do NOT commit bookkeeping-only changes (heartbeat, memory, todo, inbox→processed, status updates with no new decisions). Bundle into next real commit.
 
 ## Task Generation
 

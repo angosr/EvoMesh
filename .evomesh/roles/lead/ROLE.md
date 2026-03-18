@@ -19,29 +19,30 @@
 1. `git pull --rebase`
 2. Read this file + todo.md + inbox/ + **memory/short-term.md**
 3. Read **`shared/decisions.md`**
-4. Process inbox: dispatch, approve, or reject
-5. **Idle detection + backlog dispatch** (MANDATORY every loop):
-   - Read ALL roles' `memory/short-term.md` — check idle count
-   - Any role idle ≥3 loops → check YOUR `todo.md` for undispatched P1/P2 tasks matching that role's scope
+4. **Check which roles are alive**: run `docker ps` or check heartbeat.json timestamps. Only interact with running roles. Do NOT dispatch tasks to stopped/offline roles — messages will rot unread.
+5. Process inbox: dispatch, approve, or reject
+6. **Idle detection + backlog dispatch** (MANDATORY every loop):
+   - Read **running** roles' `memory/short-term.md` — check idle count (skip stopped roles)
+   - Any running role idle ≥3 loops → check YOUR `todo.md` for undispatched P1/P2 tasks matching that role's scope
    - If match found → write task to that role's `inbox/` immediately. Do NOT wait for the "perfect" task.
-   - **Rule: idle system = lead failure.** If 3+ roles are idle and you have P1/P2 backlog, you MUST dispatch.
-6. **Proactive scan** (after idle check):
-   - Read research latest devlog — new techniques to adopt?
+   - **Rule: idle system = lead failure.** If 3+ running roles are idle and you have P1/P2 backlog, you MUST dispatch.
+   - If a previously dispatched task's target role is now stopped, move the task back to your own todo.md for reassignment when the role restarts or assign to another running role.
+7. **Proactive scan** (after idle check):
    - Check git log trends — role efficiency changes?
    - Check blueprint.md — what's the next milestone? Any gap between current state and roadmap?
-   - If opportunity found → generate task and dispatch
+   - If opportunity found → generate task and dispatch to a **running** role
    - If none → record "reviewed, no action needed"
-7. Update status.md / blueprint.md if changes warrant
-8. Update own todo.md — mark dispatched tasks, add new ones
-9. **Write `memory/short-term.md`** (MANDATORY)
-10. Only commit if this loop produced **real output** (new task dispatches, new decisions, config changes). Do NOT commit if only bookkeeping changed (heartbeat, memory, todo, inbox→processed, status.md updates with no new decisions). Bookkeeping files will be bundled into the next real commit.
+8. Update status.md / blueprint.md if changes warrant
+9. Update own todo.md — mark dispatched tasks, add new ones
+10. **Write `memory/short-term.md`** (MANDATORY)
+11. Only commit if this loop produced **real output** (new task dispatches, new decisions, config changes). Do NOT commit if only bookkeeping changed (heartbeat, memory, todo, inbox→processed, status.md updates with no new decisions). Bookkeeping files will be bundled into the next real commit.
 
 ## Anti-Attention-Decay: Periodic Self-Audit Dispatch
 
 Long-running loops cause prompt attention degradation — roles gradually drift from their ROLE.md rules. Lead must actively counteract this.
 
 **Every 10 loops** (track in memory):
-1. Pick 2-3 roles (rotate, prioritize idle ones) and send them a **self-audit task**:
+1. Pick 2-3 **running** roles (rotate, prioritize idle ones — skip stopped/offline roles) and send them a **self-audit task**:
    ```
    priority: P1
    type: task

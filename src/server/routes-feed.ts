@@ -80,6 +80,12 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
           const rDir = roleDir(p.root, name);
           const running = isRoleRunning(p.root, name);
 
+          // Only show activity for running roles
+          if (!running) {
+            issues.push({ project: p.name, slug: p.slug, role: name, type: "stopped", title: `${name} stopped`, meta: p.name });
+            continue;
+          }
+
           const stmPath = path.join(rDir, "memory", "short-term.md");
           try {
             const stat = fs.statSync(stmPath);
@@ -93,10 +99,6 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
               issues.push({ project: p.name, slug: p.slug, role: name, type: "stale", title: `${name} memory stale`, meta: `${p.name} — ${relTime(ageMs)} outdated` });
             }
           } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error reading STM for ${name}: ${errorMessage(e)}`); }
-
-          if (!running) {
-            issues.push({ project: p.name, slug: p.slug, role: name, type: "stopped", title: `${name} stopped`, meta: p.name });
-          }
 
           try {
             const todo = fs.readFileSync(path.join(rDir, "todo.md"), "utf-8");
@@ -192,6 +194,8 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
           let config;
           try { config = loadConfig(p.root); } catch { continue; }
           for (const [name] of Object.entries(config.roles)) {
+            // Skip stopped roles — don't broadcast stale updates
+            if (!isRoleRunning(p.root, name)) continue;
             const key = `${p.slug}/${name}`;
             activeKeys.add(key);
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
