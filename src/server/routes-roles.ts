@@ -37,7 +37,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
-    stopRoleManaged(ctx, project.root, project.slug, req.params.name, { userStopped: true });
+    stopRoleManaged(ctx, project.root, project.slug, req.params.name, { userStopped: true, reason: "user-stop" });
     res.json({ ok: true });
   });
 
@@ -56,7 +56,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         recordRoleStart(`${project.slug}/${roleName}`);
       } else {
         // Stop any dead container first, then start fresh
-        stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true });
+        stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true, reason: "restart-pre-stop" });
         const ttydPort = allocatePort(ctx);
         startRoleManaged(ctx, project.root, project.slug, roleName, rc, config, ttydPort);
       }
@@ -103,7 +103,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     try {
       const config = loadConfig(project.root);
       if (!config.roles[roleName]) { res.status(404).json({ error: "Role not found" }); return; }
-      stopRoleManaged(ctx, project.root, project.slug, roleName);
+      stopRoleManaged(ctx, project.root, project.slug, roleName, { reason: "role-deleted" });
       deleteRole(project.root, roleName, config);
       res.json({ ok: true });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
@@ -139,7 +139,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       // Restart container with new limits if running
       const wasRunning = isRoleRunning(project.root, roleName);
       if (wasRunning) {
-        stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true });
+        stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true, reason: "config-change" });
         const ttydPort = allocatePort(ctx);
         const fresh = loadConfig(project.root);
         startRoleManaged(ctx, project.root, project.slug, roleName, fresh.roles[roleName], fresh, ttydPort);

@@ -184,7 +184,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       const config = loadConfig(project.root);
       for (const roleName of Object.keys(config.roles)) {
-        stopRoleManaged(ctx, project.root, project.slug, roleName);
+        stopRoleManaged(ctx, project.root, project.slug, roleName, { reason: "project-deleted" });
       }
     } catch (e) { console.error(`[delete-project] Failed to stop roles for ${project.slug}:`, e); }
     removeProject(project.root);

@@ -207,9 +207,10 @@ export function startRoleManaged(
  */
 export function stopRoleManaged(
   ctx: ServerContext, projectRoot: string, projectSlug: string,
-  roleName: string, opts: { userStopped?: boolean; keepDesiredState?: boolean } = {},
+  roleName: string, opts: { userStopped?: boolean; keepDesiredState?: boolean; reason?: string } = {},
 ): void {
   const key = `${projectSlug}/${roleName}`;
+  console.log(`[lifecycle] ${roleName} stopped by ${opts.reason || "unknown"}`);
   stopRole(projectRoot, roleName);
   if (!opts.keepDesiredState) {
     markRoleStopped(key);
@@ -245,7 +246,10 @@ export function restoreDesiredRoles(ctx: ServerContext): void {
       startRoleManaged(ctx, project.root, slug, roleName, rc, config, ttydPort);
       prevRunning.set(key, true);
       console.log(`[restore] Started ${roleName} in ${project.name} (port ${ttydPort})`);
-    } catch (e) { console.error(`[restore] Failed to start ${roleName} in ${slug}:`, e); }
+    } catch (e) {
+      console.error(`[restore] Failed to start ${roleName} in ${slug}:`, e);
+      console.error(`[restore]   project: ${project.root}, nextPort: ${(ctx as any)._nextPort || "?"}`);
+    }
   }
   console.log(`[restore] Desired state: ${JSON.stringify(desired)}, restored roles logged above`);
 }
@@ -394,6 +398,20 @@ export function autoRestartCrashed(ctx: ServerContext): void {
           } catch (e) { console.error(`[auto-restart] Failed to restart ${name}:`, e); }
         }
 
+        // Vanished: never seen running but desired — container disappeared between cycles
+        if (!running && shouldRun && !wasRunning) {
+          const lastTime = lastRestart.get(key) || 0;
+          if (now - lastTime < RESTART_COOLDOWN) continue;
+          if (isInGracePeriod(key)) continue;
+          console.log(`[auto-restart] ${name} vanished in ${p.name} (desired but never seen running), restarting...`);
+          notifyFeed(ctx, name, p.slug, `vanished, auto-restarting...`);
+          try {
+            const ttydPort = allocatePort(ctx);
+            startRoleManaged(ctx, p.root, p.slug, name, rc, config, ttydPort);
+            prevRunning.set(key, true);
+          } catch (e) { console.error(`[auto-restart] Failed to restart vanished ${name}:`, e); }
+        }
+
         // Brain-dead: running but no activity for extended period
         if (running && shouldRun && !isInGracePeriod(key)) {
           try {
@@ -415,7 +433,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
               if (!hasRecentCommit) {
                 console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, no recent commits — restarting`);
                 notifyFeed(ctx, name, p.slug, `brain-dead (${Math.round(stmAgeMs / 60000)}min stale), restarting...`);
-                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true });
+                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true, reason: "brain-dead" });
                 recordRoleStart(key); // cooldown + grace period for the restart cycle
               }
             }
@@ -431,7 +449,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
                 console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"})`);
                 notifyFeed(ctx, name, p.slug, `requested context restart`);
                 fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
-                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true });
+                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true, reason: "context-cleanup" });
                 recordRoleStart(key);
               }
             }
@@ -620,7 +638,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             continue;
           } else if (policy === "stop") {
             try {
-              stopRoleManaged(ctx, p.root, p.slug, name, { userStopped: false });
+              stopRoleManaged(ctx, p.root, p.slug, name, { userStopped: false, reason: "idle-cleanup-stop" });
               console.log(`[idle-cleanup] Stopped idle role ${name} (policy: stop)`);
               notifyFeed(ctx, name, p.slug, `idle → stopped (policy: stop)`);
             } catch (e) { console.error(`[idle-cleanup] Failed to stop ${name}:`, e); }
