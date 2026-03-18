@@ -169,7 +169,7 @@
   .panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; visibility: hidden; z-index: 0; opacity: 0; }
   .panel.active { visibility: visible; z-index: 1; opacity: 1; animation: fadeIn 0.15s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-  .panel iframe { width: 100%; height: 100%; border: none; background: var(--bg-base); }
+  .panel iframe { width: 100%; height: 100%; border: none; background: var(--bg-base); position: relative; z-index: 0; }
   .panel .reconnect-overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .panel .reconnect-overlay.show { display: flex; }
   .panel .reconnect-overlay .reconnect-btn { padding: 14px 28px; background: var(--accent); border: none; color: #fff; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
