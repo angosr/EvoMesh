@@ -260,6 +260,12 @@ export function startServer(port: number, initialRoot?: string) {
     res.type("css").sendFile(path.resolve(p));
   });
 
+  app.get("/app-mobile.css", (_req, res) => {
+    const p = resolveAsset("frontend-mobile.css");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.type("css").sendFile(path.resolve(p));
+  });
+
   app.get("/app.js", (_req, res) => {
     const p = resolveAsset("frontend.js");
     if (!p) { res.status(404).send("Not found"); return; }

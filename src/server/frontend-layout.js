@@ -128,3 +128,62 @@ function initResize(handleId, target, side) {
 }
 initResize('rh-left', 'sidebar', 'left');
 initResize('rh-right', 'chat-sidebar', 'right');
+
+// ==================== Mobile keyboard handling ====================
+// When mobile keyboard opens, the viewport shrinks. This causes terminal iframes to
+// reflow/resize which is expensive. We freeze terminal iframe heights during keyboard input.
+(function() {
+  if (!window.visualViewport) return;
+  let frozenPanels = false;
+  const KEYBOARD_THRESHOLD = 150; // px — keyboard is at least this tall
+
+  window.visualViewport.addEventListener('resize', () => {
+    if (!isMobile()) return;
+    const vvh = window.visualViewport.height;
+    const wh = window.innerHeight;
+    const kbOpen = (wh - vvh) > KEYBOARD_THRESHOLD;
+
+    if (kbOpen && !frozenPanels) {
+      // Freeze all terminal iframes to prevent expensive resize/reflow
+      document.querySelectorAll('.panel iframe').forEach(iframe => {
+        iframe.style.height = iframe.offsetHeight + 'px';
+        iframe.style.minHeight = iframe.style.height;
+      });
+      // Shrink main to visual viewport so feed input stays visible
+      document.getElementById('main').style.height = vvh + 'px';
+      frozenPanels = true;
+    } else if (!kbOpen && frozenPanels) {
+      // Unfreeze — let CSS take over again
+      document.querySelectorAll('.panel iframe').forEach(iframe => {
+        iframe.style.height = '';
+        iframe.style.minHeight = '';
+      });
+      document.getElementById('main').style.height = '';
+      frozenPanels = false;
+    }
+  });
+
+  // Also handle feed input focus — scroll it into view
+  const feedMsg = document.getElementById('feed-msg');
+  if (feedMsg) {
+    feedMsg.addEventListener('focus', () => {
+      if (!isMobile()) return;
+      setTimeout(() => {
+        feedMsg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }, 300);
+    });
+  }
+})();
+
+// ==================== Mobile bottom nav state ====================
+function updateMobileNav(activeKey) {
+  if (!isMobile()) return;
+  const nav = document.getElementById('mobile-bottom-nav');
+  if (!nav) return;
+  nav.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+  if (activeKey === 'dashboard') {
+    document.getElementById('mob-nav-dash')?.classList.add('active');
+  } else if (activeKey === 'settings') {
+    document.getElementById('mob-nav-settings')?.classList.add('active');
+  }
+}

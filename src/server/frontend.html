@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/app.css?v=1773731760">
+<link rel="stylesheet" href="/app-mobile.css?v=1773731760">
 </head>
 <body>
 
@@ -163,6 +164,16 @@
     <button id="feed-send">&#10148;</button>
   </div>
 </div>
+
+<!-- Mobile bottom navigation -->
+<nav id="mobile-bottom-nav">
+  <div class="nav-inner">
+    <button onclick="toggleSidebar()" id="mob-nav-menu"><span class="nav-icon">&#9776;</span>Menu</button>
+    <button onclick="switchTo('dashboard')" id="mob-nav-dash" class="active"><span class="nav-icon">&#9638;</span>Dashboard</button>
+    <button onclick="toggleChat()" id="mob-nav-feed"><span class="nav-icon">&#128172;</span>Feed</button>
+    <button onclick="switchTo('settings')" id="mob-nav-settings"><span class="nav-icon">&#9881;&#xFE0E;</span>Settings</button>
+  </div>
+</nav>
 
 <script src="/app-layout.js?v=1773731760"></script>
 <script src="/app-feed.js?v=1773731760"></script>

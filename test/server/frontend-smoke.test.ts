@@ -107,17 +107,20 @@ describe("frontend static files", () => {
     });
 
     it("CSS has mobile responsive media query", () => {
-      const css = fs.readFileSync(path.join(serverDir, "frontend.css"), "utf8");
+      const css = fs.readFileSync(path.join(serverDir, "frontend.css"), "utf8") +
+        fs.readFileSync(path.join(serverDir, "frontend-mobile.css"), "utf8");
       assert.ok(css.includes("@media (max-width: 768px)"), "Missing mobile media query");
     });
 
     it("CSS has mobile dashboard card layout", () => {
-      const css = fs.readFileSync(path.join(serverDir, "frontend.css"), "utf8");
+      const css = fs.readFileSync(path.join(serverDir, "frontend.css"), "utf8") +
+        fs.readFileSync(path.join(serverDir, "frontend-mobile.css"), "utf8");
       assert.ok(css.includes("#dash-content"), "Missing #dash-content mobile styles");
     });
 
     it("CSS has touch-friendly media query", () => {
-      const css = fs.readFileSync(path.join(serverDir, "frontend.css"), "utf8");
+      const css = fs.readFileSync(path.join(serverDir, "frontend.css"), "utf8") +
+        fs.readFileSync(path.join(serverDir, "frontend-mobile.css"), "utf8");
       assert.ok(css.includes("@media (pointer: coarse)"), "Missing touch media query");
     });
   });

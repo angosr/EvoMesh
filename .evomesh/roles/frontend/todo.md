@@ -5,6 +5,7 @@
 - [x] Self-audit loop 135: ROLE.md editorial cleanup, evolution.log updated
 - [x] Verify keyboard scroll injection (loop 138) — all checks pass, ack sent
 - [x] Self-audit (loop 139) — "Mission Control" label fix, compliance gap noted
+- [x] Mobile UX overhaul — safe areas, keyboard handling, bottom nav, typography, CSS split
 
 ## P1 — Current Issues
 (None)

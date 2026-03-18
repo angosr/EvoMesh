@@ -169,6 +169,7 @@ function switchTo(name) {
   if (dashBtn) { name === 'dashboard' ? dashBtn.classList.add('active') : dashBtn.classList.remove('active'); }
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
+  if (typeof updateMobileNav === 'function') updateMobileNav(name);
   // Focus the terminal iframe so keystrokes go to the right place
   const sp = state.openPanels[name];
   if (sp?.iframe) sp.iframe.focus();

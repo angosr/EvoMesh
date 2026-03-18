@@ -1,0 +1,171 @@
+/* === Mobile & Touch — extracted from frontend.css for file size compliance === */
+
+/* Mobile bottom nav */
+#mobile-bottom-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 45;
+  background: var(--bg-panel); border-top: 1px solid var(--border);
+  padding: 4px 0; padding-bottom: env(safe-area-inset-bottom, 4px);
+}
+#mobile-bottom-nav .nav-inner {
+  display: flex; justify-content: space-around; align-items: center;
+}
+#mobile-bottom-nav button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  padding: 6px 4px; font-size: 10px; font-family: var(--font-body);
+  min-height: 48px; transition: color 0.15s;
+}
+#mobile-bottom-nav button .nav-icon { font-size: 20px; line-height: 1; }
+#mobile-bottom-nav button.active { color: var(--accent); }
+#mobile-bottom-nav button:active { color: var(--accent-hover); }
+
+/* === Mobile responsive === */
+@media (max-width: 768px) {
+  body { flex-direction: column; height: 100vh; height: 100dvh; }
+
+  /* Bottom nav visible */
+  #mobile-bottom-nav { display: block; }
+
+  /* Main area accounts for bottom nav */
+  #main { width: 100%; min-width: 0; padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Safe area: top bar clears status bar / notch */
+  #top-bar { padding-top: max(4px, env(safe-area-inset-top, 4px)); }
+
+  /* Sidebar */
+  #sidebar { position: fixed; top: 0; left: 0; width: 80vw !important; max-width: 320px; height: 100vh; height: 100dvh; z-index: 50; transform: translateX(-100%); transition: transform 0.25s ease; padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); }
+  #sidebar.mobile-open { transform: translateX(0); }
+  #sidebar.hidden { transform: translateX(-100%); }
+  .resize-handle { display: none !important; }
+
+  /* Feed sidebar: full-screen on mobile */
+  #chat-sidebar { position: fixed; top: 0; right: 0; width: 100vw !important; max-width: 100vw; height: 100vh; height: 100dvh; z-index: 50; transform: translateX(100%); transition: transform 0.25s ease; padding-top: env(safe-area-inset-top, 0px); }
+  #chat-sidebar.mobile-open { transform: translateX(0); }
+  #chat-sidebar.hidden { transform: translateX(100%); }
+  #chat-sidebar h2 { padding: 10px 14px; font-size: 15px; }
+  .mc-close { display: inline-flex !important; }
+
+  /* Feed items: touch-friendly, larger text */
+  .feed-item { padding: 10px 12px; font-size: 13px; line-height: 1.5; }
+  .feed-time { float: none; display: block; margin-bottom: 3px; font-size: 10px; }
+  .feed-text { font-size: 13px; }
+  .feed-role { font-size: 12px !important; }
+
+  /* Feed input: safe from mobile keyboard + notch */
+  #feed-input { padding: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)); }
+  #feed-input textarea { font-size: 16px; padding: 10px 14px; border-radius: 20px; } /* 16px prevents iOS zoom */
+  #feed-input button { width: 44px; height: 44px; font-size: 18px; }
+
+  .mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+  .mobile-overlay.show { display: block; }
+
+  /* Top bar: compact but readable */
+  #top-bar { flex-wrap: wrap; padding: 6px 8px; min-height: 44px; gap: 4px; }
+  #top-bar .panel-title { order: 2; flex: 1; min-width: 60px; font-size: 13px; }
+  .toggle-sidebar-btn { padding: 8px 10px; font-size: 20px; min-width: 40px; text-align: center; }
+  .topbar-icon-btn { padding: 6px 10px; font-size: 20px; min-width: 40px; text-align: center; }
+  #layout-controls { order: 3; }
+  #layout-controls button { padding: 6px 10px; font-size: 11px; }
+  #metrics { display: none !important; }
+
+  /* Dashboard: better spacing */
+  #dashboard { padding: 12px; }
+  #dashboard h2 { font-size: 18px; margin-bottom: 16px; }
+  .card { padding: 12px; margin-bottom: 12px; }
+  .card h3 { font-size: 15px; margin-bottom: 10px; }
+
+  /* Dashboard table → stacked card layout on mobile */
+  #dash-content table { display: block; overflow-x: visible; }
+  #dash-content thead { display: none; }
+  #dash-content tbody { display: flex; flex-direction: column; gap: 8px; }
+  #dash-content tr { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; border-bottom: none; }
+  #dash-content td { display: flex; align-items: center; gap: 4px; padding: 0; border: none; font-size: 13px; width: 100%; flex-wrap: wrap; }
+  #dash-content td:first-child { font-size: 14px; font-weight: 600; }
+  #dash-content td:nth-child(3) { gap: 0; }
+  #dash-content td:nth-child(4) { gap: 6px; }
+  #dash-content .res-input { flex: 1; min-width: 60px; font-size: 13px; padding: 8px; min-height: 40px; }
+  #dash-content .dash-action { padding: 10px 14px; font-size: 13px; min-height: 44px; touch-action: manipulation; flex: 1; text-align: center; border-radius: 6px; }
+  #dash-content .acct-select, #dash-content .mode-select { flex: 1; font-size: 13px; padding: 8px; min-height: 44px; }
+  .card h3 [data-action="members"] { float: none !important; margin-left: 8px; vertical-align: middle; }
+
+  /* Non-dashboard tables keep horizontal scroll */
+  table:not(#dash-content table) { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .panel iframe { -webkit-overflow-scrolling: touch; }
+
+  /* Grid: stack vertically with sensible heights */
+  #panels.grid, #panels.grid.grid-2, #panels.grid.grid-3, #panels.grid.grid-4 {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(auto-fill, minmax(250px, 1fr)) !important;
+  }
+  #panels.grid .panel:last-child { grid-column: auto; }
+  #role-modal { width: 92vw; max-width: 340px; padding: 16px; }
+
+  /* Settings page mobile adjustments */
+  #settings { padding: 16px; }
+  #settings h2 { font-size: 18px; }
+  .settings-section h3 { font-size: 14px; }
+  .settings-form { max-width: 100%; }
+  .settings-form label { font-size: 12px; }
+  .settings-form input { font-size: 16px; padding: 12px; } /* prevent iOS zoom */
+  .settings-info { grid-template-columns: 1fr; gap: 2px 0; font-size: 13px; }
+  .settings-info dt { color: var(--text-faint); font-size: 11px; margin-top: 6px; }
+  .settings-btn { padding: 12px 16px; font-size: 14px; width: 100%; }
+  .user-table { font-size: 13px; }
+  .user-table th { padding: 8px; font-size: 9px; }
+  .user-table td { padding: 8px; font-size: 12px; }
+  .user-table .actions { flex-wrap: wrap; gap: 4px; }
+  .user-table .act-btn { padding: 8px 12px; font-size: 12px; min-height: 36px; }
+  .add-user-form { flex-direction: column; align-items: stretch; }
+  .add-user-form .field { width: 100%; }
+  .add-user-form input, .add-user-form select { font-size: 16px; padding: 12px; } /* prevent iOS zoom */
+  .members-panel { padding: 10px; }
+
+  /* Account usage cards: larger text */
+  .acct-name { font-size: 13px; }
+  .acct-status { font-size: 12px; }
+  .acct-stats { font-size: 11px; gap: 12px; }
+
+  /* Dashboard: actions row */
+  #dash-content td:last-child { gap: 6px; }
+
+  /* Status bar */
+  #status-bar { font-size: 11px; padding: 8px 12px; }
+
+  /* Copy modal: better mobile sizing */
+  .copy-modal { width: 95vw; max-width: none; padding: 14px; }
+  .copy-modal-content { font-size: 12px; }
+}
+
+/* Extra narrow (320px) */
+@media (max-width: 375px) {
+  #dash-content tr { padding: 8px; gap: 4px; }
+  #dash-content .dash-action { padding: 8px 12px; font-size: 12px; }
+  #dash-content .res-input { font-size: 12px; }
+  .settings-info { font-size: 12px; }
+  .card { padding: 8px; margin-bottom: 10px; }
+  .card h3 { font-size: 14px; }
+  .feed-item { padding: 8px 10px; font-size: 12px; }
+  #top-bar .panel-title { font-size: 12px; }
+}
+
+/* Touch-friendly (min 44px touch targets per Apple HIG) */
+@media (pointer: coarse) {
+  .role-btn { padding: 10px 12px; font-size: 14px; min-height: 44px; }
+  .role-btn .role-actions { opacity: 0.5; }
+  .role-btn .role-actions span { padding: 6px 8px; font-size: 16px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .sidebar-tab { padding: 10px 14px; font-size: 13px; min-height: 44px; }
+  .sidebar-tab .close { font-size: 18px; opacity: 0.5; padding: 4px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .project-header { padding: 12px; font-size: 14px; min-height: 44px; }
+  .add-role-btn { padding: 10px 12px; font-size: 13px; min-height: 44px; }
+  #add-project-btn { padding: 12px; font-size: 13px; min-height: 44px; }
+  .toggle-sidebar-btn, .topbar-icon-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  #dashboard-btn, #central-btn { min-height: 44px; }
+  .settings-btn { min-height: 44px; }
+  #feed-input button { width: 44px; height: 44px; }
+  /* Account cards touch-friendly */
+  .acct-card-v2 { padding: 12px !important; }
+  /* Open tabs scroll on overflow */
+  #open-tabs-list { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .toggle-sidebar-btn { padding: 8px 12px; font-size: 18px; }
+  #dashboard-btn { padding: 12px 14px; font-size: 14px; }
+}
