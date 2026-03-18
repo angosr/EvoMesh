@@ -156,12 +156,23 @@ async function _fetchAllInner() {
     } else {
       renderSidebar(); renderDashboard();    }
 
-    // Update Central AI status dot (cheap — single element update)
+    // Update Central AI status dot + toggle button
     try {
       const centralRes = await authFetch(`${API}/admin/status`);
       const centralData = await centralRes.json();
       const dot = document.getElementById('central-dot');
-      if (dot) dot.className = `dot ${centralData.running ? 'running' : 'stopped'}`;
+      const toggle = document.getElementById('central-toggle');
+      if (dot) {
+        if (centralData.enabled === false) {
+          dot.className = 'dot disabled';
+        } else {
+          dot.className = `dot ${centralData.running ? 'running' : 'stopped'}`;
+        }
+      }
+      if (toggle) {
+        toggle.innerHTML = centralData.enabled === false ? '&#9654;' : '&#9724;'; // ▶ or ■
+        toggle.title = centralData.enabled === false ? 'Enable Central AI' : 'Disable Central AI';
+      }
     } catch {}
     // Clean up tabs for roles that are no longer running
     const activeTerminals = new Set();
@@ -377,6 +388,23 @@ function restoreLayout() {
 // Terminal scroll + copy moved to frontend-panels.js
 
 // ==================== Admin AI Terminal ====================
+async function toggleCentralAI() {
+  try {
+    const statusRes = await authFetch(`${API}/admin/status`);
+    const status = await statusRes.json();
+    if (status.enabled === false) {
+      // Enable + start
+      await authFetch(`${API}/admin/start`, { method: 'POST' });
+    } else {
+      // Disable + stop
+      await authFetch(`${API}/admin/stop`, { method: 'POST' });
+      // Close terminal panel if open
+      if (state.openPanels['central/ai']) closePanel('central/ai');
+    }
+    fetchAll();
+  } catch (e) { console.error('[central-ai] toggle failed:', e); }
+}
+
 function openCentralTerminal() {
   const key = 'central/ai';
   if (state.openPanels[key]) { switchTo(key); return; }

@@ -86,9 +86,10 @@
   .role-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; cursor: pointer; border: none; background: none; color: var(--text-dim); font-size: 12px; width: 100%; text-align: left; transition: background 0.15s, color 0.15s; }
   .role-btn:hover { background: var(--bg-hover); color: var(--text); }
   .role-btn.active { background: var(--bg-active); color: var(--text); }
-  .role-btn .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .role-btn .dot.running { background: var(--green); }
-  .role-btn .dot.stopped { background: var(--text-faint); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .dot.running { background: var(--green); }
+  .dot.stopped { background: var(--text-faint); }
+  .dot.disabled { background: var(--red); opacity: 0.5; }
   .role-btn .login-warn { color: var(--red); font-size: 8px; margin-left: 2px; font-weight: 600; }
   .role-btn .info { font-size: 9px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
   .role-btn .role-actions { opacity: 0; margin-left: 2px; display: flex; gap: 1px; transition: opacity 0.15s; }

@@ -24,9 +24,12 @@
   <button id="dashboard-btn" class="active" onclick="switchTo('dashboard')">
     <span class="dash-icon">&#9638;</span> Dashboard
   </button>
-  <button id="central-btn" onclick="openCentralTerminal()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer;border:none;background:none;color:#ccc;font-size:12px;width:100%;text-align:left;border-bottom:1px solid #222;">
-    <span class="dot stopped" id="central-dot"></span> Central AI
-  </button>
+  <div style="display:flex;align-items:center;border-bottom:1px solid #222;">
+    <button id="central-btn" onclick="openCentralTerminal()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;cursor:pointer;border:none;background:none;color:#ccc;font-size:12px;flex:1;text-align:left;">
+      <span class="dot stopped" id="central-dot"></span> Central AI
+    </button>
+    <button id="central-toggle" onclick="toggleCentralAI()" title="Enable/Disable Central AI" style="padding:4px 8px;cursor:pointer;border:none;background:none;color:#888;font-size:14px;line-height:1;">&#9211;</button>
+  </div>
   <div id="open-tabs-section">
     <div id="open-tabs-header" onclick="toggleOpenTabs()">
       <span class="arrow open" id="tabs-arrow">&#9654;</span>
