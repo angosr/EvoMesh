@@ -9,8 +9,9 @@ import { smartInit } from "../workspace/smartInit.js";
 import { exists, formatBytes } from "../utils/fs.js";
 import { errorMessage } from "../utils/error.js";
 import {
-  startRole, stopRole, isRoleRunning, sendInput, containerName,
+  isRoleRunning, sendInput, containerName,
 } from "../process/container.js";
+import { startRoleManaged, stopRoleManaged } from "./health.js";
 import {
   hasMinProjectRole, getProjectRole, setProjectOwner, grantAccess, revokeAccess,
   listMembers, removeProject, loadAcl, saveAcl,
@@ -82,13 +83,13 @@ const refreshSubscribers: Set<import("express").Response> = new Set();
 export function registerRoutes(app: import("express").Express, ctx: ServerContext): void {
 
   // Run ACL migration on startup
-  try { ensureAclMigration(ctx); } catch {}
+  try { ensureAclMigration(ctx); } catch (e) { console.error("[routes] ACL migration failed:", e); }
 
   // --- Refresh: central AI calls this after operations, Web UI subscribes ---
   app.post("/api/refresh", (_req, res) => {
     // Notify all subscribed clients to refresh
     for (const sub of refreshSubscribers) {
-      try { sub.write(`data: {"type":"refresh"}\n\n`); } catch {}
+      try { sub.write(`data: {"type":"refresh"}\n\n`); } catch (e) { console.error("[refresh] SSE write failed:", e); }
     }
     res.json({ ok: true, subscribers: refreshSubscribers.size });
   });
@@ -117,7 +118,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           });
       const result = accessible.map(p => {
         let hasConfig = false, roleCount = 0;
-        try { const c = loadConfig(p.root); hasConfig = true; roleCount = Object.keys(c.roles).length; } catch {}
+        try { const c = loadConfig(p.root); hasConfig = true; roleCount = Object.keys(c.roles).length; } catch (e) { console.error(`[projects] Failed to load config for ${p.root}:`, e); }
         const myRole = session ? getProjectRole(session.username, session.role, p.root) : null;
         return { slug: p.slug, name: p.name, path: p.root, hasConfig, roleCount, myRole };
       });
@@ -141,6 +142,11 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         if (!exists(projectRoot)) execFileSync("git", ["clone", url, projectRoot], { timeout: 60000 });
       } else if (localPath && typeof localPath === "string") {
         projectRoot = path.resolve(expandHome(localPath));
+        const home = os.homedir();
+        if (!projectRoot.startsWith(home + path.sep) && projectRoot !== home) {
+          res.status(400).json({ error: "Path must be within home directory" });
+          return;
+        }
         projectName = path.basename(projectRoot);
         if (!fs.existsSync(projectRoot)) { res.status(400).json({ error: "Path does not exist" }); return; }
       } else { res.status(400).json({ error: "Provide url or path" }); return; }
@@ -162,8 +168,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         const rc = config.roles[leadName];
         const ttydPort = allocatePort(ctx);
         try {
-          startRole(projectRoot, leadName, rc, config, ttydPort);
-          ctx.ttydProcesses.set(`${slug}/${leadName}`, { port: ttydPort, roleName: leadName, projectSlug: slug });
+          startRoleManaged(ctx, projectRoot, slug, leadName, rc, config, ttydPort);
         } catch (e: unknown) { console.error(`Failed to start lead:`, errorMessage(e)); }
       }
 
@@ -179,10 +184,9 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     try {
       const config = loadConfig(project.root);
       for (const roleName of Object.keys(config.roles)) {
-        stopRole(project.root, roleName);
-        ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
+        stopRoleManaged(ctx, project.root, project.slug, roleName);
       }
-    } catch {}
+    } catch (e) { console.error(`[delete-project] Failed to stop roles for ${project.slug}:`, e); }
     removeProject(project.root);
     const ws = loadWorkspace();
     ws.projects = ws.projects.filter(p => path.resolve(p.path) !== project.root);
@@ -268,7 +272,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
       const inbox = path.join(roleDir(project.root, leadName), "inbox");
       const msgs = [...readMsgs(inbox, false), ...readMsgs(path.join(inbox, "processed"), true)].sort((a, b) => a.ts.localeCompare(b.ts));
       res.json({ messages: msgs });
-    } catch { res.json({ messages: [] }); }
+    } catch (e) { console.error("[chat/history] Failed to read chat history:", e); res.json({ messages: [] }); }
   });
 
   // --- SSE feed ---
@@ -297,17 +301,18 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
                   const recent = bullets.filter(b => !b.startsWith("- 下一")).pop() || bullets[bullets.length - 1];
                   status = recent.replace(/^- /, "");
                 }
-              } catch {}
+              } catch (e) { /* short-term.md may not exist yet — non-critical */ }
               allEntries.push({ project: p.name, slug: p.slug, role: name, type: rc.type, running, status });
             }
-          } catch {}
+          } catch (e) { console.error(`[feed] Failed to load config for ${p.root}:`, e); }
         }
         res.write(`data: ${JSON.stringify({ type: "status", entries: allEntries, ts: new Date().toISOString() })}\n\n`);
-      } catch {}
+      } catch (e) { console.error("[feed] gather error:", e); }
     };
     gather();
     const timer = setInterval(gather, 5000);
-    req.on("close", () => clearInterval(timer));
+    const maxLifetime = setTimeout(() => { clearInterval(timer); try { res.end(); } catch {} }, 30 * 60 * 1000);
+    req.on("close", () => { clearInterval(timer); clearTimeout(maxLifetime); });
   });
 
   // Accounts, usage, metrics → routes-usage.ts

@@ -34,7 +34,7 @@
 7. Update status.md / blueprint.md if changes warrant
 8. Update own todo.md — mark dispatched tasks, add new ones
 9. **Write `memory/short-term.md`** (MANDATORY)
-10. commit + push (only own files, `git pull --rebase` before push)
+10. If this loop produced real work (dispatches, doc updates, config): commit + push (only own files, `git pull --rebase` before push). If only heartbeat/memory/todo changed: skip commit.
 
 ## Anti-Attention-Decay: Periodic Self-Audit Dispatch
 

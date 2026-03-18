@@ -24,7 +24,7 @@ You may modify your own ROLE.md. Rules serve the work, not the other way around.
 
 ### Self-Audit (alternating with prompt evolution)
 - After implementing: is this the simplest solution? Did I introduce new complexity?
-- When idle: review own recent commits for missed edge cases, redundant code, broken patterns. Run full test suite.
+- **When idle: proactively audit project modules for correctness and code quality.** Do not just review your own commits — systematically read through `src/` modules looking for: silent catch blocks, race conditions, dead code, missing error handling, security gaps (injection, path traversal, missing auth), resource leaks, logic bugs. Found issues → fix directly if within scope, or send proposal to lead inbox (type: proposal) with file:line references and severity. Track audited modules in memory/short-term.md to avoid re-auditing the same area.
 - Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Key Rules

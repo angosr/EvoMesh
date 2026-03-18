@@ -12,14 +12,17 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s; re
 function injectTouchScroll(iframe) {
   const POLL_INTERVAL = 500, MAX_ATTEMPTS = 20;
   let attempts = 0;
+  let aborted = false;
+  let pollTimeout = null;
   function tryInject() {
+    if (aborted) return;
     attempts++;
     try {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) { pollTimeout = setTimeout(tryInject, POLL_INTERVAL); } return; }
       const xtermScreen = iframeDoc.querySelector('.xterm-screen');
       const xtermViewport = iframeDoc.querySelector('.xterm-viewport');
-      if (!xtermScreen || !xtermViewport) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (!xtermScreen || !xtermViewport) { if (attempts < MAX_ATTEMPTS) { pollTimeout = setTimeout(tryInject, POLL_INTERVAL); } return; }
       if (xtermScreen.dataset.touchScrollInjected) return;
       xtermScreen.dataset.touchScrollInjected = 'true';
       let startY = 0, lastY = 0, scrolling = false;
@@ -44,25 +47,37 @@ function injectTouchScroll(iframe) {
       }, { passive: false });
       xtermScreen.addEventListener('touchend', () => { scrolling = false; });
       xtermScreen.addEventListener('touchcancel', () => { scrolling = false; });
-    } catch { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); }
+    } catch { if (!aborted && attempts < MAX_ATTEMPTS) { pollTimeout = setTimeout(tryInject, POLL_INTERVAL); } }
   }
-  iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
+  const onLoad = () => { attempts = 0; tryInject(); };
+  iframe.addEventListener('load', onLoad);
   tryInject();
+  // Store cleanup on iframe — chains with any existing cleanup (e.g. from injectKeyboardScroll)
+  const prevCleanup = iframe._scrollCleanup;
+  iframe._scrollCleanup = () => {
+    aborted = true;
+    if (pollTimeout) { clearTimeout(pollTimeout); pollTimeout = null; }
+    iframe.removeEventListener('load', onLoad);
+    if (typeof prevCleanup === 'function') prevCleanup();
+  };
 }
 
 // Inject keyboard handler into iframe for PageUp/PageDown scroll
 // Routes through queueScroll (defined in frontend-panels.js) for batched API calls
-function injectKeyboardScroll(iframe, panelKey) {
+function injectKeyboardScroll(iframe) {
   const POLL_INTERVAL = 500, MAX_ATTEMPTS = 20;
   let attempts = 0;
+  let aborted = false;
+  let pollTimeout = null;
   function tryInject() {
+    if (aborted) return;
     attempts++;
     try {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) { pollTimeout = setTimeout(tryInject, POLL_INTERVAL); } return; }
       if (iframeDoc.body?.dataset?.kbScrollInjected) return;
       const xtermScreen = iframeDoc.querySelector('.xterm-screen');
-      if (!xtermScreen) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (!xtermScreen) { if (attempts < MAX_ATTEMPTS) { pollTimeout = setTimeout(tryInject, POLL_INTERVAL); } return; }
       iframeDoc.body.dataset.kbScrollInjected = 'true';
       iframeDoc.addEventListener('keydown', e => {
         const keyMap = { PageUp: ['up', 20], PageDown: ['down', 20] };
@@ -73,10 +88,19 @@ function injectKeyboardScroll(iframe, panelKey) {
         // Use batched scroll queue instead of direct API call
         if (typeof queueScroll === 'function') queueScroll(action[0], action[1]);
       });
-    } catch { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); }
+    } catch { if (!aborted && attempts < MAX_ATTEMPTS) { pollTimeout = setTimeout(tryInject, POLL_INTERVAL); } }
   }
-  iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
+  const onLoad = () => { attempts = 0; tryInject(); };
+  iframe.addEventListener('load', onLoad);
   tryInject();
+  // Store cleanup on iframe — chains with any existing cleanup (e.g. from injectTouchScroll)
+  const prevCleanup = iframe._scrollCleanup;
+  iframe._scrollCleanup = () => {
+    aborted = true;
+    if (pollTimeout) { clearTimeout(pollTimeout); pollTimeout = null; }
+    iframe.removeEventListener('load', onLoad);
+    if (typeof prevCleanup === 'function') prevCleanup();
+  };
 }
 const state = {
   projects: [], accounts: [], openPanels: {}, activePanel: 'dashboard',
@@ -427,7 +451,7 @@ async function startAndOpenCentral() {
   // Mobile: slower polling to prevent input lag from DOM rebuilds
   const pollInterval = isMobile() ? 20000 : 8000;
   const metricsInterval = isMobile() ? 15000 : 5000;
-  setInterval(fetchAll, pollInterval); setInterval(fetchMetrics, metricsInterval);
+  const pollTimerId = setInterval(fetchAll, pollInterval); const metricsTimerId = setInterval(fetchMetrics, metricsInterval);
   // Subscribe to refresh events from central AI operations
   try {
     const refreshEs = new EventSource(`${API}/refresh/subscribe?token=${encodeURIComponent(AUTH_TOKEN)}`);

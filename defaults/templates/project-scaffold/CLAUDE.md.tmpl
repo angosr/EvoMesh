@@ -11,7 +11,8 @@
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
    - `heartbeat.json` — write `{"ts": <unix_ms>}` (server uses this to detect brain-dead roles)
    - `todo.md` — mark completed, add new
-6. `git add <own files only>` → commit → `git pull --rebase` → push
+6. If this loop produced real work: `git add <own files only>` → commit (include heartbeat/memory/todo) → `git pull --rebase` → push.
+   If no real work (only heartbeat/memory/todo changed): write files locally but do NOT commit. They will be included in the next real commit.
 
 Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no commit).
 **Lead NEVER enters light mode.** Light mode exit: any inbox message or lead dispatch.
@@ -21,6 +22,7 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no c
 - Commit: `{type}({scope}/{role}): {description}`
 - **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`
 - **NEVER** start background processes
+- **NO empty-loop commits**: If a loop only changes `heartbeat.json`, `memory/short-term.md`, and/or `todo.md` with no substantive work, do NOT commit. These files are local liveness signals, not deliverables. Only commit when the loop produces real output (code, inbox messages, doc changes, config, etc.). The heartbeat/memory files should be bundled into the next commit that contains real work.
 - All committed content English. User-facing replies follow user's language.
 - File > 500 lines → split
 

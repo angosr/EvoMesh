@@ -44,12 +44,14 @@ function pickAccount(usedAccounts: Record<string, number>): string {
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error("pickAccount: failed to scan home directory:", err);
+  }
   if (candidates.length === 0) return "~/.claude";
 
   // Pick least-loaded
   candidates.sort((a, b) => (usedAccounts[a] || 0) - (usedAccounts[b] || 0));
-  return candidates[0];
+  return candidates[0] ?? "~/.claude";
 }
 
 /**

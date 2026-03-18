@@ -9,7 +9,27 @@ import { slugify } from "../workspace/config.js";
 import { getContainerState, getContainerPort, containerName, centralContainerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
-import { requireProjectRole, reqLinuxUser } from "./routes.js";
+import { requireProjectRole, allocatePort, reqLinuxUser } from "./routes.js";
+
+/** Validate that a string is a safe shell-literal (alphanumeric, dash, underscore, dot). */
+function isSafeShellToken(s: string): boolean {
+  return /^[a-zA-Z0-9._-]+$/.test(s);
+}
+
+/** Kill any existing ttyd process bound to the given tmux session name. */
+function killExistingTtyd(sessionName: string): void {
+  try {
+    const pids = execFileSync("pgrep", ["-f", `ttyd.*${sessionName}`], {
+      encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"],
+    }).trim();
+    if (pids) {
+      for (const pid of pids.split("\n")) {
+        try { execFileSync("kill", [pid.trim()], { stdio: "ignore" }); }
+        catch { /* process may have already exited */ }
+      }
+    }
+  } catch { /* no matching ttyd process found — ok */ }
+}
 
 /**
  * Ensure Central AI is running. Uses host tmux mode (no Docker).
@@ -17,12 +37,21 @@ import { requireProjectRole, reqLinuxUser } from "./routes.js";
  */
 export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
   const sessionName = centralContainerName();
-  const adminPort = ctx.port + 100;
+
+  // Reuse existing port if already tracked, otherwise allocate a new one
+  const existingEntry = ctx.ttydProcesses.get("central/ai");
+  const adminPort = existingEntry ? existingEntry.port : allocatePort(ctx);
 
   // Already running? Just register and return.
   if (getContainerState(sessionName) === "running") {
     ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
     return { port: adminPort, terminal: "/terminal/central/ai/" };
+  }
+
+  // Validate sessionName before using in shell commands
+  if (!isSafeShellToken(sessionName)) {
+    console.error(`[central-ai] Invalid session name: ${sessionName}`);
+    return null;
   }
 
   try {
@@ -37,19 +66,35 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
         const firstAccount = Object.values(config.accounts)[0];
         if (firstAccount) accountPath = expandHome(firstAccount);
       }
-    } catch {}
+    } catch (e: unknown) {
+      console.warn("[central-ai] Failed to load account config, using default:", errorMessage(e));
+    }
+
+    // Validate accountPath before shell interpolation
+    if (!isSafeShellToken(path.basename(accountPath))) {
+      console.error(`[central-ai] Unsafe account path: ${accountPath}`);
+      return null;
+    }
 
     // Session ID for resume
     const centralDir = path.join(homeDir, ".evomesh", "central");
     const sessionIdFile = path.join(centralDir, ".session-id");
-    let claudeArgs = "--dangerously-skip-permissions";
+    const claudeArgParts: string[] = [];
     if (fs.existsSync(sessionIdFile)) {
       const sid = fs.readFileSync(sessionIdFile, "utf-8").trim();
-      if (sid) claudeArgs = `--resume ${sid} ${claudeArgs}`;
-      else claudeArgs = `--name central ${claudeArgs}`;
+      if (sid) {
+        if (!isSafeShellToken(sid)) {
+          console.error("[central-ai] Unsafe session ID, ignoring resume");
+        } else {
+          claudeArgParts.push("--resume", sid);
+        }
+      }
+      if (claudeArgParts.length === 0) claudeArgParts.push("--name", "central");
     } else {
-      claudeArgs = `--name central ${claudeArgs}`;
+      claudeArgParts.push("--name", "central");
     }
+    claudeArgParts.push("--dangerously-skip-permissions");
+    const claudeArgs = claudeArgParts.join(" ");
 
     // Start tmux session with claude — cwd is ~/.evomesh/central/ so Claude Code loads CLAUDE.md from there
     const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
@@ -57,9 +102,14 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
       "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
     ], { cwd: centralDir, stdio: "ignore" });
 
-    // Start ttyd pointing at tmux session
-    const ttydCmd = `ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${adminPort} -- tmux attach-session -t ${sessionName}`;
-    execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
+    // Kill any leftover ttyd for this session before starting a new one
+    killExistingTtyd(sessionName);
+
+    // Start ttyd pointing at tmux session using execFileSync with array args
+    const logFile = `/tmp/ttyd-${sessionName}.log`;
+    execFileSync("bash", ["-c",
+      `nohup ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${adminPort} -- tmux attach-session -t ${sessionName} > ${logFile} 2>&1 &`,
+    ], { stdio: "ignore" });
 
     // Send /loop command after delay (background)
     const loopCmd = `/loop 5m You are the central role. FIRST: cat and read ROLE.md completely. Then follow CLAUDE.md loop flow. MANDATORY: write central-status.md every loop (Now/Next/Risk per project).`;
@@ -128,7 +178,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
       } else {
         res.type("text").send("Central AI starting...");
       }
-    } catch { res.type("text").send("Unable to read status"); }
+    } catch (e: unknown) { console.warn("[central-ai] Failed to read central-status.md:", errorMessage(e)); res.type("text").send("Unable to read status"); }
   });
 
   // Send message to central AI inbox
@@ -151,13 +201,15 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
         execFileSync("tmux", ["send-keys", "-t", sessionName, "-l",
           message.trim()], { stdio: "ignore" });
         execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore" });
-      } catch {}
+      } catch (e: unknown) {
+        console.warn("[central-ai] Failed to send keys to tmux session:", errorMessage(e));
+      }
 
       // Broadcast to SSE feed subscribers
       const feedSubs = (ctx as any)._feedSubscribers as Set<import("express").Response> | undefined;
       if (feedSubs) {
         const event = JSON.stringify({ type: "user-message", text: message.trim(), time: new Date().toISOString() });
-        for (const sub of feedSubs) { try { sub.write(`data: ${event}\n\n`); } catch {} }
+        for (const sub of feedSubs) { try { sub.write(`data: ${event}\n\n`); } catch { /* SSE subscriber disconnected */ } }
       }
 
       res.json({ ok: true });

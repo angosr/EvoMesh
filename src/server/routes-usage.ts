@@ -55,14 +55,14 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
             const claudeJson = JSON.parse(fs.readFileSync(path.join(dir, ".claude.json"), "utf-8"));
             email = claudeJson.email || claudeJson.oauthAccount?.emailAddress || null;
             subscriptionType = claudeJson.subscriptionType || null;
-          } catch {}
+          } catch (err) { console.error(`Failed to read .claude.json for account "${name}":`, errorMessage(err)); }
           try {
             const cred = JSON.parse(fs.readFileSync(path.join(dir, ".credentials.json"), "utf-8"));
             const oauth = cred.claudeAiOauth || {};
             if (!subscriptionType) subscriptionType = oauth.subscriptionType || null;
             rateLimitTier = oauth.rateLimitTier || null;
             tokenExpiresAt = oauth.expiresAt || null;
-          } catch {}
+          } catch (err) { console.error(`Failed to read .credentials.json for account "${name}":`, errorMessage(err)); }
           let inputTokens = 0, outputTokens = 0, cacheCreation = 0, cacheRead = 0, activeSessions = 0;
           const projDir = path.join(dir, "projects");
           try {
@@ -87,13 +87,13 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
                           cacheCreation += u.cache_creation_input_tokens || 0;
                           cacheRead += u.cache_read_input_tokens || 0;
                         }
-                      } catch {}
+                      } catch (err) { console.error(`Failed to parse usage line in ${jfPath}:`, errorMessage(err)); }
                     }
-                  } catch {}
+                  } catch (err) { console.error(`Failed to read session file ${jfPath}:`, errorMessage(err)); }
                 }
               }
             }
-          } catch {}
+          } catch (err) { console.error(`Failed to scan projects dir for account "${name}":`, errorMessage(err)); }
           const projects = ctx.getProjects(session.linuxUser);
           let roleCount = 0;
           for (const p of projects) {
@@ -103,7 +103,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
                 const acctPath = expandHome(config.accounts[rc.account] || "~/.claude");
                 if (acctPath === dir) roleCount++;
               }
-            } catch {}
+            } catch (err) { console.error(`Failed to load config for project ${p.root}:`, errorMessage(err)); }
           }
           return {
             name, path: `~/${e.name}`, email, subscriptionType, rateLimitTier,
@@ -135,7 +135,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
         const df = execFileSync("df", ["-h", "/"], { encoding: "utf-8" });
         const parts = df.trim().split("\n")[1].split(/\s+/);
         diskTotal = parts[1]; diskUsed = parts[2]; diskPercent = parseInt(parts[4], 10) || 0;
-      } catch {}
+      } catch (err) { console.error("Failed to read disk usage:", errorMessage(err)); }
       res.json({
         cpu: { percent: cpuPercent, cores: cpus.length, load1: load1.toFixed(2) },
         memory: { percent: memPercent, used: formatBytes(totalMem - freeMem), total: formatBytes(totalMem) },

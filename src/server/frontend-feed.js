@@ -15,8 +15,11 @@ function initFeed() {
   const seenMessages = new Set();
 
   // SSE stream for role updates — auto-reconnect on disconnect
+  let currentEs = null;
   function connectFeed() {
+    if (currentEs) { currentEs.close(); currentEs = null; }
     const es = new EventSource(`${API}/feed/stream?token=${encodeURIComponent(AUTH_TOKEN)}`);
+    currentEs = es;
     es.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
@@ -59,6 +62,8 @@ function initFeed() {
   }).catch(() => {});
 }
 
+function safeColor(c) { return /^#[0-9a-fA-F]{3,6}$|^[a-zA-Z]+$/.test(c) ? c : '#888'; }
+
 function appendFeedMessage(msg) {
   const feed = document.getElementById('feed');
   if (!feed) return;
@@ -68,7 +73,7 @@ function appendFeedMessage(msg) {
   const time = msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   if (msg.type === 'role') {
-    const color = ROLE_COLORS[msg.role] || '#888';
+    const color = safeColor(ROLE_COLORS[msg.role] || '#888');
     const proj = msg.project ? `<span class="feed-project">${esc(msg.project)}</span>` : '';
     div.innerHTML = `${proj}<span class="feed-role" style="color:${color}">${esc(msg.role || '')}</span>
       <span class="feed-time">${esc(time)}</span>

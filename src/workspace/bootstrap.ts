@@ -4,6 +4,20 @@ import os from "node:os";
 import { ensureDir } from "../utils/fs.js";
 
 /**
+ * Return true if src is newer than dest, or if dest doesn't exist.
+ * Handles TOCTOU races where dest is deleted between existence check and stat.
+ */
+function isNewer(src: string, dest: string): boolean {
+  try {
+    const srcStat = fs.statSync(src);
+    const destStat = fs.statSync(dest);
+    return srcStat.mtimeMs > destStat.mtimeMs;
+  } catch {
+    return true; // dest doesn't exist or src missing — copy anyway
+  }
+}
+
+/**
  * Bootstrap ~/.evomesh/ on first run.
  * Creates skeleton directories, default workspace config, central AI role, and templates.
  * Skips anything that already exists.
@@ -50,7 +64,7 @@ export function bootstrapGlobalConfig(): void {
   const centralClaude = path.join(evomeshDir, "central", "CLAUDE.md");
   const repoClaude = findRepoFile("defaults/central-claude.md");
   if (repoClaude) {
-    if (!fs.existsSync(centralClaude) || fs.statSync(repoClaude).mtimeMs > fs.statSync(centralClaude).mtimeMs) {
+    if (isNewer(repoClaude, centralClaude)) {
       fs.copyFileSync(repoClaude, centralClaude);
       console.log("[bootstrap] Synced central AI CLAUDE.md");
     }
@@ -75,7 +89,7 @@ export function bootstrapGlobalConfig(): void {
   const claudeDir = path.join(process.cwd(), ".claude");
   const hooksFile = path.join(claudeDir, "settings.json");
   const defaultHooks = findRepoFile("defaults/claude-settings.json");
-  if (defaultHooks && (!fs.existsSync(hooksFile) || fs.statSync(defaultHooks).mtimeMs > fs.statSync(hooksFile).mtimeMs)) {
+  if (defaultHooks && isNewer(defaultHooks, hooksFile)) {
     ensureDir(claudeDir);
     fs.copyFileSync(defaultHooks, hooksFile);
     console.log("[bootstrap] Deployed Claude Code hooks (.claude/settings.json)");
@@ -136,7 +150,7 @@ function copyDirRecursive(src: string, dest: string): void {
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
       copyDirRecursive(srcPath, destPath);
-    } else if (!fs.existsSync(destPath) || fs.statSync(srcPath).mtimeMs > fs.statSync(destPath).mtimeMs) {
+    } else if (isNewer(srcPath, destPath)) {
       fs.copyFileSync(srcPath, destPath);
     }
   }

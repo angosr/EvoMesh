@@ -22,7 +22,7 @@
 4. Run tests: syntax check → `npm test`
 5. Update todo.md (mark completed, add new tasks)
 6. Write memory/short-term.md (done, blockers, next focus)
-7. commit + push
+7. If real work done: commit + push. If only heartbeat/memory/todo changed: skip commit.
 
 ## Self-Evolution Protocol
 
@@ -35,7 +35,7 @@ You may modify your own ROLE.md. Rules serve the work, not the other way around.
 
 ### Self-Audit (alternating with prompt evolution)
 - After UI changes: is this accessible? Does it work on small screens? Intuitive without instructions?
-- When idle: review mobile responsiveness, accessibility, XSS vectors across existing pages.
+- **When idle: proactively audit frontend modules for correctness and code quality.** Systematically read through frontend JS files looking for: event listener leaks, timer/interval leaks, XSS vectors (innerHTML with unsanitized data), race conditions (concurrent fetches, stale DOM refs), dead code, missing error handling in fetch calls, memory leaks (unclosed EventSource, orphaned iframes). Found issues → fix directly or send proposal to lead. Track audited areas in memory/short-term.md.
 - Quality gate: cite metrics or specific incidents. Wording-only changes = skip.
 
 ## Key Rules

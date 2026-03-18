@@ -5,13 +5,13 @@ import { writeYaml } from "../utils/fs.js";
 import { errorMessage } from "../utils/error.js";
 import { createRole, deleteRole, getTemplateNames } from "../roles/manager.js";
 import {
-  startRole, stopRole, restartRole, isRoleRunning,
+  restartRole, isRoleRunning,
   getRoleLogs, switchAccount as switchContainerAccount,
 } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
 import { ROLE_NAME_RE, requireProjectRole, allocatePort, reqLinuxUser } from "./routes.js";
-import { markRoleRunning, markRoleStopped } from "./health.js";
+import { startRoleManaged, stopRoleManaged, recordRoleStart } from "./health.js";
 
 export function registerRoleRoutes(app: import("express").Express, ctx: ServerContext): void {
 
@@ -26,13 +26,8 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const config = loadConfig(project.root);
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
-
-      // Allocate port
       const ttydPort = allocatePort(ctx);
-
-      const result = startRole(project.root, roleName, rc, config, ttydPort);
-      ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
-      markRoleRunning(`${project.slug}/${roleName}`);
+      const result = startRoleManaged(ctx, project.root, project.slug, roleName, rc, config, ttydPort);
       res.json({ ok: true, ...result });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
@@ -41,14 +36,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !ROLE_NAME_RE.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
-    stopRole(project.root, req.params.name);
-    markRoleStopped(`${project.slug}/${req.params.name}`);
-    // Mark as user-stopped so auto-restart doesn't revive it
-    const key = `${project.slug}/${req.params.name}`;
-    const entry = ctx.ttydProcesses.get(key);
-    if (entry) { entry.userStopped = true; } else {
-      ctx.ttydProcesses.set(key, { port: 0, roleName: req.params.name, projectSlug: project.slug, userStopped: true });
-    }
+    stopRoleManaged(ctx, project.root, project.slug, req.params.name, { userStopped: true });
     res.json({ ok: true });
   });
 
@@ -62,18 +50,15 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
-      // If container exists, restart it. Otherwise start fresh.
       if (isRoleRunning(project.root, roleName)) {
         restartRole(project.root, roleName);
+        recordRoleStart(`${project.slug}/${roleName}`);
       } else {
-        // Stop any dead container first
-        stopRole(project.root, roleName);
-        // Allocate port
+        // Stop any dead container first, then start fresh
+        stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true });
         const ttydPort = allocatePort(ctx);
-        startRole(project.root, roleName, rc, config, ttydPort);
-        ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
+        startRoleManaged(ctx, project.root, project.slug, roleName, rc, config, ttydPort);
       }
-      markRoleRunning(`${project.slug}/${roleName}`);
       res.json({ ok: true, role: roleName });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
@@ -117,8 +102,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
     try {
       const config = loadConfig(project.root);
       if (!config.roles[roleName]) { res.status(404).json({ error: "Role not found" }); return; }
-      stopRole(project.root, roleName);
-      ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
+      stopRoleManaged(ctx, project.root, project.slug, roleName);
       deleteRole(project.root, roleName, config);
       res.json({ ok: true });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
@@ -147,12 +131,10 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       // Restart container with new limits if running
       const wasRunning = isRoleRunning(project.root, roleName);
       if (wasRunning) {
-        stopRole(project.root, roleName);
-        ctx.ttydProcesses.delete(`${project.slug}/${roleName}`);
+        stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true });
         const ttydPort = allocatePort(ctx);
         const fresh = loadConfig(project.root);
-        startRole(project.root, roleName, fresh.roles[roleName], fresh, ttydPort);
-        ctx.ttydProcesses.set(`${project.slug}/${roleName}`, { port: ttydPort, roleName, projectSlug: project.slug });
+        startRoleManaged(ctx, project.root, project.slug, roleName, fresh.roles[roleName], fresh, ttydPort);
       }
 
       res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, restarted: wasRunning });
@@ -185,7 +167,10 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
 
       // Restart container to pick up new credentials
       const wasRunning = isRoleRunning(project.root, roleName);
-      if (wasRunning) restartRole(project.root, roleName);
+      if (wasRunning) {
+        restartRole(project.root, roleName);
+        recordRoleStart(`${project.slug}/${roleName}`);
+      }
 
       res.json({ ok: true, oldAccount, newAccount: accountName, restarted: wasRunning });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }

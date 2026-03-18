@@ -75,7 +75,7 @@ function ensureRoleConfig(
   if (mcpServers && Object.keys(mcpServers).length > 0) {
     const settingsPath = path.join(configDir, "settings.json");
     let settings: Record<string, any> = {};
-    try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8")); } catch {}
+    try { settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8")); } catch { /* file may not exist yet — start with empty settings */ }
     settings.mcpServers = { ...settings.mcpServers, ...mcpServers };
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
   }
@@ -89,7 +89,7 @@ function ensureRoleConfig(
 export function ensureImage(): void {
   try {
     execFileSync("docker", ["image", "inspect", DOCKER_IMAGE], { stdio: "ignore" });
-  } catch {
+  } catch { /* image not found — build it below */
     console.log("Building evomesh-role Docker image...");
     const dockerDir = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "..", "docker");
     execFileSync("docker", [
@@ -110,14 +110,14 @@ export function getContainerState(name: string): "running" | "stopped" | "not-fo
   try {
     execFileSync("tmux", ["has-session", "-t", name], { stdio: "ignore" });
     return "running"; // tmux session exists
-  } catch {}
+  } catch { /* tmux session not found — fall through to docker check */ }
   // Then try docker
   try {
     const out = execFileSync("docker", ["inspect", "--format", "{{.State.Running}}", name], {
       encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"],
     }).trim();
     return out === "true" ? "running" : "stopped";
-  } catch {
+  } catch { /* docker inspect failed — container does not exist */
     return "not-found";
   }
 }
@@ -130,8 +130,10 @@ export function getContainerPort(name: string): number | null {
     const out = execFileSync("docker", [
       "inspect", "--format", "{{(index (index .NetworkSettings.Ports \"7681/tcp\") 0).HostPort}}", name,
     ], { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] }).trim();
-    return parseInt(out, 10) || null;
-  } catch {
+    const parsed = parseInt(out, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  } catch (err) {
+    console.error(`getContainerPort: failed to inspect port for ${name}:`, err);
     return null;
   }
 }
@@ -226,7 +228,7 @@ export function startRole(
   const configDir = ensureRoleConfig(projectSlug, roleName, accountPath, roleConfig.mcp);
 
   // Remove stopped/dead container before creating new one
-  try { execFileSync("docker", ["rm", "-f", name], { stdio: ["pipe", "pipe", "ignore"] }); } catch {}
+  try { execFileSync("docker", ["rm", "-f", name], { stdio: ["pipe", "pipe", "ignore"] }); } catch { /* container may not exist — safe to ignore */ }
 
   const homeDir = os.homedir();
 
@@ -244,7 +246,7 @@ export function startRole(
     // Per-user Docker network for isolation
     const netUser = opts.linuxUser || process.env.USER || "user";
     const netName = `evomesh-net-${netUser}`;
-    try { execFileSync("docker", ["network", "create", netName], { stdio: "ignore" }); } catch {} // already exists = ok
+    try { execFileSync("docker", ["network", "create", netName], { stdio: "ignore" }); } catch { /* network already exists — ok */ }
     args.push("--network", netName);
     args.push("-p", `127.0.0.1:${ttydPort}:7681`);
   }
@@ -319,18 +321,24 @@ export function stopRole(root: string, roleName: string): boolean {
     execFileSync("tmux", ["has-session", "-t", name], { stdio: "ignore" });
     // It's a tmux session — kill it
     execFileSync("tmux", ["kill-session", "-t", name], { stdio: "ignore" });
-    // Kill associated ttyd process
+    // Kill associated ttyd process — use pgrep+kill with execFileSync to avoid shell injection
     try {
-      execFileSync("bash", ["-c", `pkill -f "ttyd.*${name}" 2>/dev/null`], { stdio: "ignore" });
-    } catch {}
+      const pids = execFileSync("pgrep", ["-f", `ttyd.*${name}`], { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] }).trim();
+      if (pids) {
+        for (const pid of pids.split("\n")) {
+          try { execFileSync("kill", [pid.trim()], { stdio: "ignore" }); } catch { /* process may have already exited */ }
+        }
+      }
+    } catch { /* no matching ttyd process found — ok */ }
     return true;
-  } catch {}
+  } catch { /* not a tmux session — fall through to docker */ }
   // Try docker
   try {
     execFileSync("docker", ["stop", "-t", "15", name], { stdio: "ignore" });
     execFileSync("docker", ["rm", name], { stdio: "ignore" });
     return true;
-  } catch {
+  } catch (err) {
+    console.error(`stopRole: failed to stop/remove docker container ${name}:`, err);
     return false;
   }
 }
@@ -343,7 +351,8 @@ export function restartRole(root: string, roleName: string): boolean {
   try {
     execFileSync("docker", ["restart", "-t", "15", name], { stdio: "ignore" });
     return true;
-  } catch {
+  } catch (err) {
+    console.error(`restartRole: failed to restart container ${name}:`, err);
     return false;
   }
 }
@@ -364,7 +373,8 @@ export function getRoleLogs(root: string, roleName: string, tail: number = 500):
     return execFileSync("docker", ["logs", "--tail", String(tail), name], {
       encoding: "utf-8", maxBuffer: 1024 * 1024,
     });
-  } catch {
+  } catch (err) {
+    console.error(`getRoleLogs: failed to get logs for ${name}:`, err);
     return "";
   }
 }
@@ -381,7 +391,8 @@ export function sendInput(root: string, roleName: string, input: string): boolea
       name, "sh", "-c", 'printf "%s\\n" "$EVOMESH_INPUT" > /proc/1/fd/0',
     ], { stdio: "ignore" });
     return true;
-  } catch {
+  } catch (err) {
+    console.error(`sendInput: failed to send input to ${name}:`, err);
     return false;
   }
 }
@@ -420,11 +431,17 @@ export function listContainers(): Array<{ name: string; state: string; port: num
       "ps", "-a", "--filter", "name=evomesh-", "--format", "{{.Names}}\t{{.State}}\t{{.Ports}}",
     ], { encoding: "utf-8" });
     return out.trim().split("\n").filter(Boolean).map(line => {
-      const [name, state, ports] = line.split("\t");
+      const parts = line.split("\t");
+      if (parts.length < 3) {
+        console.error(`listContainers: unexpected docker ps output format: ${line}`);
+        return { name: parts[0] || "unknown", state: parts[1] || "unknown", port: null };
+      }
+      const [name, state, ports] = parts;
       const portMatch = ports?.match(/:(\d+)->/);
       return { name, state, port: portMatch ? parseInt(portMatch[1], 10) : null };
     });
-  } catch {
+  } catch (err) {
+    console.error("listContainers: failed to list docker containers:", err);
     return [];
   }
 }

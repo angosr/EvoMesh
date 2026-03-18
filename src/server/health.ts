@@ -28,6 +28,13 @@ const START_GRACE_PERIOD = 3 * 60 * 1000; // 3 min grace after start before nudg
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
 
+/** Safely parse a loop_interval value (e.g. "10m", 10, undefined) to minutes. */
+function parseIntervalMinutes(interval: string | number | undefined): number {
+  if (typeof interval === "number") return interval;
+  const n = parseInt(String(interval), 10);
+  return Number.isNaN(n) || n <= 0 ? 10 : n;
+}
+
 // --- Tmux command sending (SSOT for host/docker dispatch) ---
 const gosuUser = process.env.USER || "user";
 
@@ -213,7 +220,7 @@ function checkAccountHealth(): void {
 }
 
 export function isAccountDown(accountPath: string): boolean {
-  return accountHealthCache.get(accountPath) ?? false;
+  return accountHealthCache.get(accountPath) ?? true; // unchecked = assume needs login
 }
 
 export function writeRegistry(ctx: ServerContext, port: number): void {
@@ -260,6 +267,10 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
     let centralError = false;
     if (!centralRunning) {
       centralRestartFails++;
+      if (centralRestartFails > 3 && centralRestartFails % 40 === 0) {
+        // Retry every ~10 min (40 × 15s intervals)
+        centralRestartFails = 1;
+      }
       if (centralRestartFails <= 3) {
         console.log(`[central-ai] Not running, attempting restart (attempt ${centralRestartFails}/3)...`);
         try { ensureCentralAI(ctx); } catch (e) { console.error("[central-ai] Auto-restart failed:", e); }
@@ -333,7 +344,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
             const stmStat = fs.statSync(stmPath);
             const stmAgeMs = now - stmStat.mtimeMs;
-            const intervalMin = parseInt(rc.loop_interval) || 10;
+            const intervalMin = parseIntervalMinutes(rc.loop_interval);
             const bdThreshold = intervalMin * 10 * 60 * 1000;
             const lastTime = lastRestart.get(key) || 0;
             if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
@@ -392,7 +403,7 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
         const lastNudgeTime = lastNudge.get(key) || 0;
         if (now - lastNudgeTime < NUDGE_COOLDOWN) continue;
 
-        const intervalMin = parseInt(rc.loop_interval) || 10;
+        const intervalMin = parseIntervalMinutes(rc.loop_interval);
         const threshold = Math.max(intervalMin * 1.5, 10);
         const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
         try {

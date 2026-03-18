@@ -59,16 +59,21 @@ export function startServer(port: number, initialRoot?: string) {
       }
       if (sessions.size > 0) console.log(`[auth] Restored ${sessions.size} sessions`);
     }
-  } catch {}
+  } catch (e) { console.error("[sessions] Failed to restore sessions from disk:", e); }
 
-  function persistSessions() {
-    try {
-      const data: Record<string, SessionInfo & { createdAt: string }> = {};
-      for (const [token, info] of sessions) {
-        data[token] = { ...info, createdAt: new Date().toISOString() };
-      }
-      fs.writeFileSync(SESSION_FILE, JSON.stringify(data), "utf-8");
-    } catch {}
+  let persistTimer: ReturnType<typeof setTimeout> | null = null;
+  function schedulePersist(): void {
+    if (persistTimer) return; // already scheduled
+    persistTimer = setTimeout(() => {
+      persistTimer = null;
+      try {
+        const data: Record<string, any> = {};
+        for (const [id, s] of sessions) { data[id] = { ...s }; }
+        const tmpPath = SESSION_FILE + ".tmp";
+        fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2));
+        fs.renameSync(tmpPath, SESSION_FILE);
+      } catch (e) { console.error("[sessions] Failed to persist:", e); }
+    }, 100); // coalesce writes within 100ms
   }
 
   // --- Session helpers ---
@@ -101,7 +106,7 @@ export function startServer(port: number, initialRoot?: string) {
       setupAdmin(name, password);
       const token = generateSessionToken();
       sessions.set(token, { username: name, role: "admin", linuxUser: process.env.USER || "user" });
-      persistSessions();
+      schedulePersist();
       res.json({ ok: true, token, username: name, role: "admin" });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
@@ -113,7 +118,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (!user) { res.status(401).json({ error: "Invalid username or password" }); return; }
     const token = generateSessionToken();
     sessions.set(token, { username: user.username, role: user.role, linuxUser: user.linuxUser });
-    persistSessions();
+    schedulePersist();
     res.json({ ok: true, token, username: user.username, role: user.role });
   });
 
@@ -170,7 +175,7 @@ export function startServer(port: number, initialRoot?: string) {
       if (!fs.existsSync(credsPath)) return true;
       const creds = fs.readFileSync(credsPath, "utf-8").trim();
       return !creds || creds === "{}" || creds === "null";
-    } catch { return true; }
+    } catch (e) { console.error("[auth] Failed to check credentials:", e); return true; }
   }
 
   const ctx: ServerContext = {
@@ -201,6 +206,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (!requireAdmin(req, res)) return;
     const { username, password, role } = req.body;
     if (!username || !password) { res.status(400).json({ error: "Username and password required" }); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) { res.status(400).json({ error: "Username must be alphanumeric (a-z, 0-9, _)" }); return; }
     if (username.length < 2) { res.status(400).json({ error: "Username too short (min 2)" }); return; }
     if (password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
     const userRole: UserRole = role === "admin" ? "admin" : "user";
@@ -219,7 +225,7 @@ export function startServer(port: number, initialRoot?: string) {
       for (const [token, info] of sessions) {
         if (info.username === target) sessions.delete(token);
       }
-      persistSessions();
+      schedulePersist();
       deleteUser(target);
       res.json({ ok: true });
     } catch (e: unknown) { res.status(404).json({ error: errorMessage(e) }); }
@@ -234,7 +240,7 @@ export function startServer(port: number, initialRoot?: string) {
       for (const [token, info] of sessions) {
         if (info.username === req.params.username) sessions.delete(token);
       }
-      persistSessions();
+      schedulePersist();
       res.json({ ok: true });
     } catch (e: unknown) { res.status(404).json({ error: errorMessage(e) }); }
   });

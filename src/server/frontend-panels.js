@@ -1,6 +1,14 @@
 // Panel management + terminal scroll/copy
 // Depends on globals from frontend.js: state, authFetch, API, esc, saveLayout, renderOpenTabs, fetchAll, injectTouchScroll
 
+// Cleanup helper: call stored cleanup functions on an iframe before replacing/removing it
+function _cleanupIframe(iframe) {
+  if (iframe && typeof iframe._scrollCleanup === 'function') {
+    iframe._scrollCleanup();
+    iframe._scrollCleanup = null;
+  }
+}
+
 // ==================== Panels ====================
 function openTerminal(slug, projectName, roleName, terminalPath) {
   const key = `${slug}/${roleName}`;
@@ -131,6 +139,10 @@ function reconnectPanel(key) {
   const p = state.openPanels[key];
   if (!p) return;
   p.overlay.classList.remove('show');
+  // Clean up old iframe scroll listeners before replacing
+  _cleanupIframe(p.iframe);
+  // Clear old reconnect timer and restart it on the new iframe
+  if (p.reconnectTimer) { clearInterval(p.reconnectTimer); p.reconnectTimer = null; }
   const oldSrc = p.iframe.src;
   const newIframe = document.createElement('iframe');
   newIframe.src = oldSrc;
@@ -140,12 +152,28 @@ function reconnectPanel(key) {
   p.iframe = newIframe;
   injectTouchScroll(newIframe);
   injectKeyboardScroll(newIframe, key);
+  // Restart disconnect detection on new iframe
+  p.reconnectTimer = setInterval(() => {
+    try {
+      const doc = newIframe.contentDocument || newIframe.contentWindow?.document;
+      if (!doc) return;
+      const xtermScreen = doc.querySelector('.xterm-screen');
+      const ttydOverlay = doc.querySelector('#overlay');
+      const bodyText = doc.body?.innerText || '';
+      const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
+        (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
+        (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
+      if (isDisconnected) p.overlay.classList.add('show');
+    } catch {}
+  }, 2000);
 }
 
 function closePanel(key) {
   const p = state.openPanels[key];
   if (!p) return;
-  if (p.reconnectTimer) clearInterval(p.reconnectTimer);
+  if (p.reconnectTimer) { clearInterval(p.reconnectTimer); p.reconnectTimer = null; }
+  // Clean up iframe scroll event listeners
+  _cleanupIframe(p.iframe);
   p.panel.remove(); delete state.openPanels[key];
   state.tabOrder = state.tabOrder.filter(k => k !== key);
   if (state.activePanel === key) {
@@ -293,9 +321,12 @@ function _flushScroll() {
     if (touchMoved && Math.abs(velocity) > 0.3) {
       let v = velocity;
       const decay = 0.92;
+      const panelKey = state.activePanel;
       function momentumStep() {
         v *= decay;
-        if (Math.abs(v) < 0.05) return;
+        if (Math.abs(v) < 0.05) { momentumTimer = null; return; }
+        // Stop if the panel was closed
+        if (!state.openPanels[panelKey]) { momentumTimer = null; return; }
         const lines = Math.max(1, Math.round(Math.abs(v) * 8));
         queueScroll(v > 0 ? 'up' : 'down', lines);
         momentumTimer = requestAnimationFrame(momentumStep);
@@ -322,6 +353,37 @@ function termAction(key, action, lines) {
   }
 }
 
+// Reusable copy dialog — created once, shown/hidden as needed to avoid listener accumulation
+let _copyModal = null, _copyPre = null, _copyBtn = null;
+function _ensureCopyModal() {
+  if (_copyModal) return;
+  _copyModal = document.createElement('div');
+  _copyModal.className = 'copy-modal-overlay';
+  const inner = document.createElement('div');
+  inner.className = 'copy-modal';
+  const header = document.createElement('div');
+  header.className = 'copy-modal-header';
+  header.innerHTML = `<span>Terminal Output</span>`;
+  _copyBtn = document.createElement('button');
+  _copyBtn.className = 'copy-modal-btn';
+  _copyBtn.textContent = 'Copy All';
+  header.appendChild(_copyBtn);
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'copy-modal-close';
+  closeBtn.textContent = '\u00d7';
+  closeBtn.addEventListener('click', () => _closeCopyModal());
+  header.appendChild(closeBtn);
+  _copyPre = document.createElement('pre');
+  _copyPre.className = 'copy-modal-content';
+  inner.appendChild(header);
+  inner.appendChild(_copyPre);
+  _copyModal.appendChild(inner);
+  _copyModal.addEventListener('click', e => { if (e.target === _copyModal) _closeCopyModal(); });
+}
+function _closeCopyModal() {
+  if (_copyModal && _copyModal.parentNode) _copyModal.parentNode.removeChild(_copyModal);
+}
+
 async function showCopyDialog() {
   const key = state.activePanel;
   if (!key) return;
@@ -332,40 +394,23 @@ async function showCopyDialog() {
     const text = await res.text();
     const clean = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[^\x20-\x7e\n\r\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '');
     const last100 = clean.split('\n').slice(-100).join('\n');
-    const modal = document.createElement('div');
-    modal.className = 'copy-modal-overlay';
-    const inner = document.createElement('div');
-    inner.className = 'copy-modal';
-    const header = document.createElement('div');
-    header.className = 'copy-modal-header';
-    header.innerHTML = `<span>Terminal Output</span>`;
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-modal-btn';
-    copyBtn.textContent = 'Copy All';
-    copyBtn.addEventListener('click', async () => {
+    _ensureCopyModal();
+    _copyPre.textContent = last100;
+    _copyBtn.textContent = 'Copy All';
+    // Replace copy button's click handler cleanly using a clone
+    const newCopyBtn = _copyBtn.cloneNode(true);
+    _copyBtn.parentNode.replaceChild(newCopyBtn, _copyBtn);
+    _copyBtn = newCopyBtn;
+    _copyBtn.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(last100);
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => { copyBtn.textContent = 'Copy All'; }, 1500);
+        _copyBtn.textContent = 'Copied!';
+        setTimeout(() => { _copyBtn.textContent = 'Copy All'; }, 1500);
       } catch {
-        // Fallback: select all text
-        const pre = inner.querySelector('pre');
-        if (pre) { const range = document.createRange(); range.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+        const range = document.createRange(); range.selectNodeContents(_copyPre);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
       }
     });
-    header.appendChild(copyBtn);
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'copy-modal-close';
-    closeBtn.textContent = '\u00d7';
-    closeBtn.addEventListener('click', () => modal.remove());
-    header.appendChild(closeBtn);
-    const pre = document.createElement('pre');
-    pre.className = 'copy-modal-content';
-    pre.textContent = last100;
-    inner.appendChild(header);
-    inner.appendChild(pre);
-    modal.appendChild(inner);
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-    document.body.appendChild(modal);
+    document.body.appendChild(_copyModal);
   } catch {}
 }

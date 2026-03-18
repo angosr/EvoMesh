@@ -14,13 +14,11 @@ export function ensureTtydRunning(ctx: ServerContext): void {
   try {
     ensureImage();
     const projects = ctx.getProjects();
-    let portOffset = 0;
     for (const project of projects) {
       try {
         const config = loadConfig(project.root);
         for (const [roleName, roleConfig] of Object.entries(config.roles)) {
           const key = `${project.slug}/${roleName}`;
-          portOffset++;
           if (ctx.ttydProcesses.has(key)) continue;
 
           // Check if container is running
@@ -35,7 +33,9 @@ export function ensureTtydRunning(ctx: ServerContext): void {
           // Start container for roles that should be running
           // (only start if explicitly requested via API, not auto-start all)
         }
-      } catch {}
+      } catch (err: any) {
+        console.error(`[terminal] Failed to load config for project ${project.slug}:`, err?.message);
+      }
     }
 
     // Restore admin container registration if running but not tracked
@@ -46,9 +46,13 @@ export function ensureTtydRunning(ctx: ServerContext): void {
           const port = getContainerPort(centralContainerName());
           if (port) ctx.ttydProcesses.set("central/ai", { port, roleName: "ai", projectSlug: "central" });
         }
-      } catch {}
+      } catch (err: any) {
+        console.error("[terminal] Failed to check central/ai container:", err?.message);
+      }
     }
-  } catch {}
+  } catch (err: any) {
+    console.error("[terminal] ensureTtydRunning failed:", err?.message);
+  }
 }
 
 const COOKIE_NAME = "evomesh_terminal_auth";
@@ -79,15 +83,24 @@ function proxyRequest(
   targetPort: number,
   extraHeaders?: Record<string, string>,
 ): void {
+  let responded = false;
   const proxyReq = http.request({
     hostname: "127.0.0.1", port: targetPort, path: req.url, method: req.method, headers: req.headers,
   }, (proxyRes) => {
+    responded = true;
     const headers = { ...proxyRes.headers };
     if (extraHeaders) Object.assign(headers, extraHeaders);
     res.writeHead(proxyRes.statusCode || 502, headers);
     proxyRes.pipe(res);
+    proxyRes.on("error", (err) => {
+      console.error("[terminal] proxyRes pipe error:", err.message);
+      res.end();
+    });
   });
-  proxyReq.on("error", () => { res.writeHead(502); res.end("Terminal not ready"); });
+  proxyReq.on("error", (err) => {
+    console.error("[terminal] proxy request error:", err.message);
+    if (!responded) { responded = true; res.writeHead(502); res.end("Terminal not ready"); }
+  });
   req.pipe(proxyReq);
 }
 
@@ -126,8 +139,11 @@ export function setupTerminalProxy(
     // Strip the /terminal/{slug}/{role} prefix — container's ttyd serves at /
     const originalUrl = req.url;
     req.url = match[3] || "/";
-    proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port, { "Set-Cookie": cookieHeader });
-    req.url = originalUrl; // restore for downstream middleware
+    try {
+      proxyRequest(req, res as unknown as http.ServerResponse, ttyd.port, { "Set-Cookie": cookieHeader });
+    } finally {
+      req.url = originalUrl; // restore for downstream middleware
+    }
   });
 
   // WebSocket proxy — validate via token or cookie before upgrading

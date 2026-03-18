@@ -63,7 +63,9 @@ function loadUsers(): UsersConfig {
         return raw as UsersConfig;
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error("Failed to load users from", USERS_FILE, err);
+  }
   return { users: [] };
 }
 
@@ -93,7 +95,9 @@ export function migrateIfNeeded(): void {
     saveUsers(config);
     // Rename legacy file as backup
     fs.renameSync(LEGACY_AUTH_FILE, LEGACY_AUTH_FILE + ".bak");
-  } catch {}
+  } catch (err) {
+    console.error("Failed to migrate legacy auth file", LEGACY_AUTH_FILE, err);
+  }
 }
 
 // --- Public API ---

@@ -33,7 +33,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
 
       for (const p of projects) {
         let config;
-        try { config = loadConfig(p.root); } catch { continue; }
+        try { config = loadConfig(p.root); } catch (e: unknown) { console.error(`[feed] failed to load config for ${p.root}: ${errorMessage(e)}`); continue; }
 
         for (const [name] of Object.entries(config.roles)) {
           const rDir = roleDir(p.root, name);
@@ -52,7 +52,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
             if (ageMs > 3600000) {
               issues.push({ project: p.name, slug: p.slug, role: name, type: "stale", title: `${name} memory stale`, meta: `${p.name} — ${relTime(ageMs)} outdated` });
             }
-          } catch {}
+          } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error reading STM for ${name}: ${errorMessage(e)}`); }
 
           if (!running) {
             issues.push({ project: p.name, slug: p.slug, role: name, type: "stopped", title: `${name} stopped`, meta: p.name });
@@ -73,7 +73,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
               }
               if (!done) tasks.push({ priority: currentPriority, text: text.slice(0, 120), project: p.name, role: name, done });
             }
-          } catch {}
+          } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error reading todo for ${name}: ${errorMessage(e)}`); }
         }
       }
 
@@ -89,23 +89,37 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
   const FEED_FILE = path.join(os.homedir(), ".evomesh", "feed.jsonl");
   const FEED_MAX_LINES = 500;
 
+  let feedTruncating = false;
   function appendFeedLine(msg: Record<string, unknown>) {
     const line = JSON.stringify({ ...msg, time: msg.time || new Date().toISOString() });
     try {
       fs.appendFileSync(FEED_FILE, line + "\n");
-      // Truncate if too long
+    } catch (e: unknown) {
+      console.error(`[feed] failed to append to feed file: ${errorMessage(e)}`);
+      return;
+    }
+    // Truncate if too long — guarded by flag to avoid concurrent truncations
+    if (feedTruncating) return;
+    try {
       const content = fs.readFileSync(FEED_FILE, "utf-8");
       const lines = content.trim().split("\n");
       if (lines.length > FEED_MAX_LINES) {
-        fs.writeFileSync(FEED_FILE, lines.slice(-250).join("\n") + "\n");
+        feedTruncating = true;
+        try {
+          fs.writeFileSync(FEED_FILE, lines.slice(-250).join("\n") + "\n");
+        } finally {
+          feedTruncating = false;
+        }
       }
-    } catch {}
+    } catch (e: unknown) {
+      console.error(`[feed] failed to truncate feed file: ${errorMessage(e)}`);
+    }
   }
 
   function broadcastFeed(msg: Record<string, unknown>) {
     appendFeedLine(msg);
     const data = `data: ${JSON.stringify(msg)}\n\n`;
-    for (const sub of feedSubscribers) { try { sub.write(data); } catch {} }
+    for (const sub of feedSubscribers) { try { sub.write(data); } catch (e: unknown) { console.error(`[feed] failed to write to SSE subscriber: ${errorMessage(e)}`); } }
   }
   // Expose for admin message broadcast
   (ctx as any)._broadcastFeed = broadcastFeed;
@@ -127,22 +141,24 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
           if (line.trim()) res.write(`data: ${line}\n\n`);
         }
       }
-    } catch {}
+    } catch (e: unknown) { console.error(`[feed] failed to send SSE history: ${errorMessage(e)}`); }
 
     const lastMtime = new Map<string, number>();
 
     const check = () => {
       try {
         const projects = ctx.getProjects();
+        const activeKeys = new Set<string>();
         for (const p of projects) {
           let config;
           try { config = loadConfig(p.root); } catch { continue; }
           for (const [name] of Object.entries(config.roles)) {
+            const key = `${p.slug}/${name}`;
+            activeKeys.add(key);
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
             if (!fs.existsSync(stmPath)) continue;
             try {
               const stat = fs.statSync(stmPath);
-              const key = `${p.slug}/${name}`;
               const prevMtime = lastMtime.get(key) || 0;
               if (stat.mtimeMs > prevMtime) {
                 lastMtime.set(key, stat.mtimeMs);
@@ -151,8 +167,13 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
                 const text = doneMatch ? doneMatch[1] : (stm.match(/^- .+$/m)?.[0]?.replace(/^- /, "") || "updated");
                 broadcastFeed({ type: "role", role: name, project: p.slug, text: text.slice(0, 200) });
               }
-            } catch {}
+            } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking STM for ${name}: ${errorMessage(e)}`); }
           }
+        }
+        // Clean up lastMtime entries for roles that no longer exist
+        activeKeys.add("central");
+        for (const key of lastMtime.keys()) {
+          if (!activeKeys.has(key)) lastMtime.delete(key);
         }
         try {
           const statusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
@@ -170,15 +191,16 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
               broadcastFeed({ type: "central", text: summary });
             }
           }
-        } catch {}
-      } catch {}
+        } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking central status: ${errorMessage(e)}`); }
+      } catch (e: unknown) { console.error(`[feed] error in SSE check loop: ${errorMessage(e)}`); }
     };
 
-    // History already sent above (lines 122-128). No duplicate needed.
+    // History already sent above. No duplicate needed.
 
     feedSubscribers.add(res);
     check();
     const timer = setInterval(check, 5000);
-    req.on("close", () => { clearInterval(timer); feedSubscribers.delete(res); });
+    const maxLifetime = setTimeout(() => { clearInterval(timer); feedSubscribers.delete(res); res.end(); }, 30 * 60 * 1000);
+    req.on("close", () => { clearInterval(timer); clearTimeout(maxLifetime); feedSubscribers.delete(res); });
   });
 }

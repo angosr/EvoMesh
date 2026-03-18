@@ -86,9 +86,15 @@ function renderDashboard() {
     const membersOpen = state.membersOpen === p.slug;
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
-    setTimeout(() => { for (const r of p.roles) { const s = document.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`); if (s) s.value = r.account; } }, 0);
   }
   projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
+  // Set select values after innerHTML (synchronous DOM update — no setTimeout needed)
+  for (const p of state.projects) {
+    for (const r of p.roles) {
+      const s = projectsEl.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`);
+      if (s) s.value = r.account;
+    }
+  }
   // Event listeners
   projectsEl.querySelectorAll('.acct-select').forEach(sel => {
     sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
