@@ -328,8 +328,10 @@ function _flushScroll() {
 
   panels.addEventListener('touchend', e => {
     if (!state.openPanels[state.activePanel]) return;
+    // Don't trigger copy dialog when touch originated from toolbar buttons
+    const fromToolbar = e.target.closest('.term-toolbar');
     const duration = Date.now() - touchStartTime;
-    if (!touchMoved && duration > 500) {
+    if (!touchMoved && duration > 500 && !fromToolbar) {
       showCopyDialog();
       return;
     }
