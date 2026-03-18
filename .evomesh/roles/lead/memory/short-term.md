@@ -1,6 +1,6 @@
-## 2026-03-18 Loop 292
+## 2026-03-18 Loop 297
 
-- **Done**: Diagnosed terminal reconnect + latency issues. Root causes: reconnect detection too aggressive (2s, no grace period), fetchAll polling 8s on desktop, docker stats execFileSync blocking event loop up to 10s. Dispatched P1 fixes to frontend (reconnect grace + polling) and core-dev (async docker stats + socket.setNoDelay).
+- **Done**: Processed P1 user task: per-role idle policy (configurable via dashboard). Dispatched backend (config + API + health monitor) to core-dev and UI (dropdown) to frontend. Also caught up: latency fixes both done (3a00f15, 7ffc0d1), XSS fix (de439cb).
 - **Blockers**: 4 roles offline
-- **In-progress**: Frontend P1 reconnect/latency, core-dev P1 WebSocket proxy latency
-- **Next focus**: Monitor fix responses.
+- **In-progress**: Per-role idle policy (core-dev backend + frontend UI)
+- **Next focus**: Monitor idle policy implementation.
