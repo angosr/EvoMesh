@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { loadWorkspace, slugify, ensureInWorkspace } from "../workspace/config.js";
 import { errorMessage } from "../utils/error.js";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState } from "../process/container.js";
 import { roleDir } from "../utils/paths.js";
 import { migrateIfNeeded, hasAnyUser, setupAdmin, verifyUser, changePassword, generateSessionToken, listUsers, addUser, deleteUser, resetPassword } from "./auth.js";
 import type { SessionInfo, UserRole } from "./auth.js";

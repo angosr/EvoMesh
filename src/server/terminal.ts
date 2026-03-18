@@ -1,6 +1,6 @@
 import http from "node:http";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, getContainerState, startRole, ensureImage, containerName, centralContainerName } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState, ensureImage, containerName, centralContainerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 
 export interface TtydProcess {

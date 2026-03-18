@@ -291,9 +291,6 @@ export function startRole(
   args.push("-e", `ROLE_NAME=${roleName}`);
   args.push("-e", `LOOP_INTERVAL=${roleConfig.loop_interval || "10m"}`);
 
-  const roleRoot = `.evomesh/roles/${roleName}`;
-  args.push("-e", `LOOP_PROMPT=你是 ${roleName} 角色。执行 ${roleRoot}/ROLE.md 工作目录: ${roleRoot}/`);
-
   // Working directory — same as host
   args.push("-w", path.resolve(root));
 

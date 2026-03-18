@@ -21,8 +21,10 @@ const lastNudge = new Map<string, number>();
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
+const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
+const START_GRACE_PERIOD = 3 * 60 * 1000; // 3 min grace after start before nudge/idle
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
 
@@ -42,16 +44,45 @@ function sendToRole(sessionName: string, launchMode: string | undefined, message
   }
 }
 
-/** Send multiple messages with delays between them. Uses setTimeout to avoid shell quoting. */
+/** Send multiple messages with delays. Retries each step up to 2 times on failure. */
 function sendToRoleSequence(sessionName: string, launchMode: string | undefined, steps: { message: string; delaySec: number }[]): void {
   let cumulativeDelay = 0;
   for (const step of steps) {
     cumulativeDelay += step.delaySec * 1000;
     const delay = cumulativeDelay;
+    const msg = step.message;
     setTimeout(() => {
-      try { sendToRole(sessionName, launchMode, step.message); } catch {}
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          sendToRole(sessionName, launchMode, msg);
+          return;
+        } catch (e) {
+          if (attempt === 1) console.error(`[sendToRoleSequence] Failed after 2 attempts (${sessionName}):`, e);
+        }
+      }
     }, delay);
   }
+}
+
+// --- Role start tracking: record when each role was started/restarted ---
+
+/** Mark a role as just started. Call this from all start/restart paths. */
+export function recordRoleStart(key: string): void {
+  const now = Date.now();
+  roleStartTime.set(key, now);
+  lastRestart.set(key, now);
+  // Reset monitoring state so stale data from previous session doesn't trigger actions
+  idleCount.set(key, 0);
+  lastIdleMtime.delete(key);
+  lastIdleAction.delete(key);
+  lastNudge.delete(key);
+}
+
+/** Check if a role is within its post-start grace period. */
+function isInGracePeriod(key: string): boolean {
+  const startTime = roleStartTime.get(key);
+  if (!startTime) return false;
+  return (Date.now() - startTime) < START_GRACE_PERIOD;
 }
 
 // --- Desired state persistence: which roles SHOULD be running ---
@@ -60,12 +91,20 @@ const DESIRED_STATE_FILE = path.join(os.homedir(), ".evomesh", "running-roles.js
 function loadDesiredState(): Record<string, boolean> {
   try {
     if (fs.existsSync(DESIRED_STATE_FILE)) return JSON.parse(fs.readFileSync(DESIRED_STATE_FILE, "utf-8"));
-  } catch {}
+  } catch (e) {
+    console.error("[loadDesiredState] Corrupted or unreadable, returning empty:", e);
+  }
   return {};
 }
 
 function saveDesiredState(state: Record<string, boolean>): void {
-  try { fs.writeFileSync(DESIRED_STATE_FILE, JSON.stringify(state, null, 2), "utf-8"); } catch {}
+  try {
+    const tmpPath = DESIRED_STATE_FILE + ".tmp";
+    fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2), "utf-8");
+    fs.renameSync(tmpPath, DESIRED_STATE_FILE);
+  } catch (e) {
+    console.error("[saveDesiredState] Failed to persist desired state:", e);
+  }
 }
 
 export function markRoleRunning(key: string): void {
@@ -78,6 +117,46 @@ export function markRoleStopped(key: string): void {
   const state = loadDesiredState();
   delete state[key];
   saveDesiredState(state);
+}
+
+/**
+ * Start a role and atomically update all state: ttydProcesses, desired state, monitoring.
+ * All callsites should use this instead of raw startRole + manual state updates.
+ */
+export function startRoleManaged(
+  ctx: ServerContext, projectRoot: string, projectSlug: string,
+  roleName: string, rc: import("../config/schema.js").RoleConfig,
+  config: import("../config/schema.js").ProjectConfig, ttydPort: number,
+): import("../process/container.js").ContainerRole {
+  const key = `${projectSlug}/${roleName}`;
+  const result = startRole(projectRoot, roleName, rc, config, ttydPort, { launchMode: rc.launch_mode });
+  ctx.ttydProcesses.set(key, { port: ttydPort, roleName, projectSlug });
+  markRoleRunning(key);
+  recordRoleStart(key);
+  return result;
+}
+
+/**
+ * Stop a role and atomically update all state: desired state, ttydProcesses.
+ * Pass `userStopped: true` when user explicitly stops (prevents auto-restart).
+ * Pass `keepDesiredState: true` for stop-then-restart flows (config change, restart).
+ */
+export function stopRoleManaged(
+  ctx: ServerContext, projectRoot: string, projectSlug: string,
+  roleName: string, opts: { userStopped?: boolean; keepDesiredState?: boolean } = {},
+): void {
+  const key = `${projectSlug}/${roleName}`;
+  stopRole(projectRoot, roleName);
+  if (!opts.keepDesiredState) {
+    markRoleStopped(key);
+    ctx.ttydProcesses.delete(key);
+  }
+  if (opts.userStopped) {
+    const entry = ctx.ttydProcesses.get(key);
+    if (entry) { entry.userStopped = true; } else {
+      ctx.ttydProcesses.set(key, { port: 0, roleName, projectSlug, userStopped: true });
+    }
+  }
 }
 
 /** On server startup, restart all roles that were running before restart. */
@@ -93,11 +172,14 @@ export function restoreDesiredRoles(ctx: ServerContext): void {
       const config = loadConfig(project.root);
       const rc = config.roles[roleName];
       if (!rc) continue;
-      if (isRoleRunning(project.root, roleName)) continue; // already running
+      if (isRoleRunning(project.root, roleName)) {
+        // Already running — seed prevRunning so crash detection works from first cycle
+        prevRunning.set(key, true);
+        continue;
+      }
       const ttydPort = allocatePort(ctx);
-      startRole(project.root, roleName, rc, config, ttydPort);
-      ctx.ttydProcesses.set(key, { port: ttydPort, roleName, projectSlug: slug });
-      lastRestart.set(key, Date.now()); // Prevent brain-dead from immediately killing restored roles
+      startRoleManaged(ctx, project.root, slug, roleName, rc, config, ttydPort);
+      prevRunning.set(key, true);
       console.log(`[restore] Started ${roleName} in ${project.name} (port ${ttydPort})`);
     } catch (e) { console.error(`[restore] Failed to start ${roleName} in ${slug}:`, e); }
   }
@@ -122,10 +204,12 @@ function checkAccountHealth(): void {
         if (token && (!expiry || new Date(expiry).getTime() > Date.now())) {
           needsLogin = false;
         }
-      } catch {}
+      } catch {
+        // .credentials.json missing or malformed — keep needsLogin=true
+      }
       accountHealthCache.set(dir, needsLogin);
     }
-  } catch {}
+  } catch (e) { console.error("[checkAccountHealth] Error scanning account dirs:", e); }
 }
 
 export function isAccountDown(accountPath: string): boolean {
@@ -149,7 +233,8 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
           roles[name] = { configured: true, running, port: running ? getContainerPort(cname) : null, accountDown: accountDown || undefined };
         }
         projectEntries[p.slug] = { path: p.root, roles };
-      } catch {
+      } catch (e) {
+        console.error(`[writeRegistry] Failed to read config for ${p.slug}:`, e);
         if (lastGoodProjects[p.slug]) projectEntries[p.slug] = lastGoodProjects[p.slug];
       }
     }
@@ -164,7 +249,9 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
         const [cname, mem, cpu] = line.split("|");
         if (cname && mem) statsCache.set(cname, { mem: mem.split("/")[0]?.trim() || "", cpu: cpu?.trim() || "" });
       }
-    } catch {}
+    } catch {
+      // docker stats can fail transiently — non-critical
+    }
 
     // Central AI auto-recovery
     const centralName = centralContainerName();
@@ -219,7 +306,13 @@ export function autoRestartCrashed(ctx: ServerContext): void {
         const key = `${p.slug}/${name}`;
         const running = isRoleRunning(p.root, name);
         const shouldRun = key in desired && desired[key];
-        const wasRunning = prevRunning.get(key) ?? false;
+
+        // Initialize prevRunning from actual state on first encounter
+        if (!prevRunning.has(key)) {
+          prevRunning.set(key, running);
+          continue; // Skip action on first observation — need two data points
+        }
+        const wasRunning = prevRunning.get(key)!;
         prevRunning.set(key, running);
 
         // Crashed: was running, now stopped, should be running
@@ -229,36 +322,36 @@ export function autoRestartCrashed(ctx: ServerContext): void {
           console.log(`[auto-restart] ${name} crashed in ${p.name}, restarting...`);
           try {
             const ttydPort = allocatePort(ctx);
-            startRole(p.root, name, rc, config, ttydPort);
-            ctx.ttydProcesses.set(key, { port: ttydPort, roleName: name, projectSlug: p.slug });
-            lastRestart.set(key, now);
+            startRoleManaged(ctx, p.root, p.slug, name, rc, config, ttydPort);
+            prevRunning.set(key, true);
           } catch (e) { console.error(`[auto-restart] Failed to restart ${name}:`, e); }
         }
 
-        // Brain-dead: running but no activity for extended period → force stop (next cycle restarts)
-        // Uses memory/short-term.md mtime as liveness signal (roles reliably write this, unlike heartbeat.json)
-        if (running && shouldRun) {
+        // Brain-dead: running but no activity for extended period
+        if (running && shouldRun && !isInGracePeriod(key)) {
           try {
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
             const stmStat = fs.statSync(stmPath);
             const stmAgeMs = now - stmStat.mtimeMs;
             const intervalMin = parseInt(rc.loop_interval) || 10;
-            // Trigger after 10x loop interval (~100min for 10min roles). Git log fallback prevents false positives.
             const bdThreshold = intervalMin * 10 * 60 * 1000;
             const lastTime = lastRestart.get(key) || 0;
             if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
-              let hasRecentCommit = false;
+              // Git log fallback: if git fails, assume role is alive (safe default)
+              let hasRecentCommit = true; // default to true = safe, don't kill
               try {
                 const gitLog = execFileSync("git", ["log", "--oneline", `--since=${intervalMin * 10} minutes ago`, `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
                 hasRecentCommit = gitLog.trim().length > 0;
-              } catch {}
+              } catch (e) {
+                console.error(`[brain-dead] git log failed for ${name}, assuming alive:`, e);
+              }
               if (!hasRecentCommit) {
-                console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, restarting`);
-                stopRole(p.root, name);
-                lastRestart.set(key, now);
+                console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, no recent commits — restarting`);
+                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true });
+                recordRoleStart(key); // cooldown + grace period for the restart cycle
               }
             }
-          } catch {}
+          } catch (e) { console.error(`[brain-dead] Error checking ${name}:`, e); }
 
           // Context cleanup: role requests restart via heartbeat.json content
           try {
@@ -269,11 +362,13 @@ export function autoRestartCrashed(ctx: ServerContext): void {
               if (now - lastTime > RESTART_COOLDOWN) {
                 console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"})`);
                 fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
-                stopRole(p.root, name);
-                lastRestart.set(key, now);
+                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true });
+                recordRoleStart(key);
               }
             }
-          } catch {}
+          } catch {
+            // heartbeat.json missing or no restart request — normal
+          }
         }
       }
     }
@@ -290,6 +385,10 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
       for (const [name, rc] of Object.entries(config.roles)) {
         if (!isRoleRunning(p.root, name)) continue;
         const key = `${p.slug}/${name}`;
+
+        // Skip roles in grace period — they haven't had time to complete first loop
+        if (isInGracePeriod(key)) continue;
+
         const lastNudgeTime = lastNudge.get(key) || 0;
         if (now - lastNudgeTime < NUDGE_COOLDOWN) continue;
 
@@ -308,12 +407,25 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
               sendToRole(sessionName, rc.launch_mode, nudgeMsg);
               lastNudge.set(key, now);
               console.log(`[verify] Nudged ${name} — memory ${Math.round(ageMin)}min stale`);
-            } catch {}
+            } catch (e) { console.error(`[verify] Failed to nudge ${name}:`, e); }
           }
-        } catch {}
+        } catch {
+          // short-term.md doesn't exist yet — role hasn't completed first loop
+        }
       }
     }
   } catch (e) { console.error("[verifyLoopCompliance] Error:", e); }
+}
+
+/** Check if a role has unprocessed inbox messages. */
+function hasUnprocessedInbox(root: string, name: string): boolean {
+  try {
+    const inboxDir = path.join(roleDir(root, name), "inbox");
+    const entries = fs.readdirSync(inboxDir, { withFileTypes: true });
+    return entries.some(e => e.isFile() && e.name.endsWith(".md"));
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -333,6 +445,9 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
         if (!isRoleRunning(p.root, name)) continue;
         const key = `${p.slug}/${name}`;
 
+        // Skip roles in grace period
+        if (isInGracePeriod(key)) continue;
+
         // Cooldown check (reuse RESTART_COOLDOWN = 5min)
         const lastAction = lastIdleAction.get(key) || 0;
         if (now - lastAction < RESTART_COOLDOWN) continue;
@@ -347,7 +462,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           if (currentMtime === prevMtime) continue;
           lastIdleMtime.set(key, currentMtime);
 
-          // Read content and check for "idle"
+          // Read content and check for idle — match only at start of a line
           const content = fs.readFileSync(stmPath, "utf-8");
           if (/^No tasks,?\s*idle/im.test(content)) {
             idleCount.set(key, (idleCount.get(key) || 0) + 1);
@@ -357,6 +472,13 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           }
 
           if ((idleCount.get(key) || 0) < 2) continue;
+
+          // Don't cleanup if there are pending inbox messages — role will pick them up next loop
+          if (hasUnprocessedInbox(p.root, name)) {
+            console.log(`[idle-cleanup] ${name} is idle but has unprocessed inbox — skipping cleanup`);
+            idleCount.set(key, 0);
+            continue;
+          }
 
           // Threshold reached — take action
           const sessionName = containerName(p.slug, name);
@@ -384,7 +506,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           // Reset counter and record action time
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
-        } catch {}
+        } catch (e) { console.error(`[idle-cleanup] Error checking ${name}:`, e); }
       }
     }
   } catch (e) { console.error("[cleanupIdleRoles] Error:", e); }

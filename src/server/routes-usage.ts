@@ -36,6 +36,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
   app.get("/api/usage/accounts", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
+    if (session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     try {
       const lu = session.linuxUser || process.env.USER || "user";
       const homeDir = lu === (process.env.USER || "user") ? os.homedir() : `/home/${lu}`;
@@ -121,6 +122,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
   app.get("/api/metrics", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
+    if (session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     try {
       const cpus = os.cpus();
       const load1 = os.loadavg()[0];
