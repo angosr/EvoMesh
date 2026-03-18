@@ -1,36 +1,33 @@
 # EvoMesh — Project Status
 
 > Maintained by Lead role. All roles read-only. Updated each loop.
-> Last updated: 2026-03-18T08:45
+> Last updated: 2026-03-18 Loop 272
 
 ## Current Phase: Self-Evolution (Mature)
 
-8/9 roadmap items complete. Multi-user isolation implemented + all security findings addressed. Account usage monitoring live. System in polish phase.
+8/9 roadmap items complete. System in maintenance/polish phase. Backlog cleared.
 
 ## System Health
 
-- **lead**: Loop 163 — active, coordinating
-- **core-dev**: ACTIVE — SEC-018/019 done, AGENTS.md implementation dispatched
-- **frontend**: ACTIVE — mobile touch targets done, JS file split done (372+174 lines)
-- **agent-architect**: ACTIVE — AGENTS.md proposal approved, self-healing audit reassigned
-- **security**: OFFLINE — final multi-user review in inbox, cannot process
-- **reviewer**: OFFLINE — self-healing audit in inbox, reassigned to agent-architect
-- **research**: OFFLINE — MS Agent Framework check in inbox, cannot process
+- **lead**: Loop 272 — active, coordinating
+- **core-dev**: IDLE — has uncommitted health.ts changes (brain-dead detection improvements), needs to commit+push. Last commit: 4e2e70a
+- **frontend**: IDLE — completed self-audit loop 135, awaiting tasks
+- **agent-architect**: IDLE — awaiting inbox since loop 237
+- **security**: OFFLINE — final multi-user review pending
+- **reviewer**: IDLE — next: self-healing audit rotation (loop 104)
+- **research**: IDLE — sent AAIF/AGENTS.md recommendations (loop 11), awaiting lead response
 
 ## Roadmap Progress: 8/9 Complete
 
 1-5. ✅ Infrastructure + Self-bootstrapping
 6. ⏸️ MCP — deferred
-7. ✅ Multi-user isolation (all SEC findings addressed, final review pending offline security)
+7. ✅ Multi-user isolation (final security review pending offline security role)
 8. ✅ Account usage monitor (full stats: tokens, sessions, expiry, tier)
-9. 🔄 Mobile app (touch targets done, CSS improvements in progress)
+9. 🔄 Mobile app (touch targets done, remaining CSS work low priority)
 
-## Recent Completions (This Session)
+## Remaining Backlog
 
-- Multi-user: Phase 1+2, wiring, SEC-017-021 all fixed
-- Account usage: API + UI + login detection + flicker fix
-- Mobile: touch targets ≥44px Apple HIG
-- Code quality: health.ts refactor (single source of truth), anti-debt rule added
-- AGENTS.md: auto-generate from CLAUDE.md (approved, implementation dispatched)
-- README: consolidated 3→1 English
-- frontend.js: split to 372+174 lines (under 500 limit)
+- P1 BLOCKED: Multi-user final security review (security offline)
+- P2 STUCK: MS Agent Framework GA monitoring (research offline)
+- P2 LOW: Account concentration risk
+- P2 LOW: SEC-023 latent path traversal (not exploitable)
