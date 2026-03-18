@@ -385,10 +385,6 @@ function restoreLayout() {
   handle?.addEventListener('mouseup', () => setTimeout(saveLayout, 100));
 });
 
-
-
-// Terminal scroll + copy moved to frontend-panels.js
-
 // ==================== Admin AI Terminal ====================
 async function toggleCentralAI() {
   try {

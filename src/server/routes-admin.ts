@@ -265,6 +265,37 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
+  // --- Input: send text to a role's tmux session ---
+  app.post("/api/projects/:slug/roles/:name/input", (req, res) => {
+    const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
+    if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
+    if (!requireProjectRole(req, res, project.root, "owner")) return;
+    const { text } = req.body;
+    if (!text || typeof text !== "string" || !text.trim()) { res.status(400).json({ error: "Empty" }); return; }
+    const config = loadConfig(project.root);
+    const rc = config.roles?.[req.params.name];
+    if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
+    const projectSlug = slugify(path.basename(project.root));
+    const cname = containerName(projectSlug, req.params.name);
+    const user = process.env.USER || "user";
+    const msg = text.trim();
+    try {
+      if (rc.launch_mode === "host") {
+        execFileSync("tmux", ["send-keys", "-t", cname, "-l", msg], { stdio: "ignore", timeout: 5000 });
+        execFileSync("tmux", ["send-keys", "-t", cname, "Enter"], { stdio: "ignore", timeout: 5000 });
+      } else {
+        const escaped = msg.replace(/'/g, "'\\''");
+        execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c",
+          `tmux -f /dev/null send-keys -t claude -l '${escaped}' 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
+        ], { stdio: "ignore", timeout: 5000 });
+      }
+      res.json({ ok: true });
+    } catch (e: unknown) {
+      console.error(`Input failed for ${cname}:`, errorMessage(e));
+      res.status(500).json({ error: "Failed to send input" });
+    }
+  });
+
   // --- Scroll: tmux copy-mode scroll via docker exec ---
   app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
     const project = ctx.getProject(req.params.slug, reqLinuxUser(req));

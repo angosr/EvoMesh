@@ -206,6 +206,9 @@ function switchTo(name) {
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
   if (typeof updateMobileNav === 'function') updateMobileNav(name);
+  // Close compose when switching to non-terminal panel; update FAB visibility
+  if (typeof _composeOpen !== 'undefined' && _composeOpen && (name === 'dashboard' || name === 'settings')) closeCompose();
+  if (typeof _updateComposeFab === 'function') _updateComposeFab();
   // Focus the terminal iframe — but never steal focus from text inputs or compose dialog
   const sp = state.openPanels[name];
   if (sp?.iframe) {
@@ -231,6 +234,9 @@ function refreshGrid() {
 
 function setLayout(mode) {
   state.layout = mode;
+  // Close compose in grid mode — compose is tabs-only
+  if (mode === 'grid' && typeof _composeOpen !== 'undefined' && _composeOpen) closeCompose();
+  if (typeof _updateComposeFab === 'function') _updateComposeFab();
   const panels = document.getElementById('panels');
   document.getElementById('btn-tabs').classList.toggle('active', mode === 'tabs');
   document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');

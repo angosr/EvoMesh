@@ -139,32 +139,52 @@ async function sendFeedMsg() {
   input?.focus();
 }
 
-// ==================== Quick Compose Dialog ====================
+// ==================== Quick Compose — overlays active terminal panel (tabs only) ====================
 let _composeOpen = false;
+
+// Get the slug/role for the currently active terminal panel
+function _getActiveTerminal() {
+  const key = state.activePanel;
+  if (!key || key === 'dashboard' || key === 'settings') return null;
+  const parts = key.split('/');
+  if (parts.length !== 2) return null;
+  if (!state.openPanels[key]) return null;
+  return { slug: parts[0], role: parts[1], key };
+}
+
+function _updateComposeFab() {
+  const fab = document.getElementById('compose-fab');
+  if (!fab) return;
+  // Only show in tabs mode when a terminal panel is active
+  const show = state.layout === 'tabs' && _getActiveTerminal() && !_composeOpen;
+  fab.classList.toggle('hidden', !show);
+}
 
 function toggleCompose() {
   _composeOpen ? closeCompose() : openCompose();
 }
 
 function openCompose() {
+  if (state.layout !== 'tabs') return; // tabs only
+  const target = _getActiveTerminal();
+  if (!target) return;
   const dialog = document.getElementById('compose-dialog');
   const textarea = document.getElementById('compose-textarea');
-  const fab = document.getElementById('compose-fab');
+  const titleEl = document.getElementById('compose-target');
   if (!dialog) return;
+  titleEl.textContent = `Send to ${target.role}`;
   dialog.classList.add('open');
-  if (fab) fab.classList.add('hidden');
   _composeOpen = true;
+  _updateComposeFab();
   setTimeout(() => textarea.focus(), 50);
 }
 
 function closeCompose() {
   const dialog = document.getElementById('compose-dialog');
-  const fab = document.getElementById('compose-fab');
   if (!dialog) return;
   dialog.classList.remove('open');
-  if (fab) fab.classList.remove('hidden');
   _composeOpen = false;
-  focusActiveIframe();
+  _updateComposeFab();
 }
 
 async function sendCompose() {
@@ -172,20 +192,38 @@ async function sendCompose() {
   const btn = document.getElementById('compose-send');
   const text = textarea?.value?.trim();
   if (!text) return;
-  await _sendMessage(text, textarea, btn);
-  // Keep dialog open for follow-up messages — just clear and refocus
+  const target = _getActiveTerminal();
+  if (!target) return;
+  const origLabel = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  textarea.value = '';
+  textarea.style.height = 'auto';
+  try {
+    const res = await authFetch(`${API}/projects/${target.slug}/roles/${target.role}/input`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      textarea.value = text; // restore on failure
+      appendFeedMessage({ type: 'system', text: `Send failed: ${data.error || 'unknown'}`, time: new Date().toISOString() });
+    }
+  } catch {
+    textarea.value = text; // restore on failure
+    appendFeedMessage({ type: 'system', text: 'Failed to send to terminal', time: new Date().toISOString() });
+  }
+  if (btn) { btn.disabled = false; btn.textContent = origLabel; }
   textarea.focus();
 }
 
 // Global keyboard shortcut: Ctrl+/ to toggle compose
 document.addEventListener('keydown', e => {
-  // Ctrl+/ (or Cmd+/ on mac) — toggle compose
   if ((e.ctrlKey || e.metaKey) && e.key === '/') {
     e.preventDefault();
     toggleCompose();
     return;
   }
-  // Escape closes compose if open
   if (e.key === 'Escape' && _composeOpen) {
     e.preventDefault();
     closeCompose();
@@ -193,7 +231,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Compose textarea handlers (called after DOM ready)
 function initCompose() {
   const textarea = document.getElementById('compose-textarea');
   const sendBtn = document.getElementById('compose-send');
@@ -202,26 +239,22 @@ function initCompose() {
   if (!textarea) return;
 
   textarea.addEventListener('keydown', e => {
-    // Ctrl+Enter or Cmd+Enter to send
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       sendCompose();
       return;
     }
-    // Plain Enter without Shift also sends (quick-fire mode)
-    // But only if not composing (IME) and not multiline intent
+    // Single Enter sends unless multiline (Shift+Enter was used before)
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !e.ctrlKey && !e.metaKey) {
-      // If text has newlines already (user used Shift+Enter before), don't auto-send
       if (textarea.value.includes('\n')) return;
       e.preventDefault();
       sendCompose();
     }
   });
 
-  // Auto-resize textarea as user types
   textarea.addEventListener('input', () => {
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
   });
 
   if (sendBtn) sendBtn.addEventListener('click', sendCompose);
