@@ -18,10 +18,45 @@ let centralRestartFails = 0;
 const prevRunning = new Map<string, boolean>();
 const lastRestart = new Map<string, number>();
 const lastNudge = new Map<string, number>();
+const idleCount = new Map<string, number>();
+const lastIdleMtime = new Map<string, number>();
+const lastIdleAction = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
+
+// --- Tmux command sending (SSOT for host/docker dispatch) ---
+
+/** Send a single message to a role's tmux session and press Enter. */
+function sendToRole(sessionName: string, launchMode: string | undefined, message: string): void {
+  if (launchMode === "host") {
+    execFileSync("tmux", ["send-keys", "-t", sessionName, "-l", message], { stdio: "ignore", timeout: 5000 });
+    execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore", timeout: 5000 });
+  } else {
+    const escaped = message.replace(/"/g, '\\"');
+    execFileSync("docker", ["exec", sessionName, "bash", "-c",
+      `tmux -f /dev/null send-keys -t claude -l "${escaped}" 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
+    ], { stdio: "ignore", timeout: 5000 });
+  }
+}
+
+/** Send multiple messages with delays between them (runs in background shell). */
+function sendToRoleSequence(sessionName: string, launchMode: string | undefined, steps: { message: string; delaySec: number }[]): void {
+  const parts: string[] = [];
+  for (const step of steps) {
+    if (step.delaySec > 0) parts.push(`sleep ${step.delaySec}`);
+    if (launchMode === "host") {
+      parts.push(`tmux send-keys -t ${sessionName} -l '${step.message.replace(/'/g, "'\\''")}'`);
+      parts.push("sleep 0.5");
+      parts.push(`tmux send-keys -t ${sessionName} Enter`);
+    } else {
+      const escaped = step.message.replace(/'/g, "'\\''");
+      parts.push(`docker exec ${sessionName} bash -c 'tmux -f /dev/null send-keys -t claude -l '"'"'${escaped}'"'"' 2>/dev/null; sleep 0.5; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null'`);
+    }
+  }
+  execFileSync("bash", ["-c", `( ${parts.join("\n")} ) &`], { stdio: "ignore" });
+}
 
 // --- Desired state persistence: which roles SHOULD be running ---
 const DESIRED_STATE_FILE = path.join(os.homedir(), ".evomesh", "running-roles.json");
@@ -274,18 +309,83 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
             const sessionName = containerName(p.slug, name);
             const nudgeMsg = "[SYSTEM] Write memory/short-term.md and heartbeat.json before continuing.";
             try {
-              if (rc.launch_mode === "host") {
-                execFileSync("tmux", ["send-keys", "-t", sessionName, "-l", nudgeMsg], { stdio: "ignore", timeout: 5000 });
-                execFileSync("tmux", ["send-keys", "-t", sessionName, "Enter"], { stdio: "ignore", timeout: 5000 });
-              } else {
-                execFileSync("docker", ["exec", sessionName, "bash", "-c",
-                  `tmux -f /dev/null send-keys -t claude -l "${nudgeMsg}" 2>/dev/null; tmux -f /dev/null send-keys -t claude Enter 2>/dev/null`
-                ], { stdio: "ignore", timeout: 5000 });
-              }
+              sendToRole(sessionName, rc.launch_mode, nudgeMsg);
               lastNudge.set(key, now);
               console.log(`[verify] Nudged ${name} — memory ${Math.round(ageMin)}min stale`);
             } catch {}
           }
+        } catch {}
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Idle-triggered context cleanup.
+ * Detects consecutive idle loops via short-term.md content + mtime tracking.
+ * - Non-lead: /clear + /loop (fresh context, process stays running)
+ * - Lead: /compact (compress context, keep session)
+ */
+export function cleanupIdleRoles(ctx: ServerContext): void {
+  try {
+    const now = Date.now();
+    const projects = ctx.getProjects();
+    for (const p of projects) {
+      let config;
+      try { config = loadConfig(p.root); } catch { continue; }
+      for (const [name, rc] of Object.entries(config.roles)) {
+        if (!isRoleRunning(p.root, name)) continue;
+        const key = `${p.slug}/${name}`;
+
+        // Cooldown check (reuse RESTART_COOLDOWN = 5min)
+        const lastAction = lastIdleAction.get(key) || 0;
+        if (now - lastAction < RESTART_COOLDOWN) continue;
+
+        const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
+        try {
+          const stat = fs.statSync(stmPath);
+          const currentMtime = stat.mtimeMs;
+          const prevMtime = lastIdleMtime.get(key) || 0;
+
+          // Only check when mtime changes (new loop output written)
+          if (currentMtime === prevMtime) continue;
+          lastIdleMtime.set(key, currentMtime);
+
+          // Read content and check for "idle"
+          const content = fs.readFileSync(stmPath, "utf-8");
+          if (/idle/i.test(content)) {
+            idleCount.set(key, (idleCount.get(key) || 0) + 1);
+          } else {
+            idleCount.set(key, 0);
+            continue;
+          }
+
+          if ((idleCount.get(key) || 0) < 2) continue;
+
+          // Threshold reached — take action
+          const sessionName = containerName(p.slug, name);
+
+          if (rc.type === "lead") {
+            try {
+              sendToRole(sessionName, rc.launch_mode, "/compact");
+              console.log(`[idle-cleanup] Sent /compact to lead ${name}`);
+            } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
+          } else {
+            const roleRootRel = `.evomesh/roles/${name}`;
+            const loopInterval = rc.loop_interval || "10m";
+            const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
+            try {
+              sendToRole(sessionName, rc.launch_mode, "/clear");
+              sendToRoleSequence(sessionName, rc.launch_mode, [
+                { message: loopCmd, delaySec: 3 },
+              ]);
+              console.log(`[idle-cleanup] Sent /clear + /loop to worker ${name}`);
+            } catch (e) { console.error(`[idle-cleanup] Failed to send /clear + /loop to ${name}:`, e); }
+          }
+
+          // Reset counter and record action time
+          idleCount.set(key, 0);
+          lastIdleAction.set(key, now);
         } catch {}
       }
     }
