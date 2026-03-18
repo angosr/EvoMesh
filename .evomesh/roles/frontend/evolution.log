@@ -31,3 +31,13 @@
 - **Rule**: Define section containers in HTML, async renders write into containers, never destroy siblings
 - **Evidence**: a3e5554, ce30d1c, 3f8135a, 26eb91e, 4ad1841 — all same root cause
 - **Anti-debt trigger**: same bug class fixed 2+ times
+
+## 2026-03-18T15:30 — Self-audit (loop 139)
+**Findings**:
+1. "Mission Control" label in frontend.html (lines 57, 159) — stale, should be "Feed". Fixed.
+2. Inline onclick compliance gap: decisions.md (2026-03-17) says "Never use inline event handlers", but ROLE.md only prohibits "with interpolated data". Current HTML has ~18 inline onclick handlers, all calling static functions (no XSS risk). Full migration to addEventListener is a significant refactor.
+3. Keyboard scroll inbox was in both inbox/ and processed/ — cleaned up.
+4. ROLE.md: 57 lines, no dead rules found. Clean.
+5. todo.md: clean, no stale items.
+**Changes**: Fixed "Mission Control" → "Feed" in frontend.html. Added P2 task for onclick migration.
+**Proposal to lead**: inline onclick migration needs lead approval (P2 — no security risk, just compliance with decisions.md wording).
