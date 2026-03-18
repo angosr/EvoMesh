@@ -162,6 +162,9 @@ function switchTo(name) {
   if (dashBtn) { name === 'dashboard' ? dashBtn.classList.add('active') : dashBtn.classList.remove('active'); }
   if (name === 'settings') renderSettings();
   renderOpenTabs(); saveLayout();
+  // Focus the terminal iframe so keystrokes go to the right place
+  const sp = state.openPanels[name];
+  if (sp?.iframe) sp.iframe.focus();
 }
 
 function refreshGrid() {
@@ -233,6 +236,19 @@ function setLayout(mode) {
     e.preventDefault();
     queueScroll(e.deltaY > 0 ? 'down' : 'up', 3);
   }, { passive: false });
+
+  // Keyboard: Page Up/Down scroll the active terminal (only when focus is on parent doc)
+  document.addEventListener('keydown', e => {
+    if (!state.openPanels[state.activePanel]) return;
+    // Skip if focus is inside an iframe or user is typing in an input
+    const tag = (document.activeElement?.tagName || '').toLowerCase();
+    if (tag === 'iframe' || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    const keyMap = { PageUp: ['up', 20], PageDown: ['down', 20] };
+    const action = keyMap[e.key];
+    if (!action) return;
+    e.preventDefault();
+    queueScroll(action[0], action[1]);
+  });
 
   let touchStartY = 0, touchStartTime = 0, touchMoved = false;
   let lastTouchY = 0, lastTouchTime = 0, velocity = 0, momentumTimer = null;

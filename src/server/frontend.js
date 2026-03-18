@@ -96,7 +96,20 @@ async function fetchAll() {
       }
     }
     renderOpenTabs();
+    focusActiveIframe();
   } catch { document.getElementById('status-bar').textContent = 'Connection error'; }
+}
+
+// Restore focus to the active panel's iframe after DOM updates
+function focusActiveIframe() {
+  const p = state.openPanels[state.activePanel];
+  if (p?.iframe) {
+    // Only refocus if nothing inside an iframe currently has focus
+    const ae = document.activeElement;
+    if (!ae || ae === document.body || ae.tagName === 'BUTTON') {
+      p.iframe.focus();
+    }
+  }
 }
 
 // ==================== Sidebar ====================
