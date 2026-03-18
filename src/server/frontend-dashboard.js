@@ -1,6 +1,6 @@
 // ==================== Dashboard: Project Cards, Members, Account Usage ====================
 // Extracted from frontend.js for file size compliance (<500 lines)
-// Depends on: state, authFetch, esc, API, addFeedMessage, withLoading,
+// Depends on: state, authFetch, esc, API, appendFeedMessage, withLoading,
 //   switchAccount, saveAndRestart, stopRole, saveLaunchMode from other files
 
 // ==================== Account Usage (top section) ====================
@@ -139,8 +139,8 @@ async function loadMembers(slug) {
       html += '<div style="color:#666;font-size:12px">No members yet.</div>';
     }
     html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center">
-      <input id="member-user-${esc(slug)}" placeholder="username" style="background:#1a1a2e;border:1px solid #333;color:#eee;padding:4px 8px;border-radius:4px;font-size:12px;width:120px">
-      <select id="member-role-${esc(slug)}" style="background:#1a1a2e;border:1px solid #333;color:#eee;padding:4px 8px;border-radius:4px;font-size:12px"><option value="member">member</option><option value="viewer">viewer</option></select>
+      <input id="member-user-${esc(slug)}" placeholder="username" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px;width:120px">
+      <select id="member-role-${esc(slug)}" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option value="member">member</option><option value="viewer">viewer</option></select>
       <button class="dash-action" data-action="add-member" data-slug="${esc(slug)}" style="font-size:11px">Add</button>
     </div>`;
     panel.innerHTML = html;

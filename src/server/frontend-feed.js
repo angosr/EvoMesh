@@ -70,7 +70,8 @@ function initFeed() {
 
 function safeColor(c) { return /^#[0-9a-fA-F]{3,6}$|^[a-zA-Z]+$/.test(c) ? c : '#888'; }
 
-function appendFeedMessage(msg) {
+function appendFeedMessage(msg, type) {
+  if (typeof msg === 'string') msg = { type: type || 'system', text: msg, time: new Date().toISOString() };
   const feed = document.getElementById('feed');
   if (!feed) return;
   const div = document.createElement('div');

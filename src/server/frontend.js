@@ -490,8 +490,9 @@ async function startAndOpenCentral() {
   restoreLayout();
   fetchAll(); fetchMetrics();
   // Mobile: slower polling to prevent input lag from DOM rebuilds
-  const pollInterval = isMobile() ? 20000 : 8000;
-  const metricsInterval = isMobile() ? 15000 : 5000;
+  // Relaxed polling — server pushes updates via SSE refresh channel, polling is just a fallback
+  const pollInterval = isMobile() ? 25000 : 20000;
+  const metricsInterval = isMobile() ? 20000 : 10000;
   const pollTimerId = setInterval(fetchAll, pollInterval); const metricsTimerId = setInterval(fetchMetrics, metricsInterval);
   // Subscribe to refresh events from central AI operations
   try {

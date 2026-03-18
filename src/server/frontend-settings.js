@@ -1,5 +1,5 @@
 // Settings panel (profile, password, user management)
-// Depends on globals from frontend.js: state, authFetch, API, esc, getCurrentUser, addFeedMessage
+// Depends on globals from frontend.js: state, authFetch, API, esc, getCurrentUser, appendFeedMessage
 
 // ==================== Settings Panel ====================
 function renderSettings() {
@@ -152,7 +152,7 @@ async function doAddUser() {
     const d = await r.json();
     if (d.ok) {
       msg.className = 'settings-msg success'; msg.textContent = `User "${d.username}" created as ${d.role}`;
-      addFeedMessage(`User <strong>${esc(d.username)}</strong> added [${esc(d.role)}]`, 'system');
+      appendFeedMessage(`User <strong>${esc(d.username)}</strong> added [${esc(d.role)}]`, 'system');
       loadUsers();
       setTimeout(() => { toggleAddUser(); }, 1500);
     } else {
@@ -168,7 +168,7 @@ async function deleteUser(username) {
     const r = await authFetch(`${API}/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
     const d = await r.json();
     if (d.ok) {
-      addFeedMessage(`User <strong>${esc(username)}</strong> deleted`, 'system');
+      appendFeedMessage(`User <strong>${esc(username)}</strong> deleted`, 'system');
       loadUsers();
     } else { alert(d.error || 'Failed'); }
   } catch { alert('Connection error'); }
@@ -180,7 +180,7 @@ async function resetUserPassword(username) {
   try {
     const r = await authFetch(`${API}/users/${encodeURIComponent(username)}/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
     const d = await r.json();
-    if (d.ok) { addFeedMessage(`Password reset for <strong>${esc(username)}</strong>`, 'system'); }
+    if (d.ok) { appendFeedMessage(`Password reset for <strong>${esc(username)}</strong>`, 'system'); }
     else { alert(d.error || 'Failed'); }
   } catch { alert('Connection error'); }
 }

@@ -68,19 +68,26 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   toolbar.appendChild(pageCtrl);
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
+  // Disconnect detection with grace period — 3 consecutive checks (6s) before showing overlay
+  let _disconnectCount = 0;
+  const DISCONNECT_THRESHOLD = 3;
   let rTimer = setInterval(() => {
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
       if (!doc) return;
-      // Structured detection: ttyd sets a specific overlay element when disconnected,
-      // or the xterm screen disappears. Also detect empty body (failed load).
       const xtermScreen = doc.querySelector('.xterm-screen');
       const ttydOverlay = doc.querySelector('#overlay');
       const bodyText = doc.body?.innerText || '';
       const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
         (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
         (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
-      if (isDisconnected) overlay.classList.add('show');
+      if (isDisconnected) {
+        _disconnectCount++;
+        if (_disconnectCount >= DISCONNECT_THRESHOLD) overlay.classList.add('show');
+      } else {
+        _disconnectCount = 0;
+        overlay.classList.remove('show');
+      }
     } catch {}
   }, 2000);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
@@ -162,7 +169,9 @@ function reconnectPanel(key) {
   p.iframe = newIframe;
   injectTouchScroll(newIframe);
   injectKeyboardScroll(newIframe, key);
-  // Restart disconnect detection on new iframe
+  // Restart disconnect detection on new iframe — with grace period (3 consecutive checks)
+  let _reconnDisconnectCount = 0;
+  const RECONN_THRESHOLD = 3;
   p.reconnectTimer = setInterval(() => {
     try {
       const doc = newIframe.contentDocument || newIframe.contentWindow?.document;
@@ -173,7 +182,13 @@ function reconnectPanel(key) {
       const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
         (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
         (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
-      if (isDisconnected) p.overlay.classList.add('show');
+      if (isDisconnected) {
+        _reconnDisconnectCount++;
+        if (_reconnDisconnectCount >= RECONN_THRESHOLD) p.overlay.classList.add('show');
+      } else {
+        _reconnDisconnectCount = 0;
+        p.overlay.classList.remove('show');
+      }
     } catch {}
   }, 2000);
 }
@@ -244,8 +259,6 @@ function setLayout(mode) {
   state.layout = mode;
   // Close compose in grid mode — compose is tabs-only
   if (mode === 'grid' && typeof _composeOpen !== 'undefined' && _composeOpen) closeCompose();
-  // Close compose in grid mode
-  if (typeof _composeOpen !== 'undefined' && _composeOpen) closeCompose();
   const panels = document.getElementById('panels');
   document.getElementById('btn-tabs').classList.toggle('active', mode === 'tabs');
   document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
