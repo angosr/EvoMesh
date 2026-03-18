@@ -4,17 +4,13 @@
 
 ALL P0 COMPLETE
 
-## P1 — Active
-
-- ⬜ Per-role idle policy: backend (config + API + health) — DISPATCHED to core-dev (20260318T2145)
-- ⬜ Per-role idle policy: dashboard UI — DISPATCHED to frontend (20260318T2145)
-
 ## P1 — Done
 
+- ✅ ~~Per-role idle policy: backend~~ DONE (core-dev, 3bd7689)
+- ✅ ~~Per-role idle policy: dashboard UI~~ DONE (frontend, 817f2f4)
 - ✅ ~~Terminal reconnect grace + polling~~ DONE (frontend, 7ffc0d1)
 - ✅ ~~Async docker stats + setNoDelay~~ DONE (core-dev, 3a00f15)
 - ✅ ~~Multi-user security review~~ DONE (core-dev, b56de18)
-- ✅ ~~Idle dialog UX~~ DONE (frontend, 8af00cf)
 
 ## P2 — Remaining
 
