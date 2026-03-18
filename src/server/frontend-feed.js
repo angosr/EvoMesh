@@ -239,6 +239,7 @@ function initCompose() {
   if (!textarea) return;
 
   textarea.addEventListener('keydown', e => {
+    // Ctrl+Enter / Cmd+Enter → send
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       sendCompose();
@@ -249,6 +250,23 @@ function initCompose() {
       if (textarea.value.includes('\n')) return;
       e.preventDefault();
       sendCompose();
+      return;
+    }
+    // PageUp/PageDown → scroll terminal while typing (integrated experience)
+    if (e.key === 'PageUp' || e.key === 'PageDown') {
+      e.preventDefault();
+      if (typeof queueScroll === 'function') {
+        queueScroll(e.key === 'PageUp' ? 'up' : 'down', 20);
+      }
+      return;
+    }
+    // Arrow Up/Down with Ctrl → scroll terminal by small steps
+    if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      if (typeof queueScroll === 'function') {
+        queueScroll(e.key === 'ArrowUp' ? 'up' : 'down', 5);
+      }
+      return;
     }
   });
 
@@ -260,4 +278,17 @@ function initCompose() {
   if (sendBtn) sendBtn.addEventListener('click', sendCompose);
   if (closeBtn) closeBtn.addEventListener('click', closeCompose);
   if (fab) fab.addEventListener('click', toggleCompose);
+
+  // Guard against iframe stealing focus while compose is open.
+  // xterm.js inside ttyd iframes calls terminal.focus() on load/reconnect,
+  // which pulls browser focus into the iframe. Detect and restore.
+  window.addEventListener('blur', () => {
+    if (!_composeOpen) return;
+    // window.blur fires when focus moves into an iframe — reclaim it
+    setTimeout(() => {
+      if (_composeOpen && document.activeElement !== textarea) {
+        textarea.focus();
+      }
+    }, 50);
+  });
 }
