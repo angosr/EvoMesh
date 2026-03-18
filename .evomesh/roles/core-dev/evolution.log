@@ -19,3 +19,12 @@ Findings:
 3. Not sending P1 completion acks — ROLE.md requires it. Low compliance.
 4. ROLE.md is clean — no dead rules after last self-evolution audit.
 Action: cleaned todo.md. Will write heartbeat in future loops.
+
+## 2026-03-18T18:30 — Self-Audit (loop 290 checkpoint)
+Findings:
+1. All ROLE.md rules actively followed. Heartbeat/memory written every loop (fixed from last audit).
+2. P1 acks now sent consistently (security review ack to lead).
+3. todo.md had stale completed items older than 5 loops — cleaned. Switched to user language (中文) per CLAUDE.md rule.
+4. ROLE.md: no dead rules. Self-audit idle rule actively triggered (audited all src/ modules, found+fixed 2 security issues).
+5. Idle audit rule is effective — found path traversal (routes-roles.ts) and feed data leak (routes-feed.ts) through proactive auditing.
+No ROLE.md changes needed. All rules triggering correctly.
