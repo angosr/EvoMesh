@@ -23,7 +23,8 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no c
 - **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`
 - **NEVER** start background processes
 - **NO bookkeeping-only commits**: Do NOT commit if the only changes are: `heartbeat.json`, `memory/short-term.md`, `todo.md`, or updating `status.md`/`blueprint.md` with no new decisions. These are administrative overhead, not deliverables. Only commit when the loop produces **real output**: code changes, new inbox messages dispatched, inbox deletions (`git rm`), new decisions in `shared/decisions.md`, config changes, or documentation with new content. Bundle all bookkeeping files into the next commit that contains real work.
-- All committed content English. User-facing replies follow user's language.
+- Code, commit messages, shared/decisions.md, blueprint.md: English.
+- `memory/short-term.md`, `todo.md`, inbox messages: follow user's language (these are user-facing via the Feed panel, not technical documentation).
 - File > 500 lines → split
 
 ## Communication
