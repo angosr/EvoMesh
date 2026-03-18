@@ -16,6 +16,14 @@ function isSafeShellToken(s: string): boolean {
   return /^[a-zA-Z0-9._-]+$/.test(s);
 }
 
+/** Quick check if a port has a process listening. */
+function isPortResponding(port: number): boolean {
+  try {
+    execFileSync("bash", ["-c", `echo > /dev/tcp/127.0.0.1/${port}`], { stdio: "ignore", timeout: 1000 });
+    return true;
+  } catch { return false; }
+}
+
 /** Kill any existing ttyd process bound to the given tmux session name. */
 function killExistingTtyd(sessionName: string): void {
   try {
@@ -38,15 +46,32 @@ function killExistingTtyd(sessionName: string): void {
 export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
   const sessionName = centralContainerName();
 
-  // Reuse existing port if already tracked, otherwise allocate a new one
+  // Reuse existing port if already tracked
   const existingEntry = ctx.ttydProcesses.get("central/ai");
-  const adminPort = existingEntry ? existingEntry.port : allocatePort(ctx);
 
-  // Already running? Just register and return.
+  // Already running? Find the actual ttyd port and register.
   if (getContainerState(sessionName) === "running") {
-    ctx.ttydProcesses.set("central/ai", { port: adminPort, roleName: "ai", projectSlug: "central" });
-    return { port: adminPort, terminal: "/terminal/central/ai/" };
+    let ttydPort = existingEntry?.port || 0;
+    // Detect actual ttyd port from running process (survives server restart)
+    if (!ttydPort || !isPortResponding(ttydPort)) {
+      try {
+        const pgrep = execFileSync("pgrep", ["-f", `ttyd.*${sessionName}`], { encoding: "utf-8", timeout: 3000 }).trim();
+        for (const pid of pgrep.split("\n")) {
+          if (!pid) continue;
+          try {
+            const cmdline = fs.readFileSync(`/proc/${pid}/cmdline`, "utf-8");
+            const portMatch = cmdline.match(/--port\0(\d+)/);
+            if (portMatch) { ttydPort = parseInt(portMatch[1], 10); break; }
+          } catch { /* process may have exited */ }
+        }
+      } catch { /* pgrep found nothing */ }
+    }
+    if (!ttydPort) ttydPort = allocatePort(ctx);
+    ctx.ttydProcesses.set("central/ai", { port: ttydPort, roleName: "ai", projectSlug: "central" });
+    return { port: ttydPort, terminal: "/terminal/central/ai/" };
   }
+
+  const adminPort = existingEntry ? existingEntry.port : allocatePort(ctx);
 
   // Validate sessionName before using in shell commands
   if (!isSafeShellToken(sessionName)) {
