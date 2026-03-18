@@ -99,7 +99,7 @@ async function startAndOpenTerminal(slug, projectName, roleName) {
     <div>Starting ${esc(projectName)}/${esc(roleName)}...</div>
   </div>`;
   document.getElementById('panels').appendChild(panel);
-  state.openPanels[key] = { panel, iframe: null, overlay: null, reconnectTimer: null };
+  state.openPanels[key] = { panel, iframe: null, overlay: null, reconnectTimer: null, startPoll: null };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
   renderOpenTabs();
   switchTo(key);
@@ -127,9 +127,12 @@ async function startAndOpenTerminal(slug, projectName, roleName) {
       } catch {}
       if (retries > 30) {
         clearInterval(check);
+        if (state.openPanels[key]) state.openPanels[key].startPoll = null;
         panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Timeout waiting for terminal. Try refreshing.</div>`;
       }
     }, 2000);
+    // Store polling interval so closePanel can clean it up
+    if (state.openPanels[key]) state.openPanels[key].startPoll = check;
   } catch (e) {
     panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Error: ${esc(String(e))}</div>`;
   }
@@ -172,6 +175,7 @@ function closePanel(key) {
   const p = state.openPanels[key];
   if (!p) return;
   if (p.reconnectTimer) { clearInterval(p.reconnectTimer); p.reconnectTimer = null; }
+  if (p.startPoll) { clearInterval(p.startPoll); p.startPoll = null; }
   // Clean up iframe scroll event listeners
   _cleanupIframe(p.iframe);
   p.panel.remove(); delete state.openPanels[key];

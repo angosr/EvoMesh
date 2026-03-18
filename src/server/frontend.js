@@ -397,7 +397,7 @@ async function startAndOpenCentral() {
     <div>Starting Central AI...</div>
   </div>`;
   document.getElementById('panels').appendChild(panel);
-  state.openPanels[key] = { panel, iframe: null, overlay: null, reconnectTimer: null };
+  state.openPanels[key] = { panel, iframe: null, overlay: null, reconnectTimer: null, startPoll: null };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
   renderOpenTabs(); switchTo(key);
 
@@ -424,9 +424,12 @@ async function startAndOpenCentral() {
       } catch {}
       if (retries > 30) {
         clearInterval(check);
+        if (state.openPanels[key]) state.openPanels[key].startPoll = null;
         panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Timeout. Try refreshing.</div>`;
       }
     }, 2000);
+    // Store polling interval so closePanel can clean it up
+    if (state.openPanels[key]) state.openPanels[key].startPoll = check;
   } catch (e) {
     panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Error: ${esc(String(e))}</div>`;
   }

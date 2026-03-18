@@ -13,6 +13,7 @@ function initFeed() {
   if (!feed) return;
 
   const seenMessages = new Set();
+  const MAX_SEEN = 500;
 
   // SSE stream for role updates — auto-reconnect on disconnect
   let currentEs = null;
@@ -28,6 +29,11 @@ function initFeed() {
         const key = `${msg.role||''}:${(msg.text||'').slice(0,50)}:${msg.time||''}`;
         if (seenMessages.has(key)) return;
         seenMessages.add(key);
+        // Trim dedup set to prevent unbounded memory growth in long sessions
+        if (seenMessages.size > MAX_SEEN) {
+          const iter = seenMessages.values();
+          for (let i = 0; i < 100; i++) seenMessages.delete(iter.next().value);
+        }
         appendFeedMessage(msg);
       } catch {}
     };
