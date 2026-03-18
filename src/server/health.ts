@@ -365,21 +365,18 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
 
           // Threshold reached — take action
           const sessionName = containerName(p.slug, name);
-          const roleRootRel = `.evomesh/roles/${name}`;
-          const loopInterval = rc.loop_interval || "10m";
-          const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
 
           if (rc.type === "lead") {
-            // Lead: compact (preserve session) then re-send /loop
+            // Lead: compact only — cron persists through /compact
             try {
               sendToRole(sessionName, rc.launch_mode, "/compact");
-              sendToRoleSequence(sessionName, rc.launch_mode, [
-                { message: loopCmd, delaySec: 5 },
-              ]);
-              console.log(`[idle-cleanup] Sent /compact + /loop to lead ${name}`);
-            } catch (e) { console.error(`[idle-cleanup] Failed to send /compact + /loop to ${name}:`, e); }
+              console.log(`[idle-cleanup] Sent /compact to lead ${name}`);
+            } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
           } else {
-            // Worker: clear (fresh context) then re-send /loop
+            // Worker: /clear wipes cron, must re-send /loop
+            const roleRootRel = `.evomesh/roles/${name}`;
+            const loopInterval = rc.loop_interval || "10m";
+            const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
             try {
               sendToRole(sessionName, rc.launch_mode, "/clear");
               sendToRoleSequence(sessionName, rc.launch_mode, [
