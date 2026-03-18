@@ -15,6 +15,7 @@ exec gosu "$TARGET_USER" bash << 'USEREOF'
 set -e
 
 export HOME="${HOST_HOME:-$HOME}"
+export EVOMESH_CONTAINER=1
 
 # Session resume
 WORK_DIR="${PWD:-/project}"

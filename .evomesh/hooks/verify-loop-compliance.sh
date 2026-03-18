@@ -1,11 +1,15 @@
 #!/bin/bash
 # Stop hook: verify memory was written this loop.
 # Exit 0 = allow stop. Exit 1 + stderr message = block stop.
+# Only enforced inside role containers (EVOMESH_CONTAINER=1), not user sessions.
 
 INPUT=$(cat)
 
 # Retry guard: if stop_hook_active, allow through (prevent infinite loop)
 echo "$INPUT" | grep -q '"stop_hook_active".*true' 2>/dev/null && exit 0
+
+# Skip in interactive user sessions (not inside a role container)
+[ "$EVOMESH_CONTAINER" != "1" ] && exit 0
 
 # Find role dir
 ROLE_DIR=""
