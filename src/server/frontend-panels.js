@@ -31,8 +31,10 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     btn.title = label;
     let holdTimer = null;
     const fire = () => termAction(key, action, lines);
+    const flash = () => { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 150); };
     const startHold = (e) => {
       e.preventDefault(); e.stopPropagation();
+      flash();
       fire();
       if (action === 'up' || action === 'down') {
         holdTimer = setInterval(fire, 120);
@@ -45,6 +47,8 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     btn.addEventListener('touchstart', startHold, { passive: false });
     btn.addEventListener('touchend', stopHold);
     btn.addEventListener('touchcancel', stopHold);
+    // Fallback: also listen for click in case mousedown is captured by iframe
+    btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); flash(); fire(); });
     toolbar.appendChild(btn);
   }
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
@@ -303,17 +307,15 @@ function termAction(key, action, lines) {
   const slug = parts[0], role = parts[1];
 
   if (action === 'copy') { showCopyDialog(); return; }
-  if (action === 'esc') {
-    authFetch(`${API}/projects/${slug}/roles/${role}/scroll`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction: 'esc', lines: 0 }),
-    }).catch(() => {});
-    return;
-  }
+
+  const direction = action === 'esc' ? 'esc' : action;
+  const scrollLines = action === 'esc' ? 0 : lines;
   authFetch(`${API}/projects/${slug}/roles/${role}/scroll`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ direction: action, lines }),
-  }).catch(() => {});
+    body: JSON.stringify({ direction, lines: scrollLines }),
+  }).then(r => {
+    if (!r.ok) r.text().then(t => console.error(`Scroll API ${r.status}: ${t}`));
+  }).catch(e => console.error('Scroll API error:', e));
 }
 
 async function showCopyDialog() {
