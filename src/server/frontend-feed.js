@@ -62,9 +62,9 @@ function initFeed() {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendFeedMsg(); }
   });
 
-  // Try to start central AI if not running
+  // Try to start central AI if enabled but not running
   authFetch(`${API}/admin/status`).then(r => r.json()).then(s => {
-    if (!s.running) authFetch(`${API}/admin/start`, { method: 'POST' }).catch(() => {});
+    if (s.enabled !== false && !s.running) authFetch(`${API}/admin/start`, { method: 'POST' }).catch(() => {});
   }).catch(() => {});
 }
 
@@ -111,15 +111,13 @@ function appendFeedMessage(msg) {
   while (feed.children.length > 200) feed.removeChild(feed.firstChild);
 }
 
-async function sendFeedMsg() {
-  const input = document.getElementById('feed-msg');
-  const text = input?.value?.trim();
+// Core send logic — used by both sidebar feed input and compose dialog
+async function _sendMessage(text, sourceInput, sourceBtn) {
   if (!text) return;
-  const btn = document.getElementById('feed-send');
-  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  const origLabel = sourceBtn?.textContent;
+  if (sourceBtn) { sourceBtn.disabled = true; sourceBtn.textContent = '...'; }
   appendFeedMessage({ type: 'user-message', text, time: new Date().toISOString() });
-  input.value = '';
-  if (input.style) input.style.height = 'auto';
+  if (sourceInput) { sourceInput.value = ''; if (sourceInput.style) sourceInput.style.height = 'auto'; }
   try {
     const res = await authFetch(`${API}/admin/message`, {
       method: 'POST',
@@ -131,6 +129,102 @@ async function sendFeedMsg() {
       appendFeedMessage({ type: 'system', text: `Error: ${data.error}`, time: new Date().toISOString() });
     }
   } catch { appendFeedMessage({ type: 'system', text: 'Failed to send', time: new Date().toISOString() }); }
-  if (btn) { btn.disabled = false; btn.textContent = '➤'; }
-  input.focus();
+  if (sourceBtn) { sourceBtn.disabled = false; sourceBtn.textContent = origLabel; }
+}
+
+async function sendFeedMsg() {
+  const input = document.getElementById('feed-msg');
+  const btn = document.getElementById('feed-send');
+  await _sendMessage(input?.value?.trim(), input, btn);
+  input?.focus();
+}
+
+// ==================== Quick Compose Dialog ====================
+let _composeOpen = false;
+
+function toggleCompose() {
+  _composeOpen ? closeCompose() : openCompose();
+}
+
+function openCompose() {
+  const dialog = document.getElementById('compose-dialog');
+  const textarea = document.getElementById('compose-textarea');
+  const fab = document.getElementById('compose-fab');
+  if (!dialog) return;
+  dialog.classList.add('open');
+  if (fab) fab.classList.add('hidden');
+  _composeOpen = true;
+  setTimeout(() => textarea.focus(), 50);
+}
+
+function closeCompose() {
+  const dialog = document.getElementById('compose-dialog');
+  const fab = document.getElementById('compose-fab');
+  if (!dialog) return;
+  dialog.classList.remove('open');
+  if (fab) fab.classList.remove('hidden');
+  _composeOpen = false;
+  focusActiveIframe();
+}
+
+async function sendCompose() {
+  const textarea = document.getElementById('compose-textarea');
+  const btn = document.getElementById('compose-send');
+  const text = textarea?.value?.trim();
+  if (!text) return;
+  await _sendMessage(text, textarea, btn);
+  // Keep dialog open for follow-up messages — just clear and refocus
+  textarea.focus();
+}
+
+// Global keyboard shortcut: Ctrl+/ to toggle compose
+document.addEventListener('keydown', e => {
+  // Ctrl+/ (or Cmd+/ on mac) — toggle compose
+  if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+    e.preventDefault();
+    toggleCompose();
+    return;
+  }
+  // Escape closes compose if open
+  if (e.key === 'Escape' && _composeOpen) {
+    e.preventDefault();
+    closeCompose();
+    return;
+  }
+});
+
+// Compose textarea handlers (called after DOM ready)
+function initCompose() {
+  const textarea = document.getElementById('compose-textarea');
+  const sendBtn = document.getElementById('compose-send');
+  const closeBtn = document.getElementById('compose-close');
+  const fab = document.getElementById('compose-fab');
+  if (!textarea) return;
+
+  textarea.addEventListener('keydown', e => {
+    // Ctrl+Enter or Cmd+Enter to send
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      sendCompose();
+      return;
+    }
+    // Plain Enter without Shift also sends (quick-fire mode)
+    // But only if not composing (IME) and not multiline intent
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !e.ctrlKey && !e.metaKey) {
+      // If text has newlines already (user used Shift+Enter before), don't auto-send
+      if (textarea.value.includes('\n')) return;
+      e.preventDefault();
+      sendCompose();
+    }
+  });
+
+  // Auto-resize textarea as user types
+  textarea.addEventListener('input', () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+  });
+
+  if (sendBtn) sendBtn.addEventListener('click', sendCompose);
+  if (closeBtn) closeBtn.addEventListener('click', closeCompose);
+  if (fab) fab.addEventListener('click', toggleCompose);
 }

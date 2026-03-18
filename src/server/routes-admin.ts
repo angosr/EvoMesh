@@ -134,37 +134,86 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
   }
 }
 
+// --- Central AI enabled/disabled state ---
+const CENTRAL_STATE_FILE = path.join(os.homedir(), ".evomesh", "central-enabled.json");
+
+function loadCentralEnabled(): boolean {
+  try {
+    if (fs.existsSync(CENTRAL_STATE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CENTRAL_STATE_FILE, "utf-8"));
+      return data.enabled !== false; // default true
+    }
+  } catch (e) { console.error("[central-ai] Failed to read enabled state:", e); }
+  return true; // default: enabled
+}
+
+function saveCentralEnabled(enabled: boolean): void {
+  try {
+    fs.writeFileSync(CENTRAL_STATE_FILE, JSON.stringify({ enabled }, null, 2), "utf-8");
+  } catch (e) { console.error("[central-ai] Failed to save enabled state:", e); }
+}
+
+export function isCentralEnabled(): boolean {
+  return loadCentralEnabled();
+}
+
 export function registerAdminRoutes(app: import("express").Express, ctx: ServerContext): void {
 
-  // Ensure Central AI is always running on server startup
-  try {
-    const result = ensureCentralAI(ctx);
-    if (result) console.log(`[central-ai] Running on port ${result.port}`);
-    else console.error("[central-ai] Failed to start on boot");
-  } catch (e: unknown) { console.error("[central-ai] Boot error:", errorMessage(e)); }
+  // Start Central AI on boot if enabled
+  if (isCentralEnabled()) {
+    try {
+      const result = ensureCentralAI(ctx);
+      if (result) console.log(`[central-ai] Running on port ${result.port}`);
+      else console.error("[central-ai] Failed to start on boot");
+    } catch (e: unknown) { console.error("[central-ai] Boot error:", errorMessage(e)); }
+  } else {
+    console.log("[central-ai] Disabled by user, skipping boot start");
+  }
 
   // --- Admin AI terminal ---
   app.get("/api/admin/status", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
-    // Ensure it's running (auto-restart if crashed)
+    const enabled = isCentralEnabled();
+    if (!enabled) {
+      res.json({ running: false, enabled: false, port: null, terminal: null });
+      return;
+    }
+    // Auto-restart if enabled and crashed
     const result = ensureCentralAI(ctx);
     if (result) {
-      res.json({ running: true, port: result.port, terminal: result.terminal });
+      res.json({ running: true, enabled: true, port: result.port, terminal: result.terminal });
     } else {
-      res.json({ running: false, port: null, terminal: null });
+      res.json({ running: false, enabled: true, port: null, terminal: null });
     }
   });
 
   app.post("/api/admin/start", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    saveCentralEnabled(true);
     const result = ensureCentralAI(ctx);
     if (result) {
       res.json({ ok: true, ...result });
     } else {
       res.status(500).json({ error: "Failed to start Central AI" });
     }
+  });
+
+  app.post("/api/admin/stop", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    saveCentralEnabled(false);
+    // Stop the container
+    const cname = centralContainerName();
+    try {
+      execFileSync("docker", ["stop", cname], { stdio: "ignore", timeout: 15000 });
+    } catch { /* may not be running */ }
+    try {
+      execFileSync("docker", ["rm", "-f", cname], { stdio: "ignore", timeout: 5000 });
+    } catch { /* already removed */ }
+    console.log("[central-ai] Stopped and disabled by user");
+    res.json({ ok: true });
   });
 
   // Central AI status (read central-status.md)

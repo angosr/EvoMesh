@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole, containerName, centralContainerName } from "../process/container.js";
 import { roleDir } from "../utils/paths.js";
-import { ensureCentralAI } from "./routes-admin.js";
+import { ensureCentralAI, isCentralEnabled } from "./routes-admin.js";
 import { allocatePort } from "./routes.js";
 import type { ServerContext } from "./index.js";
 
@@ -260,15 +260,15 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
       // docker stats can fail transiently — non-critical
     }
 
-    // Central AI auto-recovery
+    // Central AI auto-recovery (only if enabled)
     const centralName = centralContainerName();
-    const centralRunning = getContainerState(centralName) === "running";
+    const centralEnabled = isCentralEnabled();
+    const centralRunning = centralEnabled ? getContainerState(centralName) === "running" : false;
     const centralPort = centralRunning ? getContainerPort(centralName) : null;
     let centralError = false;
-    if (!centralRunning) {
+    if (centralEnabled && !centralRunning) {
       centralRestartFails++;
       if (centralRestartFails > 3 && centralRestartFails % 40 === 0) {
-        // Retry every ~10 min (40 × 15s intervals)
         centralRestartFails = 1;
       }
       if (centralRestartFails <= 3) {
@@ -277,7 +277,7 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
       } else {
         centralError = true;
       }
-    } else {
+    } else if (centralRunning) {
       centralRestartFails = 0;
     }
 
