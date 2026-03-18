@@ -92,6 +92,17 @@ const state = {
 try { const u = JSON.parse(localStorage.getItem('evomesh-user') || '{}'); if (u.role) state.systemRole = u.role; } catch {}
 
 // ==================== Data ====================
+// Track whether user is actively typing — skip DOM rebuilds to prevent input lag
+let _userTyping = false, _typingTimer = null, _pendingRender = false;
+document.addEventListener('input', () => {
+  _userTyping = true;
+  clearTimeout(_typingTimer);
+  _typingTimer = setTimeout(() => {
+    _userTyping = false;
+    if (_pendingRender) { _pendingRender = false; renderSidebar(); renderDashboard(); renderOpenTabs(); }
+  }, 2000);
+}, true);
+
 async function fetchAll() {
   try {
     const [projRes, acctRes] = await Promise.all([authFetch(`${API}/projects`), authFetch(`${API}/accounts`)]);
@@ -109,8 +120,14 @@ async function fetchAll() {
     }
     state.projects = projects;
     if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
-    renderSidebar(); renderDashboard(); renderChatProjectSelect();
-    // Update Central AI status dot
+
+    // Skip DOM rebuilds while user is typing — defer until idle
+    if (_userTyping) {
+      _pendingRender = true;
+    } else {
+      renderSidebar(); renderDashboard();    }
+
+    // Update Central AI status dot (cheap — single element update)
     try {
       const centralRes = await authFetch(`${API}/admin/status`);
       const centralData = await centralRes.json();
@@ -118,17 +135,15 @@ async function fetchAll() {
       if (dot) dot.className = `dot ${centralData.running ? 'running' : 'stopped'}`;
     } catch {}
     // Clean up tabs for roles that are no longer running
-    // BUT don't close panels that are still starting (iframe is null = startAndOpenTerminal in progress)
     const activeTerminals = new Set();
     state.projects.forEach(p => p.roles.forEach(r => { if (r.terminal) activeTerminals.add(`${p.slug}/${r.name}`); }));
     for (const key of Object.keys(state.openPanels)) {
       if (key !== 'dashboard' && key !== 'settings' && key !== 'central/ai' && !activeTerminals.has(key)) {
-        // Don't close if panel is still starting (iframe not yet created)
         if (!state.openPanels[key].iframe) continue;
         closePanel(key);
       }
     }
-    renderOpenTabs();
+    if (!_userTyping) { renderOpenTabs(); }
     focusActiveIframe();
   } catch { document.getElementById('status-bar').textContent = 'Connection error'; }
 }
@@ -137,8 +152,9 @@ async function fetchAll() {
 function focusActiveIframe() {
   const p = state.openPanels[state.activePanel];
   if (p?.iframe) {
-    // Only refocus if nothing inside an iframe currently has focus
+    // Never steal focus from text inputs — this causes typing lag on mobile
     const ae = document.activeElement;
+    if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
     if (!ae || ae === document.body || ae.tagName === 'BUTTON') {
       p.iframe.focus();
     }
@@ -406,11 +422,21 @@ async function startAndOpenCentral() {
     }
   } catch { location.href = '/login'; return; }
   restoreLayout();
-  fetchAll(); fetchMetrics(); setInterval(fetchAll, 8000); setInterval(fetchMetrics, 5000);
+  fetchAll(); fetchMetrics();
+  // Mobile: slower polling to prevent input lag from DOM rebuilds
+  const pollInterval = isMobile() ? 20000 : 8000;
+  const metricsInterval = isMobile() ? 15000 : 5000;
+  setInterval(fetchAll, pollInterval); setInterval(fetchMetrics, metricsInterval);
   // Subscribe to refresh events from central AI operations
   try {
     const refreshEs = new EventSource(`${API}/refresh/subscribe?token=${encodeURIComponent(AUTH_TOKEN)}`);
-    refreshEs.onmessage = () => { fetchAll(); };
+    let _lastRefresh = 0;
+    refreshEs.onmessage = () => {
+      const now = Date.now();
+      if (now - _lastRefresh < 5000) return; // Throttle: max once per 5s
+      _lastRefresh = now;
+      fetchAll();
+    };
   } catch {}
   initFeed();
 })();
