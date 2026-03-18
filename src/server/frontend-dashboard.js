@@ -66,7 +66,7 @@ function renderDashboard() {
     const rows = p.roles.map(r => {
       const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
-      const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:#666">${esc(r.account)}</span>`;
+      const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:var(--text-faint)">${esc(r.account)}</span>`;
       const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="${esc(r.actualMem||'mem')}" title="Memory limit (e.g. 2g). Current: ${esc(r.actualMem||'?')}"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="${esc(r.actualCpu||'cpu')}" title="CPU limit (e.g. 1.5). Current: ${esc(r.actualCpu||'?')}">` : '';
       const startRestartBtn = `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button>`;
       const stopBtn = r.running ? ` <button class="dash-action danger" data-action="stop" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">■ Stop</button>` : '';
@@ -81,7 +81,7 @@ function renderDashboard() {
         <td>${actCol}</td>
       </tr>`;
     }).join('');
-    const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:#1e1b4b;color:#818cf8">${esc(p.myRole||'')}</span>`;
+    const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:rgba(129,140,248,0.12);color:var(--blue)">${esc(p.myRole||'')}</span>`;
     const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="margin-left:auto;font-size:11px">Members</button>` : '';
     const membersOpen = state.membersOpen === p.slug;
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
@@ -124,7 +124,7 @@ function toggleMembers(slug) {
 async function loadMembers(slug) {
   const panel = document.getElementById(`members-${slug}`);
   if (!panel) return;
-  panel.innerHTML = '<div style="color:#888;font-size:12px">Loading members...</div>';
+  panel.innerHTML = '<div style="color:var(--text-faint);font-size:12px">Loading members...</div>';
   try {
     const res = await authFetch(`${API}/projects/${slug}/members`);
     const data = await res.json();
@@ -136,7 +136,7 @@ async function loadMembers(slug) {
       }
       html += '</table>';
     } else {
-      html += '<div style="color:#666;font-size:12px">No members yet.</div>';
+      html += '<div style="color:var(--text-faint);font-size:12px">No members yet.</div>';
     }
     html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center">
       <input id="member-user-${esc(slug)}" placeholder="username" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px;width:120px">
@@ -149,7 +149,7 @@ async function loadMembers(slug) {
     });
     const addBtn = panel.querySelector('[data-action="add-member"]');
     if (addBtn) addBtn.addEventListener('click', () => addMember(addBtn.dataset.slug));
-  } catch { panel.innerHTML = '<div style="color:#f87171;font-size:12px">Failed to load members</div>'; }
+  } catch { panel.innerHTML = '<div style="color:var(--red);font-size:12px">Failed to load members</div>'; }
 }
 
 async function addMember(slug) {

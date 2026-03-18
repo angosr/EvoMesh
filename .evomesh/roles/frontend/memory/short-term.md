@@ -1,10 +1,9 @@
 ## Done
-- UX/Product audit: found and fixed 3 issues
-  - Bug fix: system feed messages showed literal `<strong>` tags (double-escaping)
-  - Hardcoded colors in HTML → CSS variables (light theme fix)
-  - Extracted duplicated disconnect detection into `_startDisconnectDetection()` helper
-- All tests pass (8 suites)
-- Noted: `#mobile-bottom-nav` HTML is dead (always hidden) — minor cleanup for later
+- Code quality audit: found and fixed 2 issues
+  - XSS fix: data.error from API responses now escaped with esc() before rendering in system feed messages
+  - Hardcoded colors: replaced all remaining #hex colors in JS files with CSS variables (var(--red), var(--text-faint), var(--blue))
+- Files audited: frontend.js, frontend-feed.js, frontend-panels.js, frontend-dashboard.js, frontend-actions.js, frontend-settings.js, frontend-layout.js
+- No event listener leaks, timer leaks, or memory leaks found — cleanup is properly chained
 
 ## Blockers
 (None)
@@ -13,5 +12,5 @@
 (None)
 
 ## Next focus
-- Code quality audit (next idle cycle)
+- UX/Product audit (next idle cycle)
 - P2: inline onclick migration (needs lead approval)

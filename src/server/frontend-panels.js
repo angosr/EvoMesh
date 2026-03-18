@@ -112,7 +112,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
 async function startAndOpenTerminal(slug, projectName, roleName) {
   const key = `${slug}/${roleName}`;
   const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
-  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:#888">
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:var(--text-faint)">
     <div style="font-size:24px" class="loading-spinner">&#9881;</div>
     <div>Starting ${esc(projectName)}/${esc(roleName)}...</div>
   </div>`;
@@ -126,7 +126,7 @@ async function startAndOpenTerminal(slug, projectName, roleName) {
     const res = await authFetch(`${API}/projects/${slug}/roles/${roleName}/restart`, { method: 'POST' });
     const data = await res.json();
     if (!data.ok) {
-      panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Failed to start: ${esc(data.error || 'unknown error')}</div>`;
+      panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red)">Failed to start: ${esc(data.error || 'unknown error')}</div>`;
       return;
     }
     let retries = 0;
@@ -146,13 +146,13 @@ async function startAndOpenTerminal(slug, projectName, roleName) {
       if (retries > 30) {
         clearInterval(check);
         if (state.openPanels[key]) state.openPanels[key].startPoll = null;
-        panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Timeout waiting for terminal. Try refreshing.</div>`;
+        panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red)">Timeout waiting for terminal. Try refreshing.</div>`;
       }
     }, 2000);
     // Store polling interval so closePanel can clean it up
     if (state.openPanels[key]) state.openPanels[key].startPoll = check;
   } catch (e) {
-    panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444">Error: ${esc(String(e))}</div>`;
+    panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red)">Error: ${esc(String(e))}</div>`;
   }
 }
 

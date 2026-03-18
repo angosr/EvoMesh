@@ -98,7 +98,7 @@ function appendFeedMessage(msg, type) {
       s = s.replace(/^- /, '• ');
       return s;
     }).join('<br>');
-    div.innerHTML = `<span class="feed-role" style="color:#ef4444">Central AI</span>
+    div.innerHTML = `<span class="feed-role" style="color:var(--red)">Central AI</span>
       <span class="feed-time">${esc(time)}</span>
       <div class="feed-text feed-central-text">${lines}</div>`;
   } else if (msg.type === 'user-message') {
@@ -128,7 +128,7 @@ async function _sendMessage(text, sourceInput, sourceBtn) {
     });
     const data = await res.json();
     if (!data.ok) {
-      appendFeedMessage({ type: 'system', text: `Error: ${data.error}`, time: new Date().toISOString() });
+      appendFeedMessage({ type: 'system', text: `Error: ${esc(data.error || 'unknown')}`, time: new Date().toISOString() });
     }
   } catch { appendFeedMessage({ type: 'system', text: 'Failed to send', time: new Date().toISOString() }); }
   if (sourceBtn) { sourceBtn.disabled = false; sourceBtn.textContent = origLabel; }
@@ -201,7 +201,7 @@ async function sendCompose() {
     const data = await res.json();
     if (!data.ok) {
       textarea.value = text;
-      appendFeedMessage({ type: 'system', text: `Send failed: ${data.error || 'unknown'}`, time: new Date().toISOString() });
+      appendFeedMessage({ type: 'system', text: `Send failed: ${esc(data.error || 'unknown')}`, time: new Date().toISOString() });
     }
   } catch {
     textarea.value = text;
