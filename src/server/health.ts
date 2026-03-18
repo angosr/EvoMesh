@@ -21,6 +21,7 @@ const lastNudge = new Map<string, number>();
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
+const lastIdleContent = new Map<string, string>(); // detect stuck roles (same content across loops)
 const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
@@ -82,6 +83,7 @@ export function recordRoleStart(key: string): void {
   idleCount.set(key, 0);
   lastIdleMtime.delete(key);
   lastIdleAction.delete(key);
+  lastIdleContent.delete(key);
   lastNudge.delete(key);
 }
 
@@ -440,6 +442,35 @@ function hasUnprocessedInbox(root: string, name: string): boolean {
 }
 
 /**
+ * Detect if short-term.md content indicates an idle role.
+ * Matches: explicit "No tasks, idle", or content unchanged across writes (stuck role).
+ */
+function isIdleContent(content: string, key: string): boolean {
+  // Explicit idle phrase
+  if (/^No tasks,?\s*idle/im.test(content)) return true;
+
+  // Content unchanged from last check = role is stuck/idle (writing same thing repeatedly)
+  const prev = lastIdleContent.get(key);
+  const normalized = content.replace(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/g, "").trim(); // strip timestamps
+  if (prev && prev === normalized) return true;
+  lastIdleContent.set(key, normalized);
+
+  // In-progress and Next sections are empty = nothing to do
+  const hasInProgress = /^## In-progress\n+[^(\n#]/.test(content) || /In-progress.*:\s*\S/m.test(content);
+  const hasNextFocus = /^## Next focus\n+[^(\n#]/.test(content) || /Next focus.*:\s*\S/m.test(content);
+  if (!hasInProgress && !hasNextFocus) {
+    // Check if Done section only has trivial content
+    const doneSection = content.match(/^## Done\n([\s\S]*?)(?=\n## |$)/m);
+    if (doneSection) {
+      const doneText = doneSection[1].trim();
+      if (!doneText || /^[-*]\s*(None|nothing|idle|no tasks|updated)/im.test(doneText)) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Idle-triggered context cleanup.
  * Detects consecutive idle loops via short-term.md content + mtime tracking.
  * - Non-lead: /clear + /loop (fresh context, process stays running)
@@ -473,12 +504,14 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           if (currentMtime === prevMtime) continue;
           lastIdleMtime.set(key, currentMtime);
 
-          // Read content and check for idle — match only at start of a line
+          // Read content and check for idle
           const content = fs.readFileSync(stmPath, "utf-8");
-          if (/^No tasks,?\s*idle/im.test(content)) {
+          const isIdle = isIdleContent(content, key);
+          if (isIdle) {
             idleCount.set(key, (idleCount.get(key) || 0) + 1);
           } else {
             idleCount.set(key, 0);
+            lastIdleContent.delete(key);
             continue;
           }
 
