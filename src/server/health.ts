@@ -243,8 +243,8 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             const stmStat = fs.statSync(stmPath);
             const stmAgeMs = now - stmStat.mtimeMs;
             const intervalMin = parseInt(rc.loop_interval) || 10;
-            // Only trigger after 30x loop interval (very generous — avoid false positives that killed lead/core-dev)
-            const bdThreshold = intervalMin * 30 * 60 * 1000;
+            // Trigger after 10x loop interval (~100min for 10min roles). Git log fallback prevents false positives.
+            const bdThreshold = intervalMin * 10 * 60 * 1000;
             const lastTime = lastRestart.get(key) || 0;
             if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
               let hasRecentCommit = false;
@@ -277,7 +277,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
         }
       }
     }
-  } catch {}
+  } catch (e) { console.error("[autoRestartCrashed] Error:", e); }
 }
 
 export function verifyLoopCompliance(ctx: ServerContext): void {
@@ -313,7 +313,7 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
         } catch {}
       }
     }
-  } catch {}
+  } catch (e) { console.error("[verifyLoopCompliance] Error:", e); }
 }
 
 /**
@@ -349,7 +349,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
 
           // Read content and check for "idle"
           const content = fs.readFileSync(stmPath, "utf-8");
-          if (/idle/i.test(content)) {
+          if (/^No tasks,?\s*idle/im.test(content)) {
             idleCount.set(key, (idleCount.get(key) || 0) + 1);
           } else {
             idleCount.set(key, 0);
@@ -387,5 +387,5 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
         } catch {}
       }
     }
-  } catch {}
+  } catch (e) { console.error("[cleanupIdleRoles] Error:", e); }
 }
