@@ -296,7 +296,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     }
   });
 
-  // --- Scroll: tmux copy-mode scroll via docker exec ---
+  // --- Scroll / arrow keys: supports both docker and host launch modes ---
   app.post("/api/projects/:slug/roles/:name/scroll", (req, res) => {
     const project = ctx.getProject(req.params.slug, reqLinuxUser(req));
     if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
@@ -304,22 +304,38 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     const { direction, lines } = req.body;
     const VALID = ["up", "down", "esc", "arrow-up", "arrow-down", "arrow-left", "arrow-right"];
     if (!VALID.includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
+    const config = loadConfig(project.root);
+    const rc = config.roles?.[req.params.name];
+    const isHost = rc?.launch_mode === "host";
     const projectSlug = slugify(path.basename(project.root));
     const cname = containerName(projectSlug, req.params.name);
     const user = process.env.USER || "user";
+    // tmux target: host mode = session name directly, docker = "claude" inside container
+    const tmuxTarget = isHost ? cname : "claude";
     try {
       if (direction === "esc") {
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", "q"], { stdio: "ignore" });
+        if (isHost) {
+          execFileSync("tmux", ["send-keys", "-t", tmuxTarget, "q"], { stdio: "ignore" });
+        } else {
+          execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", tmuxTarget, "q"], { stdio: "ignore" });
+        }
       } else if (direction.startsWith("arrow-")) {
-        // Send arrow key to terminal (cursor movement)
-        const keyName = { "arrow-up": "Up", "arrow-down": "Down", "arrow-left": "Left", "arrow-right": "Right" }[direction];
-        execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", "claude", keyName], { stdio: "ignore" });
+        const keyName = ({ "arrow-up": "Up", "arrow-down": "Down", "arrow-left": "Left", "arrow-right": "Right" } as Record<string,string>)[direction];
+        if (isHost) {
+          execFileSync("tmux", ["send-keys", "-t", tmuxTarget, keyName], { stdio: "ignore" });
+        } else {
+          execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", tmuxTarget, keyName], { stdio: "ignore" });
+        }
       } else {
         const n = Math.min(Math.max(parseInt(lines) || 3, 1), 20);
         const cmd = direction === "up" ? "scroll-up" : "scroll-down";
-        const tmuxCmds = direction === "up" ? `tmux copy-mode -t claude 2>/dev/null; ` : "";
-        const scrollCmds = Array(n).fill(`tmux send-keys -t claude -X ${cmd}`).join("; ");
-        execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c", tmuxCmds + scrollCmds], { stdio: "ignore" });
+        const enterCopy = direction === "up" ? `tmux copy-mode -t ${tmuxTarget} 2>/dev/null; ` : "";
+        const scrollCmds = Array(n).fill(`tmux send-keys -t ${tmuxTarget} -X ${cmd}`).join("; ");
+        if (isHost) {
+          execFileSync("bash", ["-c", enterCopy + scrollCmds], { stdio: "ignore" });
+        } else {
+          execFileSync("docker", ["exec", cname, "gosu", user, "bash", "-c", enterCopy + scrollCmds], { stdio: "ignore" });
+        }
       }
       res.json({ ok: true });
     } catch (e: unknown) {
