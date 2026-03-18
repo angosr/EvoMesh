@@ -29,6 +29,12 @@ const START_GRACE_PERIOD = 3 * 60 * 1000; // 3 min grace after start before nudg
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
 
+/** Broadcast a monitor event to the feed panel. */
+function notifyFeed(ctx: ServerContext, text: string): void {
+  const broadcast = (ctx as any)._broadcastFeed as ((msg: Record<string, unknown>) => void) | undefined;
+  if (broadcast) broadcast({ type: "system", text, time: new Date().toISOString() });
+}
+
 /** Safely parse a loop_interval value (e.g. "10m", 10, undefined) to minutes. */
 function parseIntervalMinutes(interval: string | number | undefined): number {
   if (typeof interval === "number") return interval;
@@ -331,6 +337,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
           const lastTime = lastRestart.get(key) || 0;
           if (now - lastTime < RESTART_COOLDOWN) continue;
           console.log(`[auto-restart] ${name} crashed in ${p.name}, restarting...`);
+          notifyFeed(ctx, `[monitor] ${name} crashed, auto-restarting...`);
           try {
             const ttydPort = allocatePort(ctx);
             startRoleManaged(ctx, p.root, p.slug, name, rc, config, ttydPort);
@@ -358,6 +365,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
               }
               if (!hasRecentCommit) {
                 console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, no recent commits — restarting`);
+                notifyFeed(ctx, `[monitor] ${name} brain-dead (${Math.round(stmAgeMs / 60000)}min stale), restarting...`);
                 stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true });
                 recordRoleStart(key); // cooldown + grace period for the restart cycle
               }
@@ -372,6 +380,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
               const lastTime = lastRestart.get(key) || 0;
               if (now - lastTime > RESTART_COOLDOWN) {
                 console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"})`);
+                notifyFeed(ctx, `[monitor] ${name} requested context restart`);
                 fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
                 stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true });
                 recordRoleStart(key);
@@ -533,6 +542,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             }
             // Stuck: has inbox but no STM update for 3x loop interval — force cleanup
             console.log(`[idle-cleanup] ${name} stuck with unprocessed inbox for ${Math.round(stmAgeMs / 60000)}min — forcing cleanup`);
+            notifyFeed(ctx, `[monitor] ${name} stuck ${Math.round(stmAgeMs / 60000)}min with unprocessed inbox, forcing reset`);
           }
 
           // Threshold reached — take action
@@ -543,6 +553,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             try {
               sendToRole(sessionName, rc.launch_mode, "/compact");
               console.log(`[idle-cleanup] Sent /compact to lead ${name}`);
+              notifyFeed(ctx, `[monitor] ${name} idle, sent /compact`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
           } else {
             // Worker: /clear wipes cron, must re-send /loop
@@ -555,6 +566,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
                 { message: loopCmd, delaySec: 3 },
               ]);
               console.log(`[idle-cleanup] Sent /clear + /loop to worker ${name}`);
+              notifyFeed(ctx, `[monitor] ${name} idle/stuck, context reset`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /clear + /loop to ${name}:`, e); }
           }
 
