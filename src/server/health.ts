@@ -5,7 +5,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import { execFileSync } from "node:child_process";
+import { execFileSync, execFile } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole, containerName, centralContainerName } from "../process/container.js";
 import { roleDir } from "../utils/paths.js";
@@ -249,18 +249,16 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
     }
     lastGoodProjects = { ...projectEntries };
 
-    // Docker stats cache
-    try {
-      const allStats = execFileSync("docker", [
-        "stats", "--no-stream", "--format", "{{.Name}}|{{.MemUsage}}|{{.CPUPerc}}",
-      ], { encoding: "utf-8", timeout: 10000 }).trim();
-      for (const line of allStats.split("\n")) {
+    // Docker stats cache — async to avoid blocking event loop (WebSocket proxy latency)
+    execFile("docker", [
+      "stats", "--no-stream", "--format", "{{.Name}}|{{.MemUsage}}|{{.CPUPerc}}",
+    ], { encoding: "utf-8", timeout: 10000 }, (err, stdout) => {
+      if (err || !stdout) return; // docker stats can fail transiently — non-critical
+      for (const line of stdout.trim().split("\n")) {
         const [cname, mem, cpu] = line.split("|");
         if (cname && mem) statsCache.set(cname, { mem: mem.split("/")[0]?.trim() || "", cpu: cpu?.trim() || "" });
       }
-    } catch {
-      // docker stats can fail transiently — non-critical
-    }
+    });
 
     // Central AI auto-recovery (only if enabled)
     const centralName = centralContainerName();
@@ -524,11 +522,17 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
 
           if ((idleCount.get(key) || 0) < 2) continue;
 
-          // Don't cleanup if there are pending inbox messages — role will pick them up next loop
+          // Inbox check: skip cleanup only if role recently wrote STM (might process inbox soon)
           if (hasUnprocessedInbox(p.root, name)) {
-            console.log(`[idle-cleanup] ${name} is idle but has unprocessed inbox — skipping cleanup`);
-            idleCount.set(key, 0);
-            continue;
+            const stmAgeMs = now - stat.mtimeMs;
+            const intervalMs = parseIntervalMinutes((rc as any).loop_interval) * 60 * 1000;
+            if (stmAgeMs < intervalMs * 3) {
+              console.log(`[idle-cleanup] ${name} idle but has inbox and recent STM — skipping`);
+              idleCount.set(key, 0);
+              continue;
+            }
+            // Stuck: has inbox but no STM update for 3x loop interval — force cleanup
+            console.log(`[idle-cleanup] ${name} stuck with unprocessed inbox for ${Math.round(stmAgeMs / 60000)}min — forcing cleanup`);
           }
 
           // Threshold reached — take action

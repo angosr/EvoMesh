@@ -187,6 +187,9 @@ export function setupTerminalProxy(
         if (v) responseHead += `${k}: ${Array.isArray(v) ? v.join(", ") : v}\r\n`;
       }
       responseHead += "\r\n";
+      // Disable Nagle's algorithm — reduces latency for small packets (keystrokes)
+      if ("setNoDelay" in socket) (socket as any).setNoDelay(true);
+      if ("setNoDelay" in proxySocket) (proxySocket as any).setNoDelay(true);
       socket.write(responseHead);
       if (proxyHead.length) socket.write(proxyHead);
       if (head.length) proxySocket.write(head);
