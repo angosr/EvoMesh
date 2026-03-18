@@ -1,7 +1,25 @@
 import http from "node:http";
+import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { isRoleRunning, getContainerPort, getContainerState, ensureImage, containerName, centralContainerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
+
+/** Find the ttyd port for a running tmux session by scanning /proc. */
+function findTtydPort(sessionName: string): number | null {
+  try {
+    const pids = execFileSync("pgrep", ["-f", `ttyd.*${sessionName}`], { encoding: "utf-8", timeout: 3000 }).trim();
+    for (const pid of pids.split("\n")) {
+      if (!pid) continue;
+      try {
+        const cmdline = fs.readFileSync(`/proc/${pid}/cmdline`, "utf-8");
+        const portMatch = cmdline.match(/--port\0(\d+)/);
+        if (portMatch) return parseInt(portMatch[1], 10);
+      } catch { /* process may have exited */ }
+    }
+  } catch { /* pgrep found nothing */ }
+  return null;
+}
 
 export interface TtydProcess {
   port: number;
@@ -21,9 +39,18 @@ export function ensureTtydRunning(ctx: ServerContext): void {
           const key = `${project.slug}/${roleName}`;
           if (ctx.ttydProcesses.has(key)) continue;
 
-          // Check if container is running
+          // Check if role is running — recover ttyd port from Docker or host process
           if (isRoleRunning(project.root, roleName)) {
-            const port = getContainerPort(containerName(project.slug, roleName));
+            const rc = roleConfig as any;
+            let port: number | null = null;
+            if (rc.launch_mode === "host") {
+              // Host mode: find ttyd port from running process
+              const cname = containerName(project.slug, roleName);
+              port = findTtydPort(cname);
+            } else {
+              // Docker mode: get port from container
+              port = getContainerPort(containerName(project.slug, roleName));
+            }
             if (port) {
               ctx.ttydProcesses.set(key, { port, roleName, projectSlug: project.slug });
             }
