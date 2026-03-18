@@ -165,6 +165,63 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
   }
   (ctx as any)._broadcastFeed = broadcastFeed;
 
+  // --- Single shared polling loop (not per-subscriber) ---
+  const globalLastMtime = new Map<string, number>();
+  const globalLastText = new Map<string, string>();
+
+  function pollRoleUpdates() {
+    try {
+      const projects = ctx.getProjects();
+      const activeKeys = new Set<string>();
+      for (const p of projects) {
+        let config;
+        try { config = loadConfig(p.root); } catch { continue; }
+        for (const [name] of Object.entries(config.roles)) {
+          if (!isRoleRunning(p.root, name)) continue;
+          const key = `${p.slug}/${name}`;
+          activeKeys.add(key);
+          const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
+          if (!fs.existsSync(stmPath)) continue;
+          try {
+            const stat = fs.statSync(stmPath);
+            const prevMtime = globalLastMtime.get(key) || 0;
+            if (stat.mtimeMs > prevMtime) {
+              globalLastMtime.set(key, stat.mtimeMs);
+              const stm = fs.readFileSync(stmPath, "utf-8");
+              const text = extractFeedText(stm);
+              if (text && text !== globalLastText.get(key)) {
+                globalLastText.set(key, text);
+                broadcastFeed({ type: "role", role: name, project: p.slug, text: text.slice(0, 200) });
+              }
+            }
+          } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking STM for ${name}: ${errorMessage(e)}`); }
+        }
+      }
+      activeKeys.add("central");
+      for (const key of globalLastMtime.keys()) {
+        if (!activeKeys.has(key)) { globalLastMtime.delete(key); globalLastText.delete(key); }
+      }
+      try {
+        const statusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
+        const stat = fs.statSync(statusPath);
+        const prevMtime = globalLastMtime.get("central") || 0;
+        if (stat.mtimeMs > prevMtime) {
+          globalLastMtime.set("central", stat.mtimeMs);
+          if (prevMtime > 0) {
+            const status = fs.readFileSync(statusPath, "utf-8");
+            const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('```'));
+            if (lines.length && /^# [^#]/.test(lines[0])) lines.shift();
+            const summary = lines.slice(0, 12).join('\n');
+            broadcastFeed({ type: "central", text: summary });
+          }
+        }
+      } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking central status: ${errorMessage(e)}`); }
+    } catch (e: unknown) { console.error(`[feed] error in poll loop: ${errorMessage(e)}`); }
+  }
+
+  // Single 5s interval — runs regardless of subscriber count
+  setInterval(pollRoleUpdates, 5000);
+
   app.get("/api/feed/stream", (req, res) => {
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
@@ -174,77 +231,26 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    // Send history first
+    // Send history (deduped)
     try {
       if (fs.existsSync(FEED_FILE)) {
         const lines = fs.readFileSync(FEED_FILE, "utf-8").trim().split("\n").slice(-50);
+        const seen = new Set<string>();
         for (const line of lines) {
-          if (line.trim()) res.write(`data: ${line}\n\n`);
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            const dedupKey = `${msg.role || ""}:${(msg.text || "").slice(0, 80)}`;
+            if (seen.has(dedupKey)) continue;
+            seen.add(dedupKey);
+          } catch { /* malformed line — send as-is */ }
+          res.write(`data: ${line}\n\n`);
         }
       }
     } catch (e: unknown) { console.error(`[feed] failed to send SSE history: ${errorMessage(e)}`); }
 
-    const feedLinuxUser = session.linuxUser;
-    const lastMtime = new Map<string, number>();
-    const lastText = new Map<string, string>(); // dedup: skip if same text as last broadcast
-
-    const check = () => {
-      try {
-        const projects = ctx.getProjects(feedLinuxUser);
-        const activeKeys = new Set<string>();
-        for (const p of projects) {
-          let config;
-          try { config = loadConfig(p.root); } catch { continue; }
-          for (const [name] of Object.entries(config.roles)) {
-            // Skip stopped roles — don't broadcast stale updates
-            if (!isRoleRunning(p.root, name)) continue;
-            const key = `${p.slug}/${name}`;
-            activeKeys.add(key);
-            const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
-            if (!fs.existsSync(stmPath)) continue;
-            try {
-              const stat = fs.statSync(stmPath);
-              const prevMtime = lastMtime.get(key) || 0;
-              if (stat.mtimeMs > prevMtime) {
-                lastMtime.set(key, stat.mtimeMs);
-                const stm = fs.readFileSync(stmPath, "utf-8");
-                const text = extractFeedText(stm);
-                // Only broadcast if meaningful AND different from last broadcast for this role
-                if (text && text !== lastText.get(key)) {
-                  lastText.set(key, text);
-                  broadcastFeed({ type: "role", role: name, project: p.slug, text: text.slice(0, 200) });
-                }
-              }
-            } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking STM for ${name}: ${errorMessage(e)}`); }
-          }
-        }
-        // Clean up maps for roles that no longer exist
-        activeKeys.add("central");
-        for (const key of lastMtime.keys()) {
-          if (!activeKeys.has(key)) { lastMtime.delete(key); lastText.delete(key); }
-        }
-        try {
-          const statusPath = path.join(os.homedir(), ".evomesh", "central", "central-status.md");
-          const stat = fs.statSync(statusPath);
-          const prevMtime = lastMtime.get("central") || 0;
-          if (stat.mtimeMs > prevMtime) {
-            lastMtime.set("central", stat.mtimeMs);
-            if (prevMtime > 0) {
-              const status = fs.readFileSync(statusPath, "utf-8");
-              const lines = status.split('\n').filter(l => l.trim() && !l.startsWith('```'));
-              if (lines.length && /^# [^#]/.test(lines[0])) lines.shift();
-              const summary = lines.slice(0, 12).join('\n');
-              broadcastFeed({ type: "central", text: summary });
-            }
-          }
-        } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking central status: ${errorMessage(e)}`); }
-      } catch (e: unknown) { console.error(`[feed] error in SSE check loop: ${errorMessage(e)}`); }
-    };
-
     feedSubscribers.add(res);
-    check();
-    const timer = setInterval(check, 5000);
-    const maxLifetime = setTimeout(() => { clearInterval(timer); feedSubscribers.delete(res); res.end(); }, 30 * 60 * 1000);
-    req.on("close", () => { clearInterval(timer); clearTimeout(maxLifetime); feedSubscribers.delete(res); });
+    const maxLifetime = setTimeout(() => { feedSubscribers.delete(res); res.end(); }, 30 * 60 * 1000);
+    req.on("close", () => { clearTimeout(maxLifetime); feedSubscribers.delete(res); });
   });
 }
