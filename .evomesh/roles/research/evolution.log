@@ -25,3 +25,15 @@
 1. Replaced idle skip with proactive scan: read blueprint for roadmap gaps, check other roles' blockers, check P2 monitoring items, web search competitor updates
 2. Idle is now only allowed after proactive scan finds genuinely nothing
 **Trigger**: User observation — "why no self-exploration?"
+
+## 2026-03-18T16:30 — Lead: role repositioning from "Scout" to "Strategic Challenger"
+**Problem**: Research idle 274 consecutive loops (loop 11→285). Role was positioned as "Frontier Technology Scout" — external-focused, low-frequency need. Result: 0 output for 2 days. Meanwhile, lead never did strategic direction review (proactive scan was superficial).
+**Changes**:
+1. Renamed: "Frontier Intelligence" → "Strategic Challenger"
+2. Primary work: internal architecture critique every loop (was: external research on demand)
+3. Added Mission statement: "challenge the current direction, not confirm it"
+4. Loop interval: 30m → 60m (deep analysis, not frequent check-ins)
+5. Output format: structured challenge reports with self-attack section
+6. Explicit rule: "Everything looks good" is a failure mode
+7. External scan demoted to secondary (every 3 loops), internal audit is primary
+**Trigger**: User observation — research role idle 274 loops, lead never triggers strategic review, need a forcing function for big-picture thinking
