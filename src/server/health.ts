@@ -499,20 +499,27 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           const stat = fs.statSync(stmPath);
           const currentMtime = stat.mtimeMs;
           const prevMtime = lastIdleMtime.get(key) || 0;
+          const intervalMin = parseIntervalMinutes((rc as any).loop_interval);
+          const staleThresholdMs = intervalMin * 3 * 60 * 1000; // 3x loop interval
 
-          // Only check when mtime changes (new loop output written)
-          if (currentMtime === prevMtime) continue;
-          lastIdleMtime.set(key, currentMtime);
-
-          // Read content and check for idle
-          const content = fs.readFileSync(stmPath, "utf-8");
-          const isIdle = isIdleContent(content, key);
-          if (isIdle) {
+          if (currentMtime === prevMtime) {
+            // File not rewritten — role may be stuck. If stale enough, count as idle.
+            const ageMs = now - currentMtime;
+            if (ageMs < staleThresholdMs) continue; // not stale enough yet
+            // Stale and unchanged — increment idle count each check cycle
             idleCount.set(key, (idleCount.get(key) || 0) + 1);
           } else {
-            idleCount.set(key, 0);
-            lastIdleContent.delete(key);
-            continue;
+            // File was rewritten — check content
+            lastIdleMtime.set(key, currentMtime);
+            const content = fs.readFileSync(stmPath, "utf-8");
+            const isIdle = isIdleContent(content, key);
+            if (isIdle) {
+              idleCount.set(key, (idleCount.get(key) || 0) + 1);
+            } else {
+              idleCount.set(key, 0);
+              lastIdleContent.delete(key);
+              continue;
+            }
           }
 
           if ((idleCount.get(key) || 0) < 2) continue;
