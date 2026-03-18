@@ -48,3 +48,19 @@
 - Memory: was accumulating history across sessions. Reset to current-loop-only.
 - Todo: cleaned stale completed items (loop 135-139). CLAUDE.md says >5 loops = remove.
 - ROLE.md: no dead rules found. All rules are active and triggered.
+
+## Self-Audit — Loop 300 checkpoint (2026-03-18T22:30)
+**Findings**:
+1. ✅ CSS variables: All hardcoded hex colors eliminated (commits 7ffc0d1, ed48be2, de439cb)
+2. ✅ No inline onclick with interpolation: Test suite enforces (7 files per run)
+3. ✅ Stable DOM containers: All async sections use HTML-defined containers
+4. ✅ Cache busting: Updated when CSS changed (commit 817f2f4)
+5. ✅ npm test: Run on every real change — never skipped since loop 290 fix
+6. ✅ Memory: Accurate, concise, under 30 lines
+7. ⚠️ ROLE.md loop interval says 5m, actual cron is 15m — cosmetic mismatch, updated
+8. ⚠️ Todo completed items older than 5 loops — cleaned
+**Changes**:
+- Updated ROLE.md loop interval: 5m → 15m (matches actual cron)
+- Cleaned todo.md: removed old completed items, kept only recent (idle policy)
+- No dead/redundant rules found — all 69 lines are load-bearing
+**No structural changes needed.**

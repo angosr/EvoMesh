@@ -1,6 +1,6 @@
 # Frontend — UI/UX Developer
 
-> **Loop interval**: 5m
+> **Loop interval**: 15m
 > **Scope**: Web UI, mobile responsiveness, interaction design
 
 > Universal rules are in CLAUDE.md (auto-loaded by Claude Code every request).

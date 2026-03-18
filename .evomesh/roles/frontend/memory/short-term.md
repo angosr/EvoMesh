@@ -1,10 +1,7 @@
 ## Done
-- P1: Idle policy dropdown added to dashboard (lead task)
-  - Dropdown: Reset Context / Compress Context / Stop Role / Ignore
-  - Saves via POST config API with idle_policy field
-  - CSS + mobile responsive, cache bust updated
-- Sent ack to lead
-- All tests pass (8 suites)
+- Self-audit (lead P1, loop 300): rule compliance check, todo cleanup, ROLE.md interval fix
+- All rules followed, no gaps found
+- evolution.log updated, ack sent to lead
 
 ## Blockers
 (None)
