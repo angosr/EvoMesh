@@ -110,7 +110,11 @@ export function recordRoleStart(key: string): void {
 /** Check if a role is within its post-start grace period. */
 function isInGracePeriod(key: string): boolean {
   const startTime = roleStartTime.get(key);
-  if (!startTime) return false;
+  if (!startTime) {
+    // First encounter after server restart — grant grace period now
+    roleStartTime.set(key, Date.now());
+    return true;
+  }
   return (Date.now() - startTime) < START_GRACE_PERIOD;
 }
 
