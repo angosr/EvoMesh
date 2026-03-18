@@ -49,6 +49,39 @@ function injectTouchScroll(iframe) {
   iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
   tryInject();
 }
+
+// Inject keyboard handler into iframe for PageUp/PageDown/Arrow scroll
+function injectKeyboardScroll(iframe, panelKey) {
+  const POLL_INTERVAL = 500, MAX_ATTEMPTS = 20;
+  let attempts = 0;
+  function tryInject() {
+    attempts++;
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      if (iframeDoc.body?.dataset?.kbScrollInjected) return;
+      const xtermScreen = iframeDoc.querySelector('.xterm-screen');
+      if (!xtermScreen) { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); return; }
+      iframeDoc.body.dataset.kbScrollInjected = 'true';
+      iframeDoc.addEventListener('keydown', e => {
+        const keyMap = { PageUp: ['up', 20], PageDown: ['down', 20] };
+        const action = keyMap[e.key];
+        if (!action) return;
+        e.preventDefault();
+        e.stopPropagation();
+        // Call parent's scroll API directly
+        const parts = panelKey.split('/');
+        if (parts.length !== 2) return;
+        authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction: action[0], lines: action[1] }),
+        }).catch(() => {});
+      });
+    } catch { if (attempts < MAX_ATTEMPTS) setTimeout(tryInject, POLL_INTERVAL); }
+  }
+  iframe.addEventListener('load', () => { attempts = 0; tryInject(); });
+  tryInject();
+}
 const state = {
   projects: [], accounts: [], openPanels: {}, activePanel: 'dashboard',
   layout: 'tabs', collapsed: {}, chatProject: null, tabOrder: ['dashboard'],

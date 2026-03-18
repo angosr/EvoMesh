@@ -61,6 +61,8 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     } catch {}
   }, 2000);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
+  injectTouchScroll(iframe);
+  injectKeyboardScroll(iframe, key);
   state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
 
@@ -129,6 +131,7 @@ function reconnectPanel(key) {
   p.iframe.replaceWith(newIframe);
   p.iframe = newIframe;
   injectTouchScroll(newIframe);
+  injectKeyboardScroll(newIframe, key);
 }
 
 function closePanel(key) {
@@ -236,19 +239,6 @@ function setLayout(mode) {
     e.preventDefault();
     queueScroll(e.deltaY > 0 ? 'down' : 'up', 3);
   }, { passive: false });
-
-  // Keyboard: Page Up/Down scroll the active terminal (only when focus is on parent doc)
-  document.addEventListener('keydown', e => {
-    if (!state.openPanels[state.activePanel]) return;
-    // Skip if focus is inside an iframe or user is typing in an input
-    const tag = (document.activeElement?.tagName || '').toLowerCase();
-    if (tag === 'iframe' || tag === 'input' || tag === 'textarea' || tag === 'select') return;
-    const keyMap = { PageUp: ['up', 20], PageDown: ['down', 20] };
-    const action = keyMap[e.key];
-    if (!action) return;
-    e.preventDefault();
-    queueScroll(action[0], action[1]);
-  });
 
   let touchStartY = 0, touchStartTime = 0, touchMoved = false;
   let lastTouchY = 0, lastTouchTime = 0, velocity = 0, momentumTimer = null;
