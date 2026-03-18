@@ -1,7 +1,10 @@
 ## Done
-- Committed frontend cleanup: addFeedMessage→appendFeedMessage rename, CSS var compliance, disconnect grace period, duplicate code removal, relaxed polling
-- All tests pass (8 suites), syntax checks clean
-- Processed 4 inbox messages (git rm'd)
+- UX/Product audit: found and fixed 3 issues
+  - Bug fix: system feed messages showed literal `<strong>` tags (double-escaping)
+  - Hardcoded colors in HTML → CSS variables (light theme fix)
+  - Extracted duplicated disconnect detection into `_startDisconnectDetection()` helper
+- All tests pass (8 suites)
+- Noted: `#mobile-bottom-nav` HTML is dead (always hidden) — minor cleanup for later
 
 ## Blockers
 (None)
@@ -10,5 +13,5 @@
 (None)
 
 ## Next focus
-- UX/Product audit (next idle cycle)
+- Code quality audit (next idle cycle)
 - P2: inline onclick migration (needs lead approval)

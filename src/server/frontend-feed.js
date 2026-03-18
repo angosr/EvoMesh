@@ -104,7 +104,8 @@ function appendFeedMessage(msg, type) {
   } else if (msg.type === 'user-message') {
     div.innerHTML = `<div class="feed-text">${esc(msg.text || '')}</div>`;
   } else {
-    div.innerHTML = `<div class="feed-text feed-system-text">${esc(msg.text || '')}</div>`;
+    // System messages are internally generated with pre-escaped user data — render HTML (e.g. <strong>)
+    div.innerHTML = `<div class="feed-text feed-system-text">${msg.text || ''}</div>`;
   }
 
   feed.appendChild(div);

@@ -9,6 +9,31 @@ function _cleanupIframe(iframe) {
   }
 }
 
+// Shared disconnect detection — 3 consecutive checks (grace period) before showing overlay
+function _startDisconnectDetection(iframe, overlay) {
+  let count = 0;
+  const THRESHOLD = 3;
+  return setInterval(() => {
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) return;
+      const xtermScreen = doc.querySelector('.xterm-screen');
+      const ttydOverlay = doc.querySelector('#overlay');
+      const bodyText = doc.body?.innerText || '';
+      const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
+        (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
+        (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
+      if (isDisconnected) {
+        count++;
+        if (count >= THRESHOLD) overlay.classList.add('show');
+      } else {
+        count = 0;
+        overlay.classList.remove('show');
+      }
+    } catch {}
+  }, 2000);
+}
+
 // ==================== Panels ====================
 function openTerminal(slug, projectName, roleName, terminalPath) {
   const key = `${slug}/${roleName}`;
@@ -68,28 +93,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   toolbar.appendChild(pageCtrl);
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
-  // Disconnect detection with grace period — 3 consecutive checks (6s) before showing overlay
-  let _disconnectCount = 0;
-  const DISCONNECT_THRESHOLD = 3;
-  let rTimer = setInterval(() => {
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!doc) return;
-      const xtermScreen = doc.querySelector('.xterm-screen');
-      const ttydOverlay = doc.querySelector('#overlay');
-      const bodyText = doc.body?.innerText || '';
-      const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
-        (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
-        (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
-      if (isDisconnected) {
-        _disconnectCount++;
-        if (_disconnectCount >= DISCONNECT_THRESHOLD) overlay.classList.add('show');
-      } else {
-        _disconnectCount = 0;
-        overlay.classList.remove('show');
-      }
-    } catch {}
-  }, 2000);
+  let rTimer = _startDisconnectDetection(iframe, overlay);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
   injectTouchScroll(iframe);
   injectKeyboardScroll(iframe, key);
@@ -169,28 +173,7 @@ function reconnectPanel(key) {
   p.iframe = newIframe;
   injectTouchScroll(newIframe);
   injectKeyboardScroll(newIframe, key);
-  // Restart disconnect detection on new iframe — with grace period (3 consecutive checks)
-  let _reconnDisconnectCount = 0;
-  const RECONN_THRESHOLD = 3;
-  p.reconnectTimer = setInterval(() => {
-    try {
-      const doc = newIframe.contentDocument || newIframe.contentWindow?.document;
-      if (!doc) return;
-      const xtermScreen = doc.querySelector('.xterm-screen');
-      const ttydOverlay = doc.querySelector('#overlay');
-      const bodyText = doc.body?.innerText || '';
-      const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
-        (!xtermScreen && bodyText.length > 0 && bodyText.length < 200) ||
-        (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
-      if (isDisconnected) {
-        _reconnDisconnectCount++;
-        if (_reconnDisconnectCount >= RECONN_THRESHOLD) p.overlay.classList.add('show');
-      } else {
-        _reconnDisconnectCount = 0;
-        p.overlay.classList.remove('show');
-      }
-    } catch {}
-  }, 2000);
+  p.reconnectTimer = _startDisconnectDetection(newIframe, p.overlay);
 }
 
 function closePanel(key) {
