@@ -1,6 +1,6 @@
 import http from "node:http";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, getContainerState, startRole, ensureImage } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState, startRole, ensureImage, containerName, centralContainerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 
 export interface TtydProcess {
@@ -25,7 +25,7 @@ export function ensureTtydRunning(ctx: ServerContext): void {
 
           // Check if container is running
           if (isRoleRunning(project.root, roleName)) {
-            const port = getContainerPort(`evomesh-${project.slug}-${roleName}`);
+            const port = getContainerPort(containerName(project.slug, roleName));
             if (port) {
               ctx.ttydProcesses.set(key, { port, roleName, projectSlug: project.slug });
             }
@@ -41,9 +41,9 @@ export function ensureTtydRunning(ctx: ServerContext): void {
     // Restore admin container registration if running but not tracked
     if (!ctx.ttydProcesses.has("central/ai")) {
       try {
-        const state = getContainerState(`evomesh-${process.env.USER || "user"}-central`);
+        const state = getContainerState(centralContainerName());
         if (state === "running") {
-          const port = getContainerPort(`evomesh-${process.env.USER || "user"}-central`);
+          const port = getContainerPort(centralContainerName());
           if (port) ctx.ttydProcesses.set("central/ai", { port, roleName: "ai", projectSlug: "central" });
         }
       } catch {}

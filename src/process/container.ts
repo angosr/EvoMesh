@@ -16,9 +16,15 @@ export interface ContainerRole {
 const ROLE_CONFIGS_DIR = path.join(os.homedir(), ".evomesh", "role-configs");
 const DOCKER_IMAGE = "evomesh-role";
 
+/** SINGLE SOURCE OF TRUTH for role container naming. All code must use this — never construct manually. */
 export function containerName(projectSlug: string, roleName: string, linuxUser?: string): string {
   if (linuxUser) return `evomesh-${linuxUser}-${projectSlug}-${roleName}`;
   return `evomesh-${projectSlug}-${roleName}`;
+}
+
+/** SINGLE SOURCE OF TRUTH for Central AI container naming. */
+export function centralContainerName(): string {
+  return `evomesh-${process.env.USER || "user"}-central`;
 }
 
 function roleConfigDir(projectSlug: string, roleName: string): string {
@@ -141,7 +147,7 @@ function startRoleHost(
   ttydPort: number,
 ): ContainerRole {
   const projectSlug = projectSlugFromRoot(root);
-  const sessionName = `evomesh-${projectSlug}-${roleName}`;
+  const sessionName = containerName(projectSlug, roleName);
   const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
 
   // Already running?

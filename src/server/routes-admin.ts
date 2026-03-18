@@ -6,7 +6,7 @@ import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
 import { slugify } from "../workspace/config.js";
-import { getContainerState, getContainerPort, containerName } from "../process/container.js";
+import { getContainerState, getContainerPort, containerName, centralContainerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
 import { requireProjectRole, reqLinuxUser } from "./routes.js";
@@ -16,7 +16,7 @@ import { requireProjectRole, reqLinuxUser } from "./routes.js";
  * Returns { port, terminal } or null on failure.
  */
 export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: string } | null {
-  const sessionName = `evomesh-${process.env.USER || "user"}-central`;
+  const sessionName = centralContainerName();
   const adminPort = ctx.port + 100;
 
   // Already running? Just register and return.
@@ -146,7 +146,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
         `---\nfrom: user\npriority: P0\ntype: command\n---\n\n${message.trim()}\n`, "utf-8");
 
       // Also try to send directly to central AI's tmux session (host mode)
-      const sessionName = `evomesh-${process.env.USER || "user"}-central`;
+      const sessionName = centralContainerName();
       try {
         execFileSync("tmux", ["send-keys", "-t", sessionName, "-l",
           `[URGENT] ${message.trim()}`], { stdio: "ignore" });

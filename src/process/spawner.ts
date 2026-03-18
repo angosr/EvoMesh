@@ -6,6 +6,7 @@ import { roleDir, expandHome, runtimeDir } from "../utils/paths.js";
 import { ensureDir } from "../utils/fs.js";
 import { slugify } from "../workspace/config.js";
 import { writePid, removePid, readPid } from "./registry.js";
+import { containerName } from "./container.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
 
 export interface SpawnedRole {
@@ -15,10 +16,8 @@ export interface SpawnedRole {
 }
 
 function tmuxSessionName(roleName: string, projectSlug?: string): string {
-  if (projectSlug) return `evomesh-${projectSlug}-${roleName}`;
-  // Fallback: derive slug from cwd basename
-  const slug = slugify(path.basename(process.cwd()));
-  return `evomesh-${slug}-${roleName}`;
+  const slug = projectSlug || slugify(path.basename(process.cwd()));
+  return containerName(slug, roleName);
 }
 
 // Strip ANSI escape sequences for readiness detection.

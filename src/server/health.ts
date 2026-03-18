@@ -7,7 +7,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
-import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole } from "../process/container.js";
+import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole, containerName, centralContainerName } from "../process/container.js";
 import { roleDir } from "../utils/paths.js";
 import { ensureCentralAI } from "./routes-admin.js";
 import { allocatePort } from "./routes.js";
@@ -112,7 +112,7 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
         const roles: Record<string, any> = {};
         for (const [name, rc] of Object.entries(config.roles)) {
           const running = isRoleRunning(p.root, name);
-          const cname = `evomesh-${p.slug}-${name}`;
+          const cname = containerName(p.slug, name);
           const accountPath = path.join(os.homedir(), config.accounts[rc.account] || ".claude");
           const accountDown = isAccountDown(accountPath);
           roles[name] = { configured: true, running, port: running ? getContainerPort(cname) : null, accountDown: accountDown || undefined };
@@ -136,7 +136,7 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
     } catch {}
 
     // Central AI auto-recovery
-    const centralName = `evomesh-${process.env.USER || "user"}-central`;
+    const centralName = centralContainerName();
     const centralRunning = getContainerState(centralName) === "running";
     const centralPort = centralRunning ? getContainerPort(centralName) : null;
     let centralError = false;
@@ -271,7 +271,7 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
           const entry = ctx.ttydProcesses.get(key);
           if (!entry) continue;
           if (ageMin > threshold) {
-            const sessionName = `evomesh-${p.slug}-${name}`;
+            const sessionName = containerName(p.slug, name);
             const nudgeMsg = "[SYSTEM] Write memory/short-term.md and heartbeat.json before continuing.";
             try {
               if (rc.launch_mode === "host") {

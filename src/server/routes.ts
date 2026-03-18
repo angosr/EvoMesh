@@ -9,7 +9,7 @@ import { smartInit } from "../workspace/smartInit.js";
 import { exists, formatBytes } from "../utils/fs.js";
 import { errorMessage } from "../utils/error.js";
 import {
-  startRole, stopRole, isRoleRunning, sendInput,
+  startRole, stopRole, isRoleRunning, sendInput, containerName,
 } from "../process/container.js";
 import {
   hasMinProjectRole, getProjectRole, setProjectOwner, grantAccess, revokeAccess,
@@ -206,7 +206,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         let actualMem: string | null = null, actualCpu: string | null = null;
         if (running) {
           const lu = reqLinuxUser(req) || process.env.USER || "user";
-          const cname = `evomesh-${lu}-${slugify(path.basename(project.root))}-${name}`;
+          const cname = containerName(slugify(path.basename(project.root)), name, lu);
           const cached = (ctx as any).statsCache?.get(cname);
           if (cached) { actualMem = cached.mem || null; actualCpu = cached.cpu || null; }
         }

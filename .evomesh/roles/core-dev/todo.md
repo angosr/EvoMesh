@@ -14,6 +14,7 @@
 
 ## Completed
 
+- ✅ Container name construction consolidation (anti-debt refactor)
 - ✅ smartInit migration, template overhaul, dual launch mode
 - ✅ Bootstrap auto-sync, brain-dead detection, Central AI host mode
 - ✅ Compliance hooks (Stop + SessionStart)
