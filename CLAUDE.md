@@ -5,7 +5,7 @@
 1. `git pull --rebase`
 2. **`cat` and read**: ROLE.md, inbox/*, memory/short-term.md (EVERY loop, do NOT rely on memory)
    Also read (every 5 loops or when notified): blueprint.md, status.md, shared/decisions.md
-3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/
+3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/ → `git rm` the original (stages deletion so it survives context clears)
 4. Execute role work
 5. Write outputs (ALL mandatory, do in one step):
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
@@ -22,7 +22,7 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no c
 - Commit: `{type}({scope}/{role}): {description}`
 - **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`
 - **NEVER** start background processes
-- **NO bookkeeping-only commits**: Do NOT commit if the only changes are: `heartbeat.json`, `memory/short-term.md`, `todo.md`, moving inbox to `inbox/processed/`, or updating `status.md`/`blueprint.md` with no new decisions. These are administrative overhead, not deliverables. Only commit when the loop produces **real output**: code changes, new inbox messages dispatched, new decisions in `shared/decisions.md`, config changes, or documentation with new content. Bundle all bookkeeping files into the next commit that contains real work.
+- **NO bookkeeping-only commits**: Do NOT commit if the only changes are: `heartbeat.json`, `memory/short-term.md`, `todo.md`, or updating `status.md`/`blueprint.md` with no new decisions. These are administrative overhead, not deliverables. Only commit when the loop produces **real output**: code changes, new inbox messages dispatched, inbox deletions (`git rm`), new decisions in `shared/decisions.md`, config changes, or documentation with new content. Bundle all bookkeeping files into the next commit that contains real work.
 - All committed content English. User-facing replies follow user's language.
 - File > 500 lines → split
 
