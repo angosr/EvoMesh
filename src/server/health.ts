@@ -17,14 +17,14 @@ let lastGoodProjects: Record<string, any> = {};
 let centralRestartFails = 0;
 const prevRunning = new Map<string, boolean>();
 const lastRestart = new Map<string, number>();
-const lastNudge = new Map<string, number>();
+// lastNudge removed — nudge mechanism disabled (injecting text into tmux corrupts AI sessions)
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
 // lastIdleContent removed — idle detection now only uses explicit "No tasks, idle" phrase
 const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
-const NUDGE_COOLDOWN = 5 * 60 * 1000;
+// NUDGE_COOLDOWN removed — nudge mechanism disabled
 const MAX_IDLE_RESETS = 2;
 const serverStartTime = Date.now();
 const SERVER_WARMUP = 5 * 60 * 1000;
@@ -170,7 +170,7 @@ export function recordRoleStart(key: string): void {
   lastIdleMtime.delete(key);
   lastIdleAction.delete(key);
   // idle content tracking removed — using explicit idle phrase only
-  lastNudge.delete(key);
+  // nudge state removed
   // Note: do NOT reset persistent monitorState here — circuit breaker must persist
 }
 
@@ -552,52 +552,8 @@ export function autoRestartCrashed(ctx: ServerContext): void {
   } catch (e) { console.error("[autoRestartCrashed] Error:", e); }
 }
 
-export function verifyLoopCompliance(ctx: ServerContext): void {
-  if (Date.now() - serverStartTime < SERVER_WARMUP) return; // no nudging during warmup
-  try {
-    const now = Date.now();
-    const projects = ctx.getProjects();
-    for (const p of projects) {
-      let config;
-      try { config = loadConfig(p.root); } catch { continue; }
-      for (const [name, rc] of Object.entries(config.roles)) {
-        if (!isRoleRunning(p.root, name)) continue;
-        const key = `${p.slug}/${name}`;
-
-        // Skip roles in grace period or suspended by circuit breaker
-        if (isInGracePeriod(key)) continue;
-        if (isMonitorSuspended(key)) continue;
-
-        const lastNudgeTime = lastNudge.get(key) || 0;
-        if (now - lastNudgeTime < NUDGE_COOLDOWN) continue;
-
-        const intervalMin = parseIntervalMinutes(rc.loop_interval);
-        const threshold = Math.max(intervalMin * 1.5, 10);
-        const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
-        try {
-          const stat = fs.statSync(stmPath);
-          const ageMin = (now - stat.mtimeMs) / 60000;
-          const entry = ctx.ttydProcesses.get(key);
-          if (!entry) continue;
-          if (ageMin > threshold) {
-            // Don't nudge if role is past idle cleanup threshold — cleanup will handle it
-            const staleThresholdMin = intervalMin * 3;
-            if (ageMin > staleThresholdMin) continue;
-            const sessionName = containerName(p.slug, name);
-            const nudgeMsg = "[SYSTEM] Write memory/short-term.md and heartbeat.json before continuing.";
-            try {
-              sendToRole(sessionName, rc.launch_mode, nudgeMsg);
-              lastNudge.set(key, now);
-              console.log(`[verify] Nudged ${name} — memory ${Math.round(ageMin)}min stale`);
-            } catch (e) { console.error(`[verify] Failed to nudge ${name}:`, e); }
-          }
-        } catch {
-          // short-term.md doesn't exist yet — role hasn't completed first loop
-        }
-      }
-    }
-  } catch (e) { console.error("[verifyLoopCompliance] Error:", e); }
-}
+// verifyLoopCompliance REMOVED — injecting [SYSTEM] text into tmux corrupts AI sessions.
+// Roles write STM as part of their CLAUDE.md loop rules, not because of external nudges.
 
 /** Check if a role has unprocessed inbox messages. */
 function hasUnprocessedInbox(root: string, name: string): boolean {
@@ -682,7 +638,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             continue;
           }
 
-          lastNudge.set(key, now);
+          // nudge removed
 
           // Stop resetting if we've already tried multiple times — role is genuinely idle
           const resets = getMonitorRole(key).restartCount;
@@ -731,7 +687,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           // Also suppress nudging during the reset sequence
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
-          lastNudge.set(key, now);
+          // nudge removed
           // restartCount incremented by recordMonitorRestart above
           recordMonitorRestart(key);
         } catch (e) { console.error(`[idle-cleanup] Error checking ${name}:`, e); }
