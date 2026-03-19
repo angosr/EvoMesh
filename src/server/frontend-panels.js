@@ -86,7 +86,8 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     btn.addEventListener('touchstart', startHold, { passive: false });
     btn.addEventListener('touchend', stopHold);
     btn.addEventListener('touchcancel', stopHold);
-    btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); flash(); fire(); });
+    // Keyboard accessibility (Enter/Space) — no click handler to avoid double-fire with mousedown
+    btn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flash(); fire(); } });
     container.appendChild(btn);
   }
   toolbar.appendChild(dpad);
