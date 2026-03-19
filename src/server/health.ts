@@ -421,6 +421,12 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             const intervalMin = parseIntervalMinutes(rc.loop_interval);
             const bdThreshold = intervalMin * 10 * 60 * 1000;
             const lastTime = lastRestart.get(key) || 0;
+
+            // Don't kill if the role hasn't been running long enough to produce output.
+            // A role started 10 min ago with 500-min-old STM is not brain-dead — it's still booting.
+            const roleAge = roleStartTime.get(key) ? (now - roleStartTime.get(key)!) : bdThreshold;
+            if (roleAge < bdThreshold) continue; // role hasn't run long enough yet
+
             if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
               // Git log fallback: if git fails, assume role is alive (safe default)
               let hasRecentCommit = true; // default to true = safe, don't kill
@@ -585,6 +591,9 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             // File not rewritten — role may be stuck. If stale enough, count as idle.
             const ageMs = now - currentMtime;
             if (ageMs < staleThresholdMs) continue; // not stale enough yet
+            // Don't count as idle if the role itself hasn't been running long enough
+            const roleAge = roleStartTime.get(key) ? (now - roleStartTime.get(key)!) : ageMs;
+            if (roleAge < staleThresholdMs) continue;
             // Stale and unchanged — increment idle count each check cycle
             idleCount.set(key, (idleCount.get(key) || 0) + 1);
           } else {
