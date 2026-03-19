@@ -169,6 +169,26 @@ npm start                    # Default port 8123
 
 Open `http://your-server:8123`. Create admin account on first visit.
 
+### Remote Access (No Public IP)
+
+If your machine doesn't have a public IP, use a tunnel to expose the dashboard:
+
+```bash
+# Cloudflare Tunnel (recommended — free, stable, HTTPS)
+cloudflared tunnel --url http://localhost:8123
+
+# Or: ngrok
+ngrok http 8123
+
+# Or: frp (self-hosted relay)
+# Configure frpc.toml to forward tcp:8123 to your frp server
+
+# Or: Tailscale (private mesh VPN — no public exposure)
+# Install on both machines, access via Tailscale IP
+```
+
+The dashboard includes auth (login page), so exposing via tunnel is safe. For production use, Cloudflare Tunnel or Tailscale is recommended over ngrok.
+
 ### Create a Project
 
 1. Open the Feed panel (right sidebar)
