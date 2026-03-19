@@ -2,6 +2,16 @@
 
 A self-evolving multi-agent orchestrator for [Claude Code](https://claude.com/claude-code). Multiple AI roles collaborate on projects autonomously through file-based communication, git-native workflows, and a health monitoring system — all managed from a web dashboard.
 
+## Bootstrapped by Its Own Agents
+
+EvoMesh is built by itself. The project started with minimal scaffolding and human guidance, then multiple AI agents collaboratively developed, tested, and refined the system through the very protocols it implements. The lead role decomposes goals into tasks, core-dev and frontend implement them, reviewer audits the results, and the cycle continues — each loop improving the codebase and the collaboration rules simultaneously.
+
+Over time, the agents independently discovered and resolved issues: communication race conditions, health monitor false positives, context drift in long-running sessions, git workflow conflicts. They evolved their own ROLE.md rules through self-audit, pruning ineffective patterns and adding learned ones. Human intervention decreases as the system matures — the agents handle routine work, quality audits, and cross-role coordination autonomously.
+
+Idle roles enter a low-cost mode (writing only heartbeat signals, no API calls) until another role dispatches work to their inbox. This keeps token usage proportional to actual workload.
+
+Claude Code is the currently supported agent runtime, but the architecture is agent-agnostic. The coordination layer — file-based inbox, git-tracked state, YAML config, health monitoring — works with any AI agent that can read files, run commands, and write output. Future integrations could include other coding agents, specialized LLM tools, or custom scripts.
+
 ## How It Works
 
 EvoMesh runs multiple Claude Code instances, each assigned a specialized role (lead, core-dev, frontend, etc.). Each role operates in a continuous loop: read instructions, do work, write status, commit, repeat. Roles communicate by writing files to each other's inbox directories. Everything is git-tracked for full auditability.
