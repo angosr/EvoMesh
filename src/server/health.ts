@@ -21,7 +21,7 @@ const lastNudge = new Map<string, number>();
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
-const lastIdleContent = new Map<string, string>();
+// lastIdleContent removed — idle detection now only uses explicit "No tasks, idle" phrase
 const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
@@ -169,7 +169,7 @@ export function recordRoleStart(key: string): void {
   idleCount.set(key, 0);
   lastIdleMtime.delete(key);
   lastIdleAction.delete(key);
-  lastIdleContent.delete(key);
+  // idle content tracking removed — using explicit idle phrase only
   lastNudge.delete(key);
   // Note: do NOT reset persistent monitorState here — circuit breaker must persist
 }
@@ -611,32 +611,15 @@ function hasUnprocessedInbox(root: string, name: string): boolean {
 }
 
 /**
- * Detect if short-term.md content indicates an idle role.
- * Matches: explicit "No tasks, idle", or content unchanged across writes (stuck role).
+ * Detect if a role is EXPLICITLY idle — the role itself declared "No tasks, idle".
+ *
+ * IMPORTANT: This ONLY matches explicit idle declarations. A role with old STM
+ * that hasn't written recently is NOT considered idle — it may be busy with
+ * a long-running task (training, complex analysis, etc). Only the role itself
+ * knows whether it's idle. We trust the role's self-report, not STM staleness.
  */
-function isIdleContent(content: string, key: string): boolean {
-  // Explicit idle phrase
-  if (/^No tasks,?\s*idle/im.test(content)) return true;
-
-  // Content unchanged from last check = role is stuck/idle (writing same thing repeatedly)
-  const prev = lastIdleContent.get(key);
-  const normalized = content.replace(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/g, "").trim(); // strip timestamps
-  if (prev && prev === normalized) return true;
-  lastIdleContent.set(key, normalized);
-
-  // In-progress and Next sections are empty = nothing to do
-  const hasInProgress = /^## In-progress\n+[^(\n#]/.test(content) || /In-progress.*:\s*\S/m.test(content);
-  const hasNextFocus = /^## Next focus\n+[^(\n#]/.test(content) || /Next focus.*:\s*\S/m.test(content);
-  if (!hasInProgress && !hasNextFocus) {
-    // Check if Done section only has trivial content
-    const doneSection = content.match(/^## Done\n([\s\S]*?)(?=\n## |$)/m);
-    if (doneSection) {
-      const doneText = doneSection[1].trim();
-      if (!doneText || /^[-*]\s*(None|nothing|idle|no tasks|updated)/im.test(doneText)) return true;
-    }
-  }
-
-  return false;
+function isExplicitlyIdle(content: string): boolean {
+  return /^No tasks,?\s*idle/im.test(content);
 }
 
 /**
@@ -670,53 +653,35 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           const stat = fs.statSync(stmPath);
           const currentMtime = stat.mtimeMs;
           const prevMtime = lastIdleMtime.get(key) || 0;
-          const intervalMin = parseIntervalMinutes((rc as any).loop_interval);
-          const staleThresholdMs = intervalMin * 3 * 60 * 1000; // 3x loop interval
 
           // Check for new output → reset circuit breaker if role produced work
           checkAndResetCircuitBreaker(key, currentMtime);
 
-          if (currentMtime === prevMtime) {
-            // File not rewritten — role may be stuck. If stale enough, count as idle.
-            const ageMs = now - currentMtime;
-            if (ageMs < staleThresholdMs) continue; // not stale enough yet
-            // Don't count as idle if the role itself hasn't been running long enough
-            const roleAge = roleStartTime.get(key) ? (now - roleStartTime.get(key)!) : ageMs;
-            if (roleAge < staleThresholdMs) continue;
-            // Stale and unchanged — increment idle count each check cycle
+          // SAFETY: Only act on EXPLICIT idle declarations from the role itself.
+          // A stale STM does NOT mean idle — role may be busy with a long task.
+          // Only the role knows if it's idle. We require the file to be freshly
+          // written (mtime changed) with "No tasks, idle" content.
+          if (currentMtime === prevMtime) continue; // no new output — skip entirely
+          lastIdleMtime.set(key, currentMtime);
+
+          const content = fs.readFileSync(stmPath, "utf-8");
+          if (isExplicitlyIdle(content)) {
             idleCount.set(key, (idleCount.get(key) || 0) + 1);
           } else {
-            // File was rewritten — check content
-            lastIdleMtime.set(key, currentMtime);
-            const content = fs.readFileSync(stmPath, "utf-8");
-            const isIdle = isIdleContent(content, key);
-            if (isIdle) {
-              idleCount.set(key, (idleCount.get(key) || 0) + 1);
-            } else {
-              idleCount.set(key, 0);
-              // role did real work — circuit breaker reset handled by checkAndResetCircuitBreaker
-              lastIdleContent.delete(key);
-              continue;
-            }
+            idleCount.set(key, 0);
+            continue;
           }
 
-          if ((idleCount.get(key) || 0) < 2) continue;
+          // Require 3 consecutive explicit idle writes before acting
+          if ((idleCount.get(key) || 0) < 3) continue;
 
-          // Inbox check: skip cleanup only if role recently wrote STM (might process inbox soon)
+          // Don't cleanup if inbox has pending messages
           if (hasUnprocessedInbox(p.root, name)) {
-            const stmAgeMs = now - stat.mtimeMs;
-            const intervalMs = parseIntervalMinutes((rc as any).loop_interval) * 60 * 1000;
-            if (stmAgeMs < intervalMs * 3) {
-              console.log(`[idle-cleanup] ${name} idle but has inbox and recent STM — skipping`);
-              idleCount.set(key, 0);
-              continue;
-            }
-            // Stuck: has inbox but no STM update for 3x loop interval — force cleanup
-            console.log(`[idle-cleanup] ${name} stuck with unprocessed inbox for ${Math.round(stmAgeMs / 60000)}min — forcing cleanup`);
-            notifyFeed(ctx, name, p.slug, `stuck ${Math.round(stmAgeMs / 60000)}min with unprocessed inbox, forcing reset`);
+            console.log(`[idle-cleanup] ${name} idle but has unprocessed inbox — skipping`);
+            idleCount.set(key, 0);
+            continue;
           }
 
-          // Suppress nudging immediately — we're about to reset this role
           lastNudge.set(key, now);
 
           // Stop resetting if we've already tried multiple times — role is genuinely idle
@@ -738,13 +703,13 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             try {
               stopRoleManaged(ctx, p.root, p.slug, name, { userStopped: false, reason: "idle-cleanup-stop" });
               console.log(`[idle-cleanup] Stopped idle role ${name} (policy: stop)`);
-              notifyFeed(ctx, name, p.slug, `idle → stopped (policy: stop)`);
+              notifyFeed(ctx, name, p.slug, `idle (3x declared) → stopped`);
             } catch (e) { console.error(`[idle-cleanup] Failed to stop ${name}:`, e); }
           } else if (policy === "compact") {
             try {
               sendToRole(sessionName, rc.launch_mode, "/compact");
               console.log(`[idle-cleanup] Sent /compact to ${name}`);
-              notifyFeed(ctx, name, p.slug, `idle, sent /compact`);
+              notifyFeed(ctx, name, p.slug, `idle (3x declared) → /compact`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
           } else {
             // "reset" (default for workers): /clear + /loop
@@ -758,7 +723,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
                 { message: loopCmd, delaySec: 10 },
               ]);
               console.log(`[idle-cleanup] Sent interrupt + /clear + /loop to worker ${name}`);
-              notifyFeed(ctx, name, p.slug, `idle/stuck → interrupt + /clear + /loop`);
+              notifyFeed(ctx, name, p.slug, `idle (3x declared) → context reset`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /clear + /loop to ${name}:`, e); }
           }
 
