@@ -252,18 +252,15 @@ function initCompose() {
   if (closeBtn) closeBtn.addEventListener('click', closeCompose);
 
   // Guard: iframe xterm.js steals focus on load/reconnect → reclaim
-  // But NOT when user intentionally clicks the iframe (mousedown/touch sets flag)
-  let _userClickedPanel = false;
-  document.addEventListener('mousedown', e => {
-    if (e.target.closest('#panels')) _userClickedPanel = true;
-  }, true);
-  document.addEventListener('touchstart', e => {
-    if (e.target.closest('#panels')) _userClickedPanel = true;
-  }, true);
+  // But NOT when user intentionally clicks a terminal iframe.
+  // Note: clicks inside iframes don't fire mousedown on the parent document,
+  // so we check document.activeElement instead — it becomes the <iframe> element
+  // when focus moves into an iframe.
   window.addEventListener('blur', () => {
     if (!_composeOpen) return;
-    // User intentionally clicked a terminal panel — let focus go
-    if (_userClickedPanel) { _userClickedPanel = false; return; }
+    // Focus moved to a terminal iframe — user clicked it intentionally
+    const active = document.activeElement;
+    if (active && active.tagName === 'IFRAME' && active.closest('#panels')) return;
     setTimeout(() => {
       if (_composeOpen && document.activeElement !== textarea) textarea.focus();
     }, 50);
