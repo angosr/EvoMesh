@@ -140,13 +140,19 @@ async function _fetchAllInner() {
     const projData = await projRes.json();
     const acctData = await acctRes.json();
     state.accounts = acctData.accounts || [];
-    const projects = [];
-    for (const p of projData.projects) {
-      try {
-        const s = await (await authFetch(`${API}/projects/${p.slug}/status`)).json();
-        projects.push({ ...p, roles: s.roles || [], accounts: s.accounts || {}, myRole: s.myRole || p.myRole || null });
-      } catch { projects.push({ ...p, roles: [], accounts: {}, myRole: p.myRole || null }); }
-    }
+    const statusResults = await Promise.allSettled(
+      projData.projects.map(p =>
+        authFetch(`${API}/projects/${p.slug}/status`).then(r => r.json())
+      )
+    );
+    const projects = projData.projects.map((p, i) => {
+      const r = statusResults[i];
+      if (r.status === 'fulfilled') {
+        const s = r.value;
+        return { ...p, roles: s.roles || [], accounts: s.accounts || {}, myRole: s.myRole || p.myRole || null };
+      }
+      return { ...p, roles: [], accounts: {}, myRole: p.myRole || null };
+    });
     state.projects = projects;
     if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
 
