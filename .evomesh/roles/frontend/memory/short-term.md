@@ -1,7 +1,6 @@
 ## Done
-- Fix: compose focus guard uses activeElement instead of mousedown tracking
-- Fix: toolbar d-pad/scroll buttons no longer double-fire on desktop (mousedown+click → mousedown+keydown)
-- Code quality audit: frontend-feed.js, frontend-panels.js, frontend.js
+- UX/Product audit: HTML, dashboard, mobile layout, sidebar, feed, compose, navigation
+- No actionable UX issues found
 
 ## Blockers
 (None)
@@ -10,5 +9,5 @@
 (None)
 
 ## Next focus
-- Next idle: UX/Product audit
+- Light mode: inbox + memory checks only until new task arrives
 - P2: inline onclick migration (needs lead approval)
