@@ -52,7 +52,7 @@ function renderDashboard() {
   if (!state.projects.length) {
     projectsEl.innerHTML = `<div class="card onboarding"><h3>Welcome to EvoMesh</h3>
       <p>Tell Central AI what project you want to work on:</p>
-      <ol><li>Open the right panel (Mission Control)</li>
+      <ol><li>Open the Feed panel (right side)</li>
       <li>Type: "Create a project for /path/to/my-project"</li>
       <li>Central AI will analyze your code and set up roles</li></ol>
       <p style="color:var(--text-faint)">Or add an existing project by path or GitHub URL.</p></div>`;
