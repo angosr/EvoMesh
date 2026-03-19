@@ -67,27 +67,33 @@ function renderDashboard() {
       const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
       const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:var(--text-faint)">${esc(r.account)}</span>`;
-      const resCol = isOwner ? `<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="${esc(r.actualMem||'mem')}" title="Memory limit (e.g. 2g). Current: ${esc(r.actualMem||'?')}"><input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="${esc(r.actualCpu||'cpu')}" title="CPU limit (e.g. 1.5). Current: ${esc(r.actualCpu||'?')}">` : '';
+      // Resources: show actual usage as visible labels + input for limits
+      let resCol = '';
+      if (isOwner) {
+        const memLabel = r.actualMem ? `<span class="res-val">${esc(r.actualMem)}</span>` : '';
+        const cpuLabel = r.actualCpu ? `<span class="res-val">${esc(r.actualCpu)}</span>` : '';
+        resCol = `<div class="res-group"><span class="res-label">MEM</span>${memLabel}<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="memory" value="${esc(r.memory||'')}" placeholder="limit" title="Memory limit (e.g. 2g)"></div>`
+          + `<div class="res-group"><span class="res-label">CPU</span>${cpuLabel}<input class="res-input" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" data-field="cpus" value="${esc(r.cpus||'')}" placeholder="limit" title="CPU limit (e.g. 1.5)"></div>`;
+      }
       const startRestartBtn = `<button class="dash-action" data-action="restart" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${r.running ? '↻ Restart' : '▶ Start'}</button>`;
-      const stopBtn = r.running ? ` <button class="dash-action danger" data-action="stop" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">■ Stop</button>` : '';
+      const stopBtn = r.running ? `<button class="dash-action danger" data-action="stop" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">■ Stop</button>` : '';
       const launchMode = r.launch_mode || 'docker';
       const modeSelect = `<select class="mode-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}"><option value="docker"${launchMode==='docker'?' selected':''}>docker</option><option value="host"${launchMode==='host'?' selected':''}>host</option></select>`;
       const idlePolicy = r.idle_policy || 'reset';
-      const idleSelect = `<select class="idle-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Idle policy"><option value="reset"${idlePolicy==='reset'?' selected':''}>Reset Context</option><option value="compact"${idlePolicy==='compact'?' selected':''}>Compress Context</option><option value="stop"${idlePolicy==='stop'?' selected':''}>Stop Role</option><option value="ignore"${idlePolicy==='ignore'?' selected':''}>Ignore</option></select>`;
-      const actCol = isOwner ? `${startRestartBtn}${stopBtn} ${modeSelect} ${idleSelect}` : '';
+      const idleSelect = `<select class="idle-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Idle policy"><option value="reset"${idlePolicy==='reset'?' selected':''}>Reset</option><option value="compact"${idlePolicy==='compact'?' selected':''}>Compress</option><option value="stop"${idlePolicy==='stop'?' selected':''}>Stop</option><option value="ignore"${idlePolicy==='ignore'?' selected':''}>Ignore</option></select>`;
+      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${modeSelect}${idleSelect}</div>` : '';
       return `<tr>
-        <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span></td>
-        <td>${statusBadge}${loginBadge}</td>
+        <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span>${statusBadge}${loginBadge}</td>
         <td>${acctCol}</td>
-        <td>${resCol}</td>
-        <td>${actCol}</td>
+        <td class="res-cell">${resCol}</td>
+        <td class="act-cell">${actCol}</td>
       </tr>`;
     }).join('');
     const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:rgba(129,140,248,0.12);color:var(--blue)">${esc(p.myRole||'')}</span>`;
     const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="margin-left:auto;font-size:11px">Members</button>` : '';
     const membersOpen = state.membersOpen === p.slug;
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
-    html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><tr><th>Role</th><th>Status</th><th>Account</th><th>Resources</th><th>Actions</th></tr>${rows}</table>${membersPanel}</div>`;
+    html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>${membersPanel}</div>`;
   }
   projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
   // Set select values after innerHTML (synchronous DOM update — no setTimeout needed)

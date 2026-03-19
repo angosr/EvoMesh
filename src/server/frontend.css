@@ -226,16 +226,26 @@
   .badge.worker { background: rgba(129, 140, 248, 0.12); color: var(--blue); }
   .badge.login-needed { background: rgba(248, 113, 113, 0.12); color: var(--red); }
 
-  /* Dashboard action buttons */
-  .res-input { width: 50px; padding: 3px 5px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: 10px; margin-right: 3px; transition: border-color 0.15s; }
+  /* Dashboard table layout */
+  th, td { padding: 5px 6px; }
+  .res-cell { white-space: nowrap; }
+  .res-group { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; }
+  .res-group:last-child { margin-bottom: 0; }
+  .res-label { color: var(--text-faint); font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; width: 26px; flex-shrink: 0; }
+  .res-val { color: var(--green); font-size: 10px; font-family: var(--font-mono); font-weight: 600; min-width: 42px; }
+  .res-input { width: 44px; padding: 2px 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: 10px; transition: border-color 0.15s; }
   .res-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 4px var(--accent-glow); }
   .res-input::placeholder { color: var(--text-faint); }
-  .dash-action { padding: 3px 8px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; margin-right: 4px; font-family: var(--font-mono); transition: all 0.15s; }
+  .act-cell { white-space: nowrap; }
+  .act-row { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; }
+  .act-row:last-child { margin-bottom: 0; }
+  .dash-action { padding: 2px 7px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; font-family: var(--font-mono); transition: all 0.15s; }
   .dash-action:hover { background: var(--bg-hover); color: var(--text); border-color: var(--text-faint); }
   .dash-action.danger { color: var(--red); border-color: rgba(248, 113, 113, 0.2); }
   .dash-action.danger:hover { background: rgba(248, 113, 113, 0.1); color: var(--red); border-color: var(--red); }
   .dash-action.loading, .dash-action:disabled { opacity: 0.5; cursor: wait; pointer-events: none; }
-  .acct-select, .mode-select, .idle-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 2px 4px; border-radius: var(--radius-sm); font-size: 10px; cursor: pointer; max-width: 130px; transition: border-color 0.15s; }
+  .acct-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 2px 4px; border-radius: var(--radius-sm); font-size: 10px; cursor: pointer; max-width: 120px; transition: border-color 0.15s; }
+  .mode-select, .idle-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 2px 4px; border-radius: var(--radius-sm); font-size: 10px; cursor: pointer; transition: border-color 0.15s; }
   .onboarding { text-align: center; padding: 30px 20px; }
   .onboarding h3 { color: var(--accent); margin-bottom: 12px; }
   .onboarding ol { text-align: left; display: inline-block; margin: 12px 0; line-height: 1.8; color: var(--text-dim); }

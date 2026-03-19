@@ -81,9 +81,12 @@
   #dash-content tr { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; border-bottom: none; }
   #dash-content td { display: flex; align-items: center; gap: 4px; padding: 0; border: none; font-size: 13px; width: 100%; flex-wrap: wrap; }
   #dash-content td:first-child { font-size: 14px; font-weight: 600; }
-  #dash-content td:nth-child(3) { gap: 0; }
-  #dash-content td:nth-child(4) { gap: 6px; }
-  #dash-content .res-input { flex: 1; min-width: 60px; font-size: 13px; padding: 8px; min-height: 40px; }
+  #dash-content .res-cell { flex-direction: column; align-items: stretch; }
+  #dash-content .res-group { gap: 6px; }
+  #dash-content .res-val { font-size: 13px; }
+  #dash-content .res-input { flex: 1; min-width: 60px; font-size: 13px; padding: 8px; min-height: 40px; width: auto; }
+  #dash-content .act-cell { flex-direction: column; align-items: stretch; gap: 6px; }
+  #dash-content .act-row { gap: 6px; }
   #dash-content .dash-action { padding: 10px 14px; font-size: 13px; min-height: 44px; touch-action: manipulation; flex: 1; text-align: center; border-radius: 6px; }
   #dash-content .acct-select, #dash-content .mode-select, #dash-content .idle-select { flex: 1; font-size: 13px; padding: 8px; min-height: 44px; }
   .card h3 [data-action="members"] { float: none !important; margin-left: 8px; vertical-align: middle; }
