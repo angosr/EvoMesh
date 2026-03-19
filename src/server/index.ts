@@ -101,7 +101,7 @@ export function startServer(port: number, initialRoot?: string) {
     const { username, password } = req.body;
     const name = (username || "admin").trim();
     if (!name || name.length < 2) { res.status(400).json({ error: "Username too short (min 2)" }); return; }
-    if (!password || password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
+    if (!password || password.length < 8) { res.status(400).json({ error: "Password too short (min 8)" }); return; }
     try {
       setupAdmin(name, password);
       const token = generateSessionToken();
@@ -112,6 +112,11 @@ export function startServer(port: number, initialRoot?: string) {
   });
 
   app.post("/auth/login", (req, res) => {
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    if (!checkLoginRateLimit(ip)) {
+      res.status(429).json({ error: "Too many login attempts. Try again in 15 minutes." });
+      return;
+    }
     const { username, password } = req.body;
     if (!username || !password) { res.status(400).json({ error: "Username and password required" }); return; }
     const user = verifyUser(username, password);
@@ -126,7 +131,7 @@ export function startServer(port: number, initialRoot?: string) {
     const session = getSession(req);
     if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     const { oldPassword, newPassword } = req.body;
-    if (!newPassword || newPassword.length < 4) { res.status(400).json({ error: "New password too short" }); return; }
+    if (!newPassword || newPassword.length < 8) { res.status(400).json({ error: "New password too short (min 8)" }); return; }
     if (!changePassword(session.username, oldPassword, newPassword)) {
       res.status(401).json({ error: "Wrong current password" }); return;
     }
@@ -138,14 +143,42 @@ export function startServer(port: number, initialRoot?: string) {
     res.json({ valid: !!session, username: session?.username, role: session?.role });
   });
 
+  app.post("/auth/logout", (req, res) => {
+    const token = extractToken(req);
+    if (token) {
+      sessions.delete(token);
+      schedulePersist();
+    }
+    res.json({ ok: true });
+  });
+
+  // --- Login rate limiting (brute-force protection) ---
+  const loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
+  const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 min window
+  const LOGIN_MAX_ATTEMPTS = 10; // max 10 attempts per window
+
+  function checkLoginRateLimit(ip: string): boolean {
+    const now = Date.now();
+    const entry = loginAttempts.get(ip);
+    if (!entry || (now - entry.firstAttempt > LOGIN_WINDOW_MS)) {
+      loginAttempts.set(ip, { count: 1, firstAttempt: now });
+      return true; // allowed
+    }
+    entry.count++;
+    return entry.count <= LOGIN_MAX_ATTEMPTS;
+  }
   // --- Auth + role middleware ---
+  // Whitelist of paths that don't require auth (exact match or prefix)
+  const AUTH_EXEMPT_EXACT = new Set(["/login", "/", "/auth/status", "/auth/setup", "/auth/login"]);
+  const AUTH_EXEMPT_PREFIX = ["/auth/", "/terminal/"]; // terminal.ts handles its own auth
+
   app.use((req, res, next) => {
-    if (req.path.startsWith("/auth/")) return next();
-    if (req.path === "/login" || req.path === "/") return next();
-    // Allow static assets (CSS, JS) without auth
-    if (req.path.endsWith(".css") || req.path.endsWith(".js") || req.path.endsWith(".ico")) return next();
-    // Terminal proxy handles its own auth via token query param (in terminal.ts)
-    if (req.path.startsWith("/terminal/")) return next();
+    if (AUTH_EXEMPT_EXACT.has(req.path)) return next();
+    for (const prefix of AUTH_EXEMPT_PREFIX) {
+      if (req.path.startsWith(prefix)) return next();
+    }
+    // Static assets: only allow exact known extensions on non-API paths
+    if (!req.path.startsWith("/api/") && (req.path.endsWith(".css") || req.path.endsWith(".js") || req.path.endsWith(".ico"))) return next();
     const session = getSession(req);
     if (!session) { return res.status(401).json({ error: "Not authenticated" }); }
     (req as any)._session = session;
@@ -208,7 +241,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (!username || !password) { res.status(400).json({ error: "Username and password required" }); return; }
     if (!/^[a-zA-Z0-9_]+$/.test(username)) { res.status(400).json({ error: "Username must be alphanumeric (a-z, 0-9, _)" }); return; }
     if (username.length < 2) { res.status(400).json({ error: "Username too short (min 2)" }); return; }
-    if (password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
+    if (password.length < 8) { res.status(400).json({ error: "Password too short (min 8)" }); return; }
     const userRole: UserRole = role === "admin" ? "admin" : "user";
     try {
       addUser(username.trim(), password, userRole);
@@ -234,7 +267,7 @@ export function startServer(port: number, initialRoot?: string) {
   app.post("/api/users/:username/reset-password", (req, res) => {
     if (!requireAdmin(req, res)) return;
     const { password } = req.body;
-    if (!password || password.length < 4) { res.status(400).json({ error: "Password too short (min 4)" }); return; }
+    if (!password || password.length < 8) { res.status(400).json({ error: "Password too short (min 8)" }); return; }
     try {
       resetPassword(req.params.username, password);
       for (const [token, info] of sessions) {

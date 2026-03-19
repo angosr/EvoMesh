@@ -290,6 +290,7 @@ function getCurrentUser() {
 }
 
 function doLogout() {
+  authFetch(`${API}/auth/logout`, { method: 'POST' }).catch(() => {});
   localStorage.removeItem('evomesh-token');
   localStorage.removeItem('evomesh-user');
   location.href = '/login';

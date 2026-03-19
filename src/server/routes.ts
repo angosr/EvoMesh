@@ -86,21 +86,25 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   try { ensureAclMigration(ctx); } catch (e) { console.error("[routes] ACL migration failed:", e); }
 
   // --- Refresh: central AI calls this after operations, Web UI subscribes ---
-  app.post("/api/refresh", (_req, res) => {
-    // Notify all subscribed clients to refresh
+  // Both require auth (enforced by middleware since they are /api/ paths)
+  app.post("/api/refresh", (req, res) => {
+    const session = (req as any)._session;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     for (const sub of refreshSubscribers) {
       try { sub.write(`data: {"type":"refresh"}\n\n`); } catch (e) { console.error("[refresh] SSE write failed:", e); }
     }
     res.json({ ok: true, subscribers: refreshSubscribers.size });
   });
 
-  app.get("/api/refresh/subscribe", (_req, res) => {
+  app.get("/api/refresh/subscribe", (req, res) => {
+    const session = (req as any)._session;
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
     refreshSubscribers.add(res);
-    _req.on("close", () => refreshSubscribers.delete(res));
+    req.on("close", () => refreshSubscribers.delete(res));
   });
 
   // --- Projects ---
