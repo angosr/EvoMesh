@@ -21,15 +21,80 @@ const lastNudge = new Map<string, number>();
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
-const idleResetCount = new Map<string, number>(); // track how many times we've reset an idle role
-const lastIdleContent = new Map<string, string>(); // detect stuck roles (same content across loops)
+const lastIdleContent = new Map<string, string>();
 const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
 const NUDGE_COOLDOWN = 5 * 60 * 1000;
-const MAX_IDLE_RESETS = 2; // stop resetting after 2 attempts — role is genuinely idle
-const serverStartTime = Date.now(); // used to suppress actions right after server (re)start
-const SERVER_WARMUP = 5 * 60 * 1000; // 5 min warmup — no idle/nudge actions after server start
-const START_GRACE_PERIOD = 3 * 60 * 1000; // 3 min grace after start before nudge/idle
+const MAX_IDLE_RESETS = 2;
+const serverStartTime = Date.now();
+const SERVER_WARMUP = 5 * 60 * 1000;
+const START_GRACE_PERIOD = 3 * 60 * 1000;
+
+// --- Persistent monitor state (survives server/tsx-watch restarts) ---
+const MONITOR_STATE_FILE = path.join(os.homedir(), ".evomesh", "monitor-state.json");
+interface MonitorRoleState {
+  restartCount: number;   // consecutive restart attempts without new STM output
+  lastRestartTs: number;  // timestamp of last restart
+  lastStmMtime: number;   // STM mtime at last check — detect actual new output
+  suspended: boolean;     // circuit breaker: stop all actions on this role
+}
+let monitorState: Record<string, MonitorRoleState> = {};
+
+function loadMonitorState(): void {
+  try {
+    if (fs.existsSync(MONITOR_STATE_FILE)) {
+      monitorState = JSON.parse(fs.readFileSync(MONITOR_STATE_FILE, "utf-8"));
+    }
+  } catch (e) { console.error("[monitor-state] Failed to load:", e); monitorState = {}; }
+}
+
+function saveMonitorState(): void {
+  try {
+    const tmpPath = MONITOR_STATE_FILE + ".tmp";
+    fs.writeFileSync(tmpPath, JSON.stringify(monitorState, null, 2), "utf-8");
+    fs.renameSync(tmpPath, MONITOR_STATE_FILE);
+  } catch (e) { console.error("[monitor-state] Failed to save:", e); }
+}
+
+function getMonitorRole(key: string): MonitorRoleState {
+  if (!monitorState[key]) monitorState[key] = { restartCount: 0, lastRestartTs: 0, lastStmMtime: 0, suspended: false };
+  return monitorState[key];
+}
+
+/** Record a monitor-initiated restart. Increments circuit breaker counter. */
+function recordMonitorRestart(key: string): void {
+  const ms = getMonitorRole(key);
+  ms.restartCount++;
+  ms.lastRestartTs = Date.now();
+  if (ms.restartCount >= 3) {
+    ms.suspended = true;
+    console.log(`[monitor] CIRCUIT BREAKER: ${key} restarted ${ms.restartCount}x without new output — all monitor actions suspended`);
+  }
+  saveMonitorState();
+}
+
+/** Check if role produced new STM output since last monitor action. Resets circuit breaker if so. */
+function checkAndResetCircuitBreaker(key: string, currentStmMtime: number): void {
+  const ms = getMonitorRole(key);
+  if (ms.lastStmMtime > 0 && currentStmMtime > ms.lastStmMtime) {
+    // Role produced new output — reset circuit breaker
+    if (ms.restartCount > 0 || ms.suspended) {
+      console.log(`[monitor] ${key} produced new output — circuit breaker reset`);
+    }
+    ms.restartCount = 0;
+    ms.suspended = false;
+    saveMonitorState();
+  }
+  ms.lastStmMtime = currentStmMtime;
+}
+
+/** Check if monitor actions are suspended for this role. */
+function isMonitorSuspended(key: string): boolean {
+  return getMonitorRole(key).suspended;
+}
+
+// Load persistent state on startup
+loadMonitorState();
 
 export const statsCache = new Map<string, { mem: string; cpu: string }>();
 
@@ -101,12 +166,12 @@ export function recordRoleStart(key: string): void {
   const now = Date.now();
   roleStartTime.set(key, now);
   lastRestart.set(key, now);
-  // Reset monitoring state so stale data from previous session doesn't trigger actions
   idleCount.set(key, 0);
   lastIdleMtime.delete(key);
   lastIdleAction.delete(key);
   lastIdleContent.delete(key);
   lastNudge.delete(key);
+  // Note: do NOT reset persistent monitorState here — circuit breaker must persist
 }
 
 /** Check if a role is within its post-start grace period.
@@ -413,7 +478,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
         }
 
         // Brain-dead: running but no activity for extended period
-        if (running && shouldRun && !isInGracePeriod(key)) {
+        if (running && shouldRun && !isInGracePeriod(key) && !isMonitorSuspended(key)) {
           try {
             const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
             const stmStat = fs.statSync(stmPath);
@@ -422,14 +487,32 @@ export function autoRestartCrashed(ctx: ServerContext): void {
             const bdThreshold = intervalMin * 10 * 60 * 1000;
             const lastTime = lastRestart.get(key) || 0;
 
-            // Don't kill if the role hasn't been running long enough to produce output.
-            // A role started 10 min ago with 500-min-old STM is not brain-dead — it's still booting.
-            const roleAge = roleStartTime.get(key) ? (now - roleStartTime.get(key)!) : bdThreshold;
-            if (roleAge < bdThreshold) continue; // role hasn't run long enough yet
+            // Check for new STM output → reset circuit breaker
+            checkAndResetCircuitBreaker(key, stmStat.mtimeMs);
+
+            // Use CONTAINER uptime, not in-memory roleStartTime (survives server restart)
+            let containerUptimeMs = bdThreshold; // assume old enough if can't determine
+            try {
+              const cname = containerName(p.slug, name);
+              const startedAt = execFileSync("docker", ["inspect", "--format", "{{.State.StartedAt}}", cname],
+                { encoding: "utf-8", timeout: 3000 }).trim();
+              if (startedAt) containerUptimeMs = now - new Date(startedAt).getTime();
+            } catch {
+              // Host mode — use /proc
+              try {
+                const pids = execFileSync("pgrep", ["-f", `tmux.*${name}`], { encoding: "utf-8", timeout: 3000 }).trim();
+                if (pids) {
+                  const pid = pids.split("\n")[0];
+                  containerUptimeMs = now - fs.statSync(`/proc/${pid}`).ctimeMs;
+                }
+              } catch { /* can't determine */ }
+            }
+
+            // Don't kill if container hasn't been running long enough
+            if (containerUptimeMs < bdThreshold) continue;
 
             if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
-              // Git log fallback: if git fails, assume role is alive (safe default)
-              let hasRecentCommit = true; // default to true = safe, don't kill
+              let hasRecentCommit = true;
               try {
                 const gitLog = execFileSync("git", ["log", "--oneline", `--since=${intervalMin * 10} minutes ago`, `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
                 hasRecentCommit = gitLog.trim().length > 0;
@@ -437,10 +520,11 @@ export function autoRestartCrashed(ctx: ServerContext): void {
                 console.error(`[brain-dead] git log failed for ${name}, assuming alive:`, e);
               }
               if (!hasRecentCommit) {
-                console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, no recent commits — restarting`);
+                console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, container up ${Math.round(containerUptimeMs / 60000)}min — restarting`);
                 notifyFeed(ctx, name, p.slug, `brain-dead (${Math.round(stmAgeMs / 60000)}min stale), restarting...`);
                 stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true, reason: "brain-dead" });
-                recordRoleStart(key); // cooldown + grace period for the restart cycle
+                recordRoleStart(key);
+                recordMonitorRestart(key);
               }
             }
           } catch (e) { console.error(`[brain-dead] Error checking ${name}:`, e); }
@@ -480,8 +564,9 @@ export function verifyLoopCompliance(ctx: ServerContext): void {
         if (!isRoleRunning(p.root, name)) continue;
         const key = `${p.slug}/${name}`;
 
-        // Skip roles in grace period — they haven't had time to complete first loop
+        // Skip roles in grace period or suspended by circuit breaker
         if (isInGracePeriod(key)) continue;
+        if (isMonitorSuspended(key)) continue;
 
         const lastNudgeTime = lastNudge.get(key) || 0;
         if (now - lastNudgeTime < NUDGE_COOLDOWN) continue;
@@ -572,8 +657,9 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
         if (!isRoleRunning(p.root, name)) continue;
         const key = `${p.slug}/${name}`;
 
-        // Skip roles in grace period
+        // Skip roles in grace period or suspended by circuit breaker
         if (isInGracePeriod(key)) continue;
+        if (isMonitorSuspended(key)) continue;
 
         // Cooldown check (reuse RESTART_COOLDOWN = 5min)
         const lastAction = lastIdleAction.get(key) || 0;
@@ -586,6 +672,9 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           const prevMtime = lastIdleMtime.get(key) || 0;
           const intervalMin = parseIntervalMinutes((rc as any).loop_interval);
           const staleThresholdMs = intervalMin * 3 * 60 * 1000; // 3x loop interval
+
+          // Check for new output → reset circuit breaker if role produced work
+          checkAndResetCircuitBreaker(key, currentMtime);
 
           if (currentMtime === prevMtime) {
             // File not rewritten — role may be stuck. If stale enough, count as idle.
@@ -605,7 +694,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
               idleCount.set(key, (idleCount.get(key) || 0) + 1);
             } else {
               idleCount.set(key, 0);
-              idleResetCount.delete(key); // role did real work — allow future resets
+              // role did real work — circuit breaker reset handled by checkAndResetCircuitBreaker
               lastIdleContent.delete(key);
               continue;
             }
@@ -631,7 +720,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           lastNudge.set(key, now);
 
           // Stop resetting if we've already tried multiple times — role is genuinely idle
-          const resets = idleResetCount.get(key) || 0;
+          const resets = getMonitorRole(key).restartCount;
           if (resets >= MAX_IDLE_RESETS) {
             // Already reset multiple times, still idle — accept it, don't loop forever
             idleCount.set(key, 0);
@@ -678,7 +767,8 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
           lastNudge.set(key, now);
-          idleResetCount.set(key, resets + 1);
+          // restartCount incremented by recordMonitorRestart above
+          recordMonitorRestart(key);
         } catch (e) { console.error(`[idle-cleanup] Error checking ${name}:`, e); }
       }
     }
