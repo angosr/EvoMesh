@@ -31,6 +31,26 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
+  // --- Create account ---
+  app.post("/api/accounts", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    const { name } = req.body;
+    if (!name || typeof name !== "string") { res.status(400).json({ error: "Account name required" }); return; }
+    const safeName = name.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!safeName) { res.status(400).json({ error: "Invalid account name" }); return; }
+    const dirName = safeName === "default" ? ".claude" : `.claude-${safeName}`;
+    const lu = session.linuxUser || process.env.USER || "user";
+    const homeDir = lu === (process.env.USER || "user") ? os.homedir() : `/home/${lu}`;
+    const fullPath = path.join(homeDir, dirName);
+    if (fs.existsSync(fullPath)) { res.status(409).json({ error: `Account "${safeName}" already exists at ~/${dirName}` }); return; }
+    try {
+      fs.mkdirSync(fullPath, { recursive: true, mode: 0o700 });
+      console.log(`[accounts] Created account directory: ${fullPath}`);
+      res.json({ ok: true, name: safeName, path: `~/${dirName}`, fullPath, needsLogin: true });
+    } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
+  });
+
   // --- Account usage info ---
 
   app.get("/api/usage/accounts", (req, res) => {

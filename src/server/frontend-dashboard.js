@@ -40,7 +40,37 @@ async function renderAccountUsage() {
           </div>
         </div>`;
       }).join('');
-    if (html !== _lastAccountHtml) { section.innerHTML = html; _lastAccountHtml = html; }
+    html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center" id="add-acct-area">
+      <input id="add-acct-name" placeholder="Account name (e.g. work)" style="flex:1;padding:5px 8px;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font-size:11px;">
+      <button class="dash-action" id="add-acct-btn">+ Add Account</button>
+    </div>`;
+    if (html !== _lastAccountHtml) {
+      section.innerHTML = html;
+      _lastAccountHtml = html;
+      const addBtn = document.getElementById('add-acct-btn');
+      const addInput = document.getElementById('add-acct-name');
+      if (addBtn && addInput) {
+        addBtn.addEventListener('click', async () => {
+          const name = addInput.value.trim();
+          if (!name) { addInput.focus(); return; }
+          addBtn.disabled = true; addBtn.textContent = '...';
+          try {
+            const r = await authFetch(`${API}/accounts`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name }),
+            });
+            const d = await r.json();
+            if (d.ok) {
+              appendFeedMessage({ type: 'system', text: `Account "${name}" created at ${d.path}. Run: CLAUDE_CONFIG_DIR=${d.path} claude login`, time: new Date().toISOString() });
+              addInput.value = '';
+              fetchAll();
+            } else { alert(d.error || 'Failed'); }
+          } catch { alert('Failed to create account'); }
+          addBtn.disabled = false; addBtn.textContent = '+ Add Account';
+        });
+        addInput.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click(); });
+      }
+    }
   } catch {}
 }
 
