@@ -223,7 +223,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           running, terminal: ttyd ? `/terminal/${project.slug}/${name}/` : null,
           account: rc.account, needsLogin: ctx.checkNeedsLogin(accountDir),
           memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
-          idle_policy: rc.idle_policy || (rc.type === "lead" ? "compact" : "reset"),
+          idle_policy: rc.idle_policy || "ignore",
           actualMem, actualCpu,
         };
       });

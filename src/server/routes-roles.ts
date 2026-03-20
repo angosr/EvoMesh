@@ -122,13 +122,19 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
       const { memory, cpus, launch_mode, idle_policy } = req.body;
+
+      // Track whether container-level config changed (requires restart)
+      const oldMemory = rc.memory;
+      const oldCpus = rc.cpus;
+      const oldLaunchMode = rc.launch_mode;
+
       rc.memory = memory || undefined;
       rc.cpus = cpus || undefined;
       if (launch_mode === "docker" || launch_mode === "host") {
         rc.launch_mode = launch_mode;
       }
       if (idle_policy !== undefined) {
-        const VALID_POLICIES = ["reset", "compact", "stop", "ignore"];
+        const VALID_POLICIES = ["reset", "compact", "ignore"];
         if (!VALID_POLICIES.includes(idle_policy)) {
           res.status(400).json({ error: `Invalid idle_policy. Must be one of: ${VALID_POLICIES.join(", ")}` }); return;
         }
@@ -136,16 +142,18 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       }
       writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
-      // Restart container with new limits if running
-      const wasRunning = isRoleRunning(project.root, roleName);
-      if (wasRunning) {
+      // Only restart if container-level config actually changed (memory, cpus, launch_mode)
+      const needsRestart = rc.memory !== oldMemory || rc.cpus !== oldCpus || rc.launch_mode !== oldLaunchMode;
+      let restarted = false;
+      if (needsRestart && isRoleRunning(project.root, roleName)) {
         stopRoleManaged(ctx, project.root, project.slug, roleName, { keepDesiredState: true, reason: "config-change" });
         const ttydPort = allocatePort(ctx);
         const fresh = loadConfig(project.root);
         startRoleManaged(ctx, project.root, project.slug, roleName, fresh.roles[roleName], fresh, ttydPort);
+        restarted = true;
       }
 
-      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, restarted: wasRunning });
+      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, restarted });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 
