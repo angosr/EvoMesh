@@ -45,7 +45,7 @@ async function renderAccountUsage() {
 }
 
 // ==================== Project Cards (bottom section) ====================
-function renderDashboard() {
+async function renderDashboard() {
   const projectsEl = document.getElementById('dash-projects');
   if (!projectsEl) return;
 
