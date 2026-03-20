@@ -119,18 +119,6 @@ function sendToRole(sessionName: string, launchMode: string | undefined, message
   }
 }
 
-/** Send Ctrl-C (interrupt) + Escape to a role's tmux session. */
-function sendToRoleInterrupt(sessionName: string, launchMode: string | undefined): void {
-  if (launchMode === "host") {
-    execFileSync("tmux", ["send-keys", "-t", sessionName, "C-c"], { stdio: "ignore", timeout: 5000 });
-    execFileSync("tmux", ["send-keys", "-t", sessionName, "Escape"], { stdio: "ignore", timeout: 5000 });
-  } else {
-    execFileSync("docker", ["exec", sessionName, "gosu", gosuUser, "bash", "-c",
-      `tmux -f /dev/null send-keys -t claude C-c 2>/dev/null; tmux -f /dev/null send-keys -t claude Escape 2>/dev/null`
-    ], { stdio: "ignore", timeout: 5000 });
-  }
-}
-
 /** Send multiple messages with delays. Retries each step up to 2 times on failure. */
 function sendToRoleSequence(sessionName: string, launchMode: string | undefined, steps: { message: string; delaySec: number }[]): void {
   let cumulativeDelay = 0;
@@ -568,42 +556,36 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           }
 
           // Threshold reached — take action based on idle_policy
-          const policy = (rc as any).idle_policy || (rc.type === "lead" ? "compact" : "reset");
+          // Default: ignore. User must explicitly set policy to compact or reset.
+          const policy = (rc as any).idle_policy || "ignore";
           const sessionName = containerName(p.slug, name);
 
-          if (policy === "ignore") {
-            idleCount.set(key, 0);
-            continue;
-          } else if (policy === "stop") {
-            try {
-              stopRoleManaged(ctx, p.root, p.slug, name, { userStopped: false, reason: "idle-cleanup-stop" });
-              console.log(`[idle-cleanup] Stopped idle role ${name} (policy: stop)`);
-              notifyFeed(ctx, name, p.slug, `idle (3x declared) → stopped`);
-            } catch (e) { console.error(`[idle-cleanup] Failed to stop ${name}:`, e); }
-          } else if (policy === "compact") {
+          if (policy === "compact") {
             try {
               sendToRole(sessionName, rc.launch_mode, "/compact");
               console.log(`[idle-cleanup] Sent /compact to ${name}`);
-              notifyFeed(ctx, name, p.slug, `idle (3x declared) → /compact`);
+              notifyFeed(ctx, name, p.slug, `idle (3x) → /compact`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
-          } else {
-            // "reset" (default for workers): /clear + /loop
+          } else if (policy === "reset") {
+            // Reset = /clear + /loop (context reset, NOT container restart)
             const roleRootRel = `.evomesh/roles/${name}`;
             const loopInterval = rc.loop_interval || "10m";
             const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
             try {
-              sendToRoleInterrupt(sessionName, rc.launch_mode);
               sendToRoleSequence(sessionName, rc.launch_mode, [
-                { message: "/clear", delaySec: 2 },
-                { message: loopCmd, delaySec: 10 },
+                { message: "/clear", delaySec: 0 },
+                { message: loopCmd, delaySec: 8 },
               ]);
-              console.log(`[idle-cleanup] Sent interrupt + /clear + /loop to worker ${name}`);
-              notifyFeed(ctx, name, p.slug, `idle (3x declared) → context reset`);
+              console.log(`[idle-cleanup] Sent /clear + /loop to ${name}`);
+              notifyFeed(ctx, name, p.slug, `idle (3x) → /clear + /loop`);
             } catch (e) { console.error(`[idle-cleanup] Failed to send /clear + /loop to ${name}:`, e); }
+          } else {
+            // "ignore" (default) — just notify, take no action
+            notifyFeed(ctx, name, p.slug, `idle (3x declared)`);
+            idleCount.set(key, 0);
+            continue;
           }
 
-          // Reset counter, record action time, increment reset count
-          // Also suppress nudging during the reset sequence
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
           recordMonitorRestart(key);

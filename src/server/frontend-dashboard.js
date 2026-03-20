@@ -79,8 +79,8 @@ function renderDashboard() {
       const stopBtn = r.running ? `<button class="dash-action danger" data-action="stop" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">■ Stop</button>` : '';
       const launchMode = r.launch_mode || 'docker';
       const modeSelect = `<select class="mode-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}"><option value="docker"${launchMode==='docker'?' selected':''}>docker</option><option value="host"${launchMode==='host'?' selected':''}>host</option></select>`;
-      const idlePolicy = r.idle_policy || 'reset';
-      const idleSelect = `<select class="idle-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Idle policy"><option value="reset"${idlePolicy==='reset'?' selected':''}>Reset</option><option value="compact"${idlePolicy==='compact'?' selected':''}>Compress</option><option value="stop"${idlePolicy==='stop'?' selected':''}>Stop</option><option value="ignore"${idlePolicy==='ignore'?' selected':''}>Ignore</option></select>`;
+      const idlePolicy = r.idle_policy || 'ignore';
+      const idleSelect = `<select class="idle-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Idle policy (3x idle → action)"><option value="ignore"${idlePolicy==='ignore'?' selected':''}>Ignore</option><option value="compact"${idlePolicy==='compact'?' selected':''}>Compress</option><option value="reset"${idlePolicy==='reset'?' selected':''}>Reset</option></select>`;
       const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${modeSelect}${idleSelect}</div>` : '';
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span>${statusBadge}${loginBadge}</td>

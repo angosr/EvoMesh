@@ -14,7 +14,8 @@ import type { ServerContext } from "./index.js";
  * Returns null if content is pure bookkeeping (no real info to show).
  */
 function extractFeedText(stm: string): string | null {
-  const NOISE = /^No new inbox|^No tasks|^Nothing new|^updated$|^Idle|^idle|^Check inbox|^Await/i;
+  // Filter noise but allow "No tasks, idle" through (user needs to see idle state)
+  const NOISE = /^No new inbox|^Nothing new|^updated$|^Check inbox|^Await/i;
 
   // Try **Done**: pattern first (most roles use this)
   const doneMatch = stm.match(/^\s*-\s*\*\*Done\*\*:\s*(.+)$/m);
