@@ -82,17 +82,31 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
   try {
     const homeDir = os.homedir();
 
-    // Find account
+    // Find account — use project's first account if it has valid credentials, otherwise default
     let accountPath = path.join(homeDir, ".claude");
     try {
       const projects = ctx.getProjects();
       if (projects.length > 0) {
         const config = loadConfig(projects[0].root);
         const firstAccount = Object.values(config.accounts)[0];
-        if (firstAccount) accountPath = expandHome(firstAccount);
+        if (firstAccount) {
+          const candidate = expandHome(firstAccount);
+          // Only use this account if credentials exist — otherwise fall back to default
+          if (fs.existsSync(path.join(candidate, ".credentials.json"))) {
+            accountPath = candidate;
+          } else {
+            console.warn(`[central-ai] Account ${firstAccount} has no credentials, using default ~/.claude`);
+          }
+        }
       }
     } catch (e: unknown) {
       console.warn("[central-ai] Failed to load account config, using default:", errorMessage(e));
+    }
+
+    // Final check: does the chosen account have credentials?
+    if (!fs.existsSync(path.join(accountPath, ".credentials.json"))) {
+      console.error(`[central-ai] No credentials found at ${accountPath}. Run 'claude login' first.`);
+      return null;
     }
 
     // Validate accountPath before shell interpolation

@@ -68,12 +68,32 @@ else
   echo "  ttyd: $(ttyd --version 2>&1 | head -1) ✓"
 fi
 
-# Claude Code CLI
+# Claude Code CLI + credentials
 if command -v claude >/dev/null 2>&1; then
   echo "  Claude Code: $(claude --version 2>&1 | head -1) ✓"
+  # Check if logged in
+  if [ ! -f "$HOME/.claude/.credentials.json" ]; then
+    echo ""
+    echo "  ⚠ Claude Code is installed but not logged in."
+    echo "  Central AI and roles need valid credentials to work."
+    echo "  Run this now:"
+    echo ""
+    echo "    claude login"
+    echo ""
+    echo "  Then re-run ./setup.sh"
+    echo ""
+    read -r -p "  Continue without login? (y/N) " yn
+    if [ "$yn" != "y" ] && [ "$yn" != "Y" ]; then
+      exit 1
+    fi
+  else
+    echo "  Claude credentials: ~/.claude/.credentials.json ✓"
+  fi
 else
-  echo "  WARNING: Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code"
-  echo "  EvoMesh will start but roles won't work without Claude Code."
+  echo "  ERROR: Claude Code CLI not found."
+  echo "  Install: npm install -g @anthropic-ai/claude-code"
+  echo "  Then run: claude login"
+  exit 1
 fi
 echo ""
 
