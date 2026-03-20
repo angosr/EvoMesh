@@ -1,6 +1,6 @@
-## 2026-03-18 Loop 314
+## 2026-03-20 Loop 317
 
-- **Done**: No inbox, no running roles. No action needed.
-- **Blockers**: All 6 roles offline (idle since loop 302)
+- **Done**: Full loop scan. No change from 316. All 6 roles offline. No inbox. git pull blocked by unstaged changes (3 consecutive loops).
+- **Blockers**: Unstaged changes blocking git pull (frontend XSS fix, AGENTS.md, frontend bookkeeping). No docker CLI.
 - **In-progress**: Nothing
-- **Next focus**: When roles come online: dispatch self-audits (overdue since 310), P2 backlog, code quality debt scan.
+- **Next focus**: Will commit the unstaged real work (XSS fix + AGENTS.md) next loop to unblock git pull. Self-audits overdue since 310. P2 backlog: 3 items.

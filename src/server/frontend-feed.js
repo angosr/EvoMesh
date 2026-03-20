@@ -71,7 +71,7 @@ function initFeed() {
 function safeColor(c) { return /^#[0-9a-fA-F]{3,6}$|^[a-zA-Z]+$/.test(c) ? c : '#888'; }
 
 function appendFeedMessage(msg, type) {
-  if (typeof msg === 'string') msg = { type: type || 'system', text: msg, time: new Date().toISOString() };
+  if (typeof msg === 'string') msg = { type: type || 'system', text: msg, time: new Date().toISOString(), _html: true };
   const feed = document.getElementById('feed');
   if (!feed) return;
   const div = document.createElement('div');
@@ -104,8 +104,10 @@ function appendFeedMessage(msg, type) {
   } else if (msg.type === 'user-message') {
     div.innerHTML = `<div class="feed-text">${esc(msg.text || '')}</div>`;
   } else {
-    // System messages are internally generated with pre-escaped user data — render HTML (e.g. <strong>)
-    div.innerHTML = `<div class="feed-text feed-system-text">${msg.text || ''}</div>`;
+    // Client-generated system messages set _html:true (user data already escaped with esc()).
+    // SSE-sourced messages are escaped by default to prevent XSS from server-side data.
+    const text = msg._html ? (msg.text || '') : esc(msg.text || '');
+    div.innerHTML = `<div class="feed-text feed-system-text">${text}</div>`;
   }
 
   feed.appendChild(div);
