@@ -16,7 +16,7 @@
 
 ## Loop Flow
 
-1. `git pull --rebase`
+1. `git pull --rebase` (lead is the ONLY role that pulls — workers do NOT pull to avoid destroying each other's uncommitted work)
 2. Read this file + todo.md + inbox/ + **memory/short-term.md**
 3. Read **`shared/decisions.md`**
 4. **Check which roles are alive**: run `docker ps` or check heartbeat.json timestamps. Only interact with running roles. Do NOT dispatch tasks to stopped/offline roles — messages will rot unread.

@@ -2,7 +2,7 @@
 
 ## Loop Flow (MANDATORY)
 
-1. `git pull --rebase`
+1. **Lead only**: `git pull --rebase`. Worker roles skip this step.
 2. **`cat` and read**: ROLE.md, inbox/*, memory/short-term.md (EVERY loop, do NOT rely on memory)
    Also read (every 5 loops or when notified): blueprint.md, status.md, shared/decisions.md
 3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/ → `git rm` the original (stages deletion so it survives context clears)
@@ -11,7 +11,7 @@
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
    - `heartbeat.json` — write `{"ts": <unix_ms>}` (server uses this to detect brain-dead roles)
    - `todo.md` — mark completed, add new
-6. If this loop produced real output (code, new dispatches, new decisions): `git add <own files only>` → commit (include bookkeeping files) → `git pull --rebase` → push.
+6. If this loop produced real output (code, new dispatches, new decisions): `git add <own files only>` → commit (include bookkeeping files) → push. Lead: `git pull --rebase` before push. Workers: push directly (do NOT pull/stash/rebase — if push fails due to conflict, skip this push and retry next loop).
    If only bookkeeping (heartbeat/memory/todo/inbox processed/status update): write files locally but do NOT commit. They will be included in the next real commit.
 
 Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no commit).
@@ -20,8 +20,9 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no c
 ## Git
 
 - Commit: `{type}({scope}/{role}): {description}`
-- **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`
+- **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`, `git checkout -- .`, `git restore .`, `git stash`
 - **NEVER** start background processes
+- **Git pull only by lead**: Only the lead role runs `git pull --rebase` (step 1). Worker roles do NOT pull — they read files directly from the working tree. This prevents workers from running stash/checkout/restore to resolve conflicts, which can destroy other roles' uncommitted work.
 - **NO bookkeeping-only commits**: Do NOT commit if the only changes are: `heartbeat.json`, `memory/short-term.md`, `todo.md`, or updating `status.md`/`blueprint.md` with no new decisions. These are administrative overhead, not deliverables. Only commit when the loop produces **real output**: code changes, new inbox messages dispatched, inbox deletions (`git rm`), new decisions in `shared/decisions.md`, config changes, or documentation with new content. Bundle all bookkeeping files into the next commit that contains real work.
 - Code, commit messages, shared/decisions.md, blueprint.md: English.
 - `memory/short-term.md`, `todo.md`, inbox messages: follow user's language (these are user-facing via the Feed panel, not technical documentation).
