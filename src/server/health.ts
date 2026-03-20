@@ -1,6 +1,6 @@
 /**
- * Health monitoring: registry, auto-restart, brain-dead detection, compliance nudging.
- * Extracted from index.ts to keep it under 500 lines.
+ * Health monitoring: registry, auto-restart crashed containers, idle detection.
+ * Monitor NEVER injects commands into running AI sessions except for explicit idle cleanup.
  */
 import path from "node:path";
 import fs from "node:fs";
@@ -17,14 +17,11 @@ let lastGoodProjects: Record<string, any> = {};
 let centralRestartFails = 0;
 const prevRunning = new Map<string, boolean>();
 const lastRestart = new Map<string, number>();
-// lastNudge removed — nudge mechanism disabled (injecting text into tmux corrupts AI sessions)
 const idleCount = new Map<string, number>();
 const lastIdleMtime = new Map<string, number>();
 const lastIdleAction = new Map<string, number>();
-// lastIdleContent removed — idle detection now only uses explicit "No tasks, idle" phrase
 const roleStartTime = new Map<string, number>();
 const RESTART_COOLDOWN = 5 * 60 * 1000;
-// NUDGE_COOLDOWN removed — nudge mechanism disabled
 const MAX_IDLE_RESETS = 2;
 const serverStartTime = Date.now();
 const SERVER_WARMUP = 5 * 60 * 1000;
@@ -104,12 +101,7 @@ function notifyFeed(ctx: ServerContext, role: string, project: string, text: str
   if (broadcast) broadcast({ type: "role", role: `${role} [monitor]`, project, text, time: new Date().toISOString() });
 }
 
-/** Safely parse a loop_interval value (e.g. "10m", 10, undefined) to minutes. */
-function parseIntervalMinutes(interval: string | number | undefined): number {
-  if (typeof interval === "number") return interval;
-  const n = parseInt(String(interval), 10);
-  return Number.isNaN(n) || n <= 0 ? 10 : n;
-}
+// parseIntervalMinutes removed — was only used by brain-dead detection
 
 // --- Tmux command sending (SSOT for host/docker dispatch) ---
 const gosuUser = process.env.USER || "user";
@@ -169,9 +161,7 @@ export function recordRoleStart(key: string): void {
   idleCount.set(key, 0);
   lastIdleMtime.delete(key);
   lastIdleAction.delete(key);
-  // idle content tracking removed — using explicit idle phrase only
-  // nudge state removed
-  // Note: do NOT reset persistent monitorState here — circuit breaker must persist
+  // Do NOT reset persistent monitorState — circuit breaker must persist
 }
 
 /** Check if a role is within its post-start grace period.
@@ -477,83 +467,14 @@ export function autoRestartCrashed(ctx: ServerContext): void {
           } catch (e) { console.error(`[auto-restart] Failed to restart vanished ${name}:`, e); }
         }
 
-        // Brain-dead: running but no activity for extended period
-        if (running && shouldRun && !isInGracePeriod(key) && !isMonitorSuspended(key)) {
-          try {
-            const stmPath = path.join(roleDir(p.root, name), "memory", "short-term.md");
-            const stmStat = fs.statSync(stmPath);
-            const stmAgeMs = now - stmStat.mtimeMs;
-            const intervalMin = parseIntervalMinutes(rc.loop_interval);
-            const bdThreshold = intervalMin * 10 * 60 * 1000;
-            const lastTime = lastRestart.get(key) || 0;
-
-            // Check for new STM output → reset circuit breaker
-            checkAndResetCircuitBreaker(key, stmStat.mtimeMs);
-
-            // Use CONTAINER uptime, not in-memory roleStartTime (survives server restart)
-            let containerUptimeMs = bdThreshold; // assume old enough if can't determine
-            try {
-              const cname = containerName(p.slug, name);
-              const startedAt = execFileSync("docker", ["inspect", "--format", "{{.State.StartedAt}}", cname],
-                { encoding: "utf-8", timeout: 3000 }).trim();
-              if (startedAt) containerUptimeMs = now - new Date(startedAt).getTime();
-            } catch {
-              // Host mode — use /proc
-              try {
-                const pids = execFileSync("pgrep", ["-f", `tmux.*${name}`], { encoding: "utf-8", timeout: 3000 }).trim();
-                if (pids) {
-                  const pid = pids.split("\n")[0];
-                  containerUptimeMs = now - fs.statSync(`/proc/${pid}`).ctimeMs;
-                }
-              } catch { /* can't determine */ }
-            }
-
-            // Don't kill if container hasn't been running long enough
-            if (containerUptimeMs < bdThreshold) continue;
-
-            if (stmAgeMs > bdThreshold && (now - lastTime) > 10 * 60 * 1000) {
-              let hasRecentCommit = true;
-              try {
-                const gitLog = execFileSync("git", ["log", "--oneline", `--since=${intervalMin * 10} minutes ago`, `--grep=${name}`], { cwd: p.root, encoding: "utf-8", timeout: 5000 });
-                hasRecentCommit = gitLog.trim().length > 0;
-              } catch (e) {
-                console.error(`[brain-dead] git log failed for ${name}, assuming alive:`, e);
-              }
-              if (!hasRecentCommit) {
-                console.log(`[brain-dead] ${name} memory ${Math.round(stmAgeMs / 60000)}min stale, container up ${Math.round(containerUptimeMs / 60000)}min — restarting`);
-                notifyFeed(ctx, name, p.slug, `brain-dead (${Math.round(stmAgeMs / 60000)}min stale), restarting...`);
-                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true, reason: "brain-dead" });
-                recordRoleStart(key);
-                recordMonitorRestart(key);
-              }
-            }
-          } catch (e) { console.error(`[brain-dead] Error checking ${name}:`, e); }
-
-          // Context cleanup: role requests restart via heartbeat.json content
-          try {
-            const hbPath = path.join(roleDir(p.root, name), "heartbeat.json");
-            const hbContent = JSON.parse(fs.readFileSync(hbPath, "utf-8"));
-            if (hbContent.request === "restart") {
-              const lastTime = lastRestart.get(key) || 0;
-              if (now - lastTime > RESTART_COOLDOWN) {
-                console.log(`[context-cleanup] ${name} requested restart (reason: ${hbContent.reason || "unknown"})`);
-                notifyFeed(ctx, name, p.slug, `requested context restart`);
-                fs.writeFileSync(hbPath, JSON.stringify({ ts: now, restarted_at: new Date().toISOString() }));
-                stopRoleManaged(ctx, p.root, p.slug, name, { keepDesiredState: true, reason: "context-cleanup" });
-                recordRoleStart(key);
-              }
-            }
-          } catch {
-            // heartbeat.json missing or no restart request — normal
-          }
-        }
+        // Brain-dead detection REMOVED — too many false positives.
+        // Roles doing long tasks (training, analysis) were killed repeatedly.
+        // Context-cleanup via heartbeat.json REMOVED — stopping containers
+        // mid-work causes state loss. Users can restart manually if needed.
       }
     }
   } catch (e) { console.error("[autoRestartCrashed] Error:", e); }
 }
-
-// verifyLoopCompliance REMOVED — injecting [SYSTEM] text into tmux corrupts AI sessions.
-// Roles write STM as part of their CLAUDE.md loop rules, not because of external nudges.
 
 /** Check if a role has unprocessed inbox messages. */
 function hasUnprocessedInbox(root: string, name: string): boolean {
@@ -638,8 +559,6 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             continue;
           }
 
-          // nudge removed
-
           // Stop resetting if we've already tried multiple times — role is genuinely idle
           const resets = getMonitorRole(key).restartCount;
           if (resets >= MAX_IDLE_RESETS) {
@@ -687,8 +606,6 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
           // Also suppress nudging during the reset sequence
           idleCount.set(key, 0);
           lastIdleAction.set(key, now);
-          // nudge removed
-          // restartCount incremented by recordMonitorRestart above
           recordMonitorRestart(key);
         } catch (e) { console.error(`[idle-cleanup] Error checking ${name}:`, e); }
       }
