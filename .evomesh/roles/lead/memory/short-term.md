@@ -1,6 +1,6 @@
-## 2026-03-20 Loop 317
+## 2026-03-20 Loop 318
 
-- **Done**: Full loop scan. No change from 316. All 6 roles offline. No inbox. git pull blocked by unstaged changes (3 consecutive loops).
-- **Blockers**: Unstaged changes blocking git pull (frontend XSS fix, AGENTS.md, frontend bookkeeping). No docker CLI.
+- **Done**: Committed + pushed orphaned frontend XSS fix and AGENTS.md git safety rules (cc22e38). git pull now unblocked.
+- **Blockers**: All 6 roles offline. No docker CLI.
 - **In-progress**: Nothing
-- **Next focus**: Will commit the unstaged real work (XSS fix + AGENTS.md) next loop to unblock git pull. Self-audits overdue since 310. P2 backlog: 3 items.
+- **Next focus**: When roles come online: self-audits (overdue since 310), P2 backlog (3 items), code quality scan.
