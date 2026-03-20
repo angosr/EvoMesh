@@ -95,31 +95,38 @@ async function renderDashboard() {
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>${membersPanel}</div>`;
   }
-  // Central AI card
+  // Central AI row — same table style as project roles, placed after Project Overview header
   let centralHtml = '';
   try {
     const centralRes = await authFetch(`${API}/admin/status`);
     const cs = await centralRes.json();
     const statusBadge = cs.enabled === false ? '<span class="badge stopped">disabled</span>'
       : cs.running ? '<span class="badge running">running</span>' : '<span class="badge stopped">stopped</span>';
-    const acctOptions = state.accounts.map(a => `<option value="${esc(a.path)}"${(cs.account||'~/.claude')===a.path?' selected':''}>${esc(a.name)} (${esc(a.path)})</option>`).join('');
+    const centralAo = state.accounts.map(a => `<option value="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
+    const acctCol = `<select class="acct-select" id="central-acct-select">${centralAo}</select>`;
     const startStopBtn = cs.running
       ? `<button class="dash-action danger" id="central-stop-btn">■ Stop</button>`
       : `<button class="dash-action" id="central-start-btn">▶ Start</button>`;
-    centralHtml = `<div class="card"><h3>Central AI</h3><table><thead><tr><th>Role</th><th>Account</th><th>Actions</th></tr></thead><tbody>
+    centralHtml = `<div class="card"><h3>Central AI</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>
       <tr><td><strong>central</strong> <span class="badge lead">orchestrator</span> ${statusBadge}</td>
-      <td><select id="central-acct-select">${acctOptions}</select></td>
-      <td><div class="act-row">${startStopBtn}</div></td></tr></tbody></table></div>`;
+      <td>${acctCol}</td><td></td>
+      <td class="act-cell"><div class="act-row">${startStopBtn}</div></td></tr></tbody></table></div>`;
   } catch { /* admin status failed — skip central card */ }
 
-  projectsEl.innerHTML = centralHtml + `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
-  // Set select values after innerHTML (synchronous DOM update — no setTimeout needed)
+  projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + centralHtml + html;
+  // Set select values after innerHTML
   for (const p of state.projects) {
     for (const r of p.roles) {
       const s = projectsEl.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`);
       if (s) s.value = r.account;
     }
   }
+  // Set Central AI account select
+  try {
+    const cs = await (await authFetch(`${API}/admin/status`)).json();
+    const centralSel = document.getElementById('central-acct-select');
+    if (centralSel && cs.account) centralSel.value = cs.account;
+  } catch { /* ignore */ }
   // Event listeners
   projectsEl.querySelectorAll('.acct-select').forEach(sel => {
     sel.addEventListener('change', () => switchAccount(sel.dataset.slug, sel.dataset.role, sel));
