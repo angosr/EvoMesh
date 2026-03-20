@@ -44,4 +44,5 @@ export interface WorkspaceProject {
 
 export interface WorkspaceConfig {
   projects: WorkspaceProject[];
+  central_account?: string; // account path for Central AI, e.g. "~/.claude" or "~/.claude2"
 }

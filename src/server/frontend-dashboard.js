@@ -95,7 +95,24 @@ function renderDashboard() {
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>${membersPanel}</div>`;
   }
-  projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
+  // Central AI card
+  let centralHtml = '';
+  try {
+    const centralRes = await authFetch(`${API}/admin/status`);
+    const cs = await centralRes.json();
+    const statusBadge = cs.enabled === false ? '<span class="badge stopped">disabled</span>'
+      : cs.running ? '<span class="badge running">running</span>' : '<span class="badge stopped">stopped</span>';
+    const acctOptions = state.accounts.map(a => `<option value="${esc(a.path)}"${(cs.account||'~/.claude')===a.path?' selected':''}>${esc(a.name)} (${esc(a.path)})</option>`).join('');
+    const startStopBtn = cs.running
+      ? `<button class="dash-action danger" id="central-stop-btn">■ Stop</button>`
+      : `<button class="dash-action" id="central-start-btn">▶ Start</button>`;
+    centralHtml = `<div class="card"><h3>Central AI</h3><table><thead><tr><th>Role</th><th>Account</th><th>Actions</th></tr></thead><tbody>
+      <tr><td><strong>central</strong> <span class="badge lead">orchestrator</span> ${statusBadge}</td>
+      <td><select id="central-acct-select">${acctOptions}</select></td>
+      <td><div class="act-row">${startStopBtn}</div></td></tr></tbody></table></div>`;
+  } catch { /* admin status failed — skip central card */ }
+
+  projectsEl.innerHTML = centralHtml + `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + html;
   // Set select values after innerHTML (synchronous DOM update — no setTimeout needed)
   for (const p of state.projects) {
     for (const r of p.roles) {
@@ -122,6 +139,31 @@ function renderDashboard() {
   projectsEl.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
   });
+  // Central AI event listeners
+  const centralAcctSel = document.getElementById('central-acct-select');
+  if (centralAcctSel) {
+    centralAcctSel.addEventListener('change', async () => {
+      try {
+        const r = await authFetch(`${API}/admin/account`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account: centralAcctSel.value }),
+        });
+        const d = await r.json();
+        if (d.ok) appendFeedMessage({ type: 'system', text: `Central AI account → ${centralAcctSel.value}`, time: new Date().toISOString() });
+        else alert(d.error || 'Failed');
+      } catch { alert('Failed to update Central AI account'); }
+    });
+  }
+  const centralStartBtn = document.getElementById('central-start-btn');
+  if (centralStartBtn) centralStartBtn.addEventListener('click', () => withLoading(centralStartBtn, async () => {
+    await authFetch(`${API}/admin/start`, { method: 'POST' });
+    fetchAll();
+  }));
+  const centralStopBtn = document.getElementById('central-stop-btn');
+  if (centralStopBtn) centralStopBtn.addEventListener('click', () => withLoading(centralStopBtn, async () => {
+    await authFetch(`${API}/admin/stop`, { method: 'POST' });
+    fetchAll();
+  }));
   if (state.membersOpen) loadMembers(state.membersOpen);
   renderAccountUsage();
 }

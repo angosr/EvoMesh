@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
-import { slugify } from "../workspace/config.js";
+import { slugify, loadWorkspace, saveWorkspace } from "../workspace/config.js";
 import { getContainerState, getContainerPort, containerName, centralContainerName } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
@@ -82,20 +82,29 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
   try {
     const homeDir = os.homedir();
 
-    // Find account — use project's first account if it has valid credentials, otherwise default
+    // Find account: workspace.central_account > first project account > ~/.claude
     let accountPath = path.join(homeDir, ".claude");
     try {
-      const projects = ctx.getProjects();
-      if (projects.length > 0) {
-        const config = loadConfig(projects[0].root);
-        const firstAccount = Object.values(config.accounts)[0];
-        if (firstAccount) {
-          const candidate = expandHome(firstAccount);
-          // Only use this account if credentials exist — otherwise fall back to default
-          if (fs.existsSync(path.join(candidate, ".credentials.json"))) {
-            accountPath = candidate;
-          } else {
-            console.warn(`[central-ai] Account ${firstAccount} has no credentials, using default ~/.claude`);
+      const ws = loadWorkspace();
+      if (ws.central_account) {
+        const candidate = expandHome(ws.central_account);
+        if (fs.existsSync(path.join(candidate, ".credentials.json"))) {
+          accountPath = candidate;
+        } else {
+          console.warn(`[central-ai] Configured account ${ws.central_account} has no credentials, falling back`);
+        }
+      }
+      if (accountPath === path.join(homeDir, ".claude")) {
+        // No workspace config — try first project's account
+        const projects = ctx.getProjects();
+        if (projects.length > 0) {
+          const config = loadConfig(projects[0].root);
+          const firstAccount = Object.values(config.accounts)[0];
+          if (firstAccount) {
+            const candidate = expandHome(firstAccount);
+            if (fs.existsSync(path.join(candidate, ".credentials.json"))) {
+              accountPath = candidate;
+            }
           }
         }
       }
@@ -214,16 +223,17 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     const session = (req as any)._session as SessionInfo | undefined;
     if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
     const enabled = isCentralEnabled();
+    const ws = loadWorkspace();
+    const centralAccount = ws.central_account || "~/.claude";
     if (!enabled) {
-      res.json({ running: false, enabled: false, port: null, terminal: null });
+      res.json({ running: false, enabled: false, port: null, terminal: null, account: centralAccount });
       return;
     }
-    // Auto-restart if enabled and crashed
     const result = ensureCentralAI(ctx);
     if (result) {
-      res.json({ running: true, enabled: true, port: result.port, terminal: result.terminal });
+      res.json({ running: true, enabled: true, port: result.port, terminal: result.terminal, account: centralAccount });
     } else {
-      res.json({ running: false, enabled: true, port: null, terminal: null });
+      res.json({ running: false, enabled: true, port: null, terminal: null, account: centralAccount });
     }
   });
 
@@ -253,6 +263,30 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     } catch { /* already removed */ }
     console.log("[central-ai] Stopped and disabled by user");
     res.json({ ok: true });
+  });
+
+  // Central AI account config
+  app.get("/api/admin/account", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    const ws = loadWorkspace();
+    res.json({ central_account: ws.central_account || "~/.claude" });
+  });
+
+  app.post("/api/admin/account", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    const { account } = req.body;
+    if (!account || typeof account !== "string") { res.status(400).json({ error: "Missing account path" }); return; }
+    const resolved = expandHome(account.trim());
+    if (!fs.existsSync(path.join(resolved, ".credentials.json"))) {
+      res.status(400).json({ error: `No credentials found at ${account}. Run 'claude login' with CLAUDE_CONFIG_DIR=${account} first.` });
+      return;
+    }
+    const ws = loadWorkspace();
+    ws.central_account = account.trim();
+    saveWorkspace(ws);
+    res.json({ ok: true, central_account: account.trim() });
   });
 
   // Central AI status (read central-status.md)

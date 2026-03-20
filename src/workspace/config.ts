@@ -24,7 +24,7 @@ export function loadWorkspace(linuxUser?: string): WorkspaceConfig {
     return { projects: [] };
   }
   const raw = readYaml<any>(wsFile);
-  return { projects: raw?.projects || [] };
+  return { projects: raw?.projects || [], central_account: raw?.central_account };
 }
 
 export function saveWorkspace(config: WorkspaceConfig): void {
