@@ -192,7 +192,7 @@ export function startServer(port: number, initialRoot?: string) {
     if (initialRoot) ensureInWorkspace(initialRoot);
     const ws = loadWorkspace(linuxUser);
     return ws.projects
-      .filter(p => p.active)
+      .filter(p => p.active !== false) // treat missing/undefined as active
       .map(p => ({ slug: slugify(p.name), name: p.name, root: path.resolve(p.path) }));
   }
 
