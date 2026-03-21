@@ -327,9 +327,56 @@ export function isAccountDown(accountPath: string): boolean {
   return accountHealthCache.get(accountPath) ?? true; // unchecked = assume needs login
 }
 
+// --- Token keepalive: ping expired accounts to revive server-side sessions ---
+const KEEPALIVE_INTERVAL = 10 * 60 * 1000; // check every 10 min
+let lastKeepalive = 0;
+const lastPingAttempt = new Map<string, number>();
+
+function keepaliveAccounts(): void {
+  const now = Date.now();
+  if (now - lastKeepalive < KEEPALIVE_INTERVAL) return;
+  lastKeepalive = now;
+
+  const homeDir = os.homedir();
+  try {
+    const dirs = fs.readdirSync(homeDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && e.name.startsWith(".claude"));
+    for (const d of dirs) {
+      const dir = path.join(homeDir, d.name);
+      const credsPath = path.join(dir, ".credentials.json");
+      if (!fs.existsSync(credsPath)) continue;
+      try {
+        const creds = JSON.parse(fs.readFileSync(credsPath, "utf-8"));
+        const exp = creds?.claudeAiOauth?.expiresAt;
+        if (!exp) continue;
+        const remaining = exp - now;
+        // Only ping EXPIRED tokens (or about to expire within 5 min)
+        if (remaining > 5 * 60 * 1000) continue;
+        // Don't ping same account more than once per 30 min
+        const lastPing = lastPingAttempt.get(dir) || 0;
+        if (now - lastPing < 30 * 60 * 1000) continue;
+        lastPingAttempt.set(dir, now);
+      } catch { continue; }
+      const acctName = d.name;
+      console.log(`[keepalive] Token expired for ${acctName}, pinging to revive...`);
+      execFile("claude", ["-p", "hi"], {
+        env: { ...process.env, CLAUDE_CONFIG_DIR: dir },
+        timeout: 30000,
+      }, (err) => {
+        if (err) {
+          console.error(`[keepalive] Ping failed for ${acctName}:`, err.message);
+        } else {
+          console.log(`[keepalive] Pinged ${acctName} — session revived`);
+        }
+      });
+    }
+  } catch (e) { console.error("[keepalive] Error:", e); }
+}
+
 export function writeRegistry(ctx: ServerContext, port: number): void {
   try {
     checkAccountHealth(); // Update account health each cycle
+    keepaliveAccounts(); // Ping expired accounts to revive sessions
     const projects = ctx.getProjects();
     const projectEntries: Record<string, any> = {};
     for (const p of projects) {
