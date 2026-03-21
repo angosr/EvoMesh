@@ -25,9 +25,9 @@ async function renderAccountUsage() {
         const isExpiring = !isExpired && a.tokenExpiresIn != null && a.tokenExpiresIn < 3600000;
         const statusCls = isExpired ? 'needs-login' : (isExpiring ? 'expiring' : 'ok');
         const statusText = isExpired ? 'EXPIRED' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
-        const loginBtn = (isExpired || isExpiring || a.needsLogin)
-          ? `<button class="dash-action acct-login-btn" data-path="${esc(a.path)}" style="margin-left:6px;${isExpired?'color:var(--red);border-color:var(--red)':''}">🔑 Login</button>`
-          : '';
+        const loginBtnStyle = isExpired ? 'color:var(--red);border-color:var(--red)' : (isExpiring ? 'color:var(--yellow);border-color:var(--yellow)' : '');
+        const loginBtnText = isExpired ? '🔑 Login' : (isExpiring ? '🔑 Refresh' : '↻ Refresh');
+        const loginBtn = `<button class="dash-action acct-login-btn" data-path="${esc(a.path)}" style="margin-left:6px;${loginBtnStyle}">${loginBtnText}</button>`;
         return `<div class="card acct-card-v2" ${isExpired?'style="border-color:var(--red);box-shadow:0 0 8px rgba(248,113,113,0.15)"':''}>
           <div class="acct-row">
             <span class="acct-dot ${statusCls}"></span>
