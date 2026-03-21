@@ -1,13 +1,16 @@
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
 import { formatBytes } from "../utils/fs.js";
 import type { SessionInfo } from "./auth.js";
 import type { ServerContext } from "./index.js";
+
+// Active login processes — keyed by account path
+const loginProcesses = new Map<string, { proc: import("node:child_process").ChildProcess; authUrl: string }>();
 
 export function registerUsageRoutes(app: import("express").Express, ctx: ServerContext): void {
 
@@ -49,6 +52,98 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       console.log(`[accounts] Created account directory: ${fullPath}`);
       res.json({ ok: true, name: safeName, path: `~/${dirName}`, fullPath, needsLogin: true });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
+  });
+
+  // --- Account login: start login flow, return auth URL ---
+  app.post("/api/accounts/login/start", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    const { accountPath } = req.body;
+    if (!accountPath) { res.status(400).json({ error: "accountPath required" }); return; }
+    const resolved = expandHome(accountPath);
+    if (!fs.existsSync(resolved)) {
+      try { fs.mkdirSync(resolved, { recursive: true, mode: 0o700 }); } catch {}
+    }
+
+    // Kill any existing login process for this account
+    const existing = loginProcesses.get(resolved);
+    if (existing) { try { existing.proc.kill(); } catch {} loginProcesses.delete(resolved); }
+
+    // Spawn claude auth login
+    const proc = spawn("claude", ["auth", "login", "--claudeai"], {
+      env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    let output = "";
+    let authUrl = "";
+
+    proc.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+    proc.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+
+    // Wait a bit for the auth URL to appear
+    setTimeout(() => {
+      const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/);
+      if (urlMatch) {
+        authUrl = urlMatch[1];
+        loginProcesses.set(resolved, { proc, authUrl });
+        res.json({ ok: true, authUrl, accountPath });
+      } else {
+        // Try platform.claude.com URL
+        const altMatch = output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
+        if (altMatch) {
+          authUrl = altMatch[1];
+          loginProcesses.set(resolved, { proc, authUrl });
+          res.json({ ok: true, authUrl, accountPath });
+        } else {
+          proc.kill();
+          res.status(500).json({ error: "Failed to get auth URL", output: output.slice(0, 500) });
+        }
+      }
+    }, 3000);
+
+    proc.on("exit", () => { loginProcesses.delete(resolved); });
+  });
+
+  // --- Account login: submit auth code to complete login ---
+  app.post("/api/accounts/login/complete", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    const { accountPath, code } = req.body;
+    if (!accountPath || !code) { res.status(400).json({ error: "accountPath and code required" }); return; }
+    const resolved = expandHome(accountPath);
+    const entry = loginProcesses.get(resolved);
+    if (!entry) { res.status(404).json({ error: "No active login session for this account. Start login first." }); return; }
+
+    // Send the code to claude's stdin
+    entry.proc.stdin?.write(code.trim() + "\n");
+
+    // Wait for completion
+    let completed = false;
+    entry.proc.on("exit", (exitCode) => {
+      if (completed) return;
+      completed = true;
+      loginProcesses.delete(resolved);
+      if (exitCode === 0) {
+        res.json({ ok: true, message: "Login successful" });
+      } else {
+        res.json({ ok: false, error: "Login may have failed. Check credentials." });
+      }
+    });
+
+    // Timeout
+    setTimeout(() => {
+      if (completed) return;
+      completed = true;
+      try { entry.proc.kill(); } catch {}
+      loginProcesses.delete(resolved);
+      // Check if credentials were actually saved
+      if (fs.existsSync(path.join(resolved, ".credentials.json"))) {
+        res.json({ ok: true, message: "Login completed" });
+      } else {
+        res.status(500).json({ error: "Login timed out" });
+      }
+    }, 10000);
   });
 
   // --- Account usage info ---

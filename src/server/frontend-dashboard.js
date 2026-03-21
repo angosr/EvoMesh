@@ -21,15 +21,21 @@ async function renderAccountUsage() {
     const html = `<h2 style="color:var(--accent);margin-bottom:10px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` +
       accounts.map(a => {
         const u = a.usage24h || {};
-        const statusCls = a.needsLogin ? 'needs-login' : (a.tokenExpiresIn && a.tokenExpiresIn < 3600000 ? 'expiring' : 'ok');
-        const statusText = a.needsLogin ? 'needs login' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
-        return `<div class="card acct-card-v2">
+        const isExpired = a.needsLogin || (a.tokenExpiresIn != null && a.tokenExpiresIn <= 0);
+        const isExpiring = !isExpired && a.tokenExpiresIn != null && a.tokenExpiresIn < 3600000;
+        const statusCls = isExpired ? 'needs-login' : (isExpiring ? 'expiring' : 'ok');
+        const statusText = isExpired ? 'EXPIRED' : (a.tokenExpiresIn != null ? fmtTime(a.tokenExpiresIn) : '');
+        const loginBtn = (isExpired || isExpiring || a.needsLogin)
+          ? `<button class="dash-action acct-login-btn" data-path="${esc(a.path)}" style="margin-left:6px;${isExpired?'color:var(--red);border-color:var(--red)':''}">🔑 Login</button>`
+          : '';
+        return `<div class="card acct-card-v2" ${isExpired?'style="border-color:var(--red);box-shadow:0 0 8px rgba(248,113,113,0.15)"':''}>
           <div class="acct-row">
             <span class="acct-dot ${statusCls}"></span>
             <strong class="acct-name">${esc(a.name || a.path)}</strong>
             <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
             ${a.rateLimitTier ? `<span class="acct-tier">${esc(a.rateLimitTier.replace('default_claude_','').replace(/_/g,' '))}</span>` : ''}
             <span class="acct-status ${statusCls}">${statusText}</span>
+            ${loginBtn}
           </div>
           <div class="acct-stats">
             <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
@@ -70,8 +76,81 @@ async function renderAccountUsage() {
         });
         addInput.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click(); });
       }
+      // Login button handlers
+      section.querySelectorAll('.acct-login-btn').forEach(btn => {
+        btn.addEventListener('click', () => startAccountLogin(btn.dataset.path, btn));
+      });
     }
   } catch {}
+}
+
+async function startAccountLogin(accountPath, btn) {
+  const origText = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Getting URL...';
+  try {
+    const r = await authFetch(`${API}/accounts/login/start`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountPath }),
+    });
+    const d = await r.json();
+    if (!d.ok || !d.authUrl) { alert(d.error || 'Failed to start login'); btn.disabled = false; btn.textContent = origText; return; }
+
+    // Show login dialog
+    const overlay = document.createElement('div');
+    overlay.className = 'copy-modal-overlay';
+    overlay.innerHTML = `<div class="copy-modal" style="width:500px">
+      <div class="copy-modal-header">
+        <span>Login: ${esc(accountPath)}</span>
+        <button class="copy-modal-close" id="login-close">&times;</button>
+      </div>
+      <div style="margin:12px 0">
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">1. Click the link below to authorize:</p>
+        <a href="${esc(d.authUrl)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:11px;word-break:break-all;display:block;padding:8px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border)">${esc(d.authUrl.slice(0, 120))}...</a>
+        <p style="font-size:12px;color:var(--text-dim);margin:12px 0 8px">2. After authorizing, paste the code here:</p>
+        <input id="login-code-input" type="text" placeholder="Paste authorization code..." style="width:100%;padding:10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-mono)">
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="dash-action" id="login-submit" style="flex:1;padding:8px">Submit Code</button>
+          <button class="dash-action" id="login-cancel">Cancel</button>
+        </div>
+        <div id="login-status" style="margin-top:8px;font-size:11px;color:var(--text-faint)"></div>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    const codeInput = document.getElementById('login-code-input');
+    const submitBtn = document.getElementById('login-submit');
+    const statusEl = document.getElementById('login-status');
+    setTimeout(() => codeInput?.focus(), 100);
+
+    document.getElementById('login-close').addEventListener('click', () => { overlay.remove(); btn.disabled = false; btn.textContent = origText; });
+    document.getElementById('login-cancel').addEventListener('click', () => { overlay.remove(); btn.disabled = false; btn.textContent = origText; });
+
+    submitBtn.addEventListener('click', async () => {
+      const code = codeInput.value.trim();
+      if (!code) { codeInput.focus(); return; }
+      submitBtn.disabled = true; submitBtn.textContent = '⏳ Logging in...';
+      statusEl.textContent = 'Completing login...';
+      try {
+        const cr = await authFetch(`${API}/accounts/login/complete`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accountPath, code }),
+        });
+        const cd = await cr.json();
+        if (cd.ok) {
+          statusEl.style.color = 'var(--green)';
+          statusEl.textContent = '✓ Login successful!';
+          setTimeout(() => { overlay.remove(); fetchAll(); }, 1500);
+        } else {
+          statusEl.style.color = 'var(--red)';
+          statusEl.textContent = cd.error || 'Login failed';
+          submitBtn.disabled = false; submitBtn.textContent = 'Submit Code';
+        }
+      } catch { statusEl.textContent = 'Network error'; submitBtn.disabled = false; submitBtn.textContent = 'Submit Code'; }
+    });
+
+    codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
+  } catch (e) { alert('Failed: ' + e.message); }
+  btn.disabled = false; btn.textContent = origText;
 }
 
 // ==================== Project Cards (bottom section) ====================
