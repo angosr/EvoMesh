@@ -18,7 +18,7 @@ async function renderAccountUsage() {
     if (!accounts || !accounts.length) { section.innerHTML = ''; _lastAccountHtml = ''; return; }
     const fmtNum = n => n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
     const fmtTime = ms => { if (!ms || ms <= 0) return 'expired'; const h = Math.floor(ms/3600000); const m = Math.floor((ms%3600000)/60000); return h > 0 ? `${h}h ${m}m` : `${m}m`; };
-    const html = `<h2 style="color:var(--accent);margin-bottom:10px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` +
+    let html = `<h2 style="color:var(--accent);margin-bottom:10px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Account Usage</h2>` +
       accounts.map(a => {
         const u = a.usage24h || {};
         const isExpired = a.needsLogin || (a.tokenExpiresIn != null && a.tokenExpiresIn <= 0);
