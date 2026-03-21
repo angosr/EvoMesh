@@ -269,6 +269,14 @@ export function startRole(
     args.push("-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`);
   }
 
+  // Mount host Claude Code binary (RO) — always matches host version, no image rebuild needed
+  try {
+    const claudeBin = execFileSync("readlink", ["-f", execFileSync("which", ["claude"], { encoding: "utf-8" }).trim()], { encoding: "utf-8" }).trim();
+    if (claudeBin && fs.existsSync(claudeBin)) {
+      args.push("-v", `${claudeBin}:/usr/local/bin/claude:ro`);
+    }
+  } catch { /* claude not found on host — use image's version */ }
+
   // Git config (RO)
   const gitconfig = path.join(homeDir, ".gitconfig");
   if (fs.existsSync(gitconfig)) {
