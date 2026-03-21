@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git openssh-client curl ca-certificates ttyd nodejs npm gosu python3 python3-pip tmux locales \
+    git openssh-client curl ca-certificates ttyd nodejs npm gosu python3 python3-pip tmux locales rsync \
     && rm -rf /var/lib/apt/lists/* \
     && locale-gen en_US.UTF-8
 
