@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-RUN npm install -g @anthropic-ai/claude-code@latest
+# Claude Code binary is bind-mounted from host at runtime — no install needed here
 
 WORKDIR /project
 EXPOSE 7681
