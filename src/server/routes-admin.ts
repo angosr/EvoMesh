@@ -142,13 +142,22 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
       claudeArgParts.push("--name", "central");
     }
     claudeArgParts.push("--dangerously-skip-permissions");
-    const claudeArgs = claudeArgParts.join(" ");
 
     // Start tmux session with claude — cwd is ~/.evomesh/central/ so Claude Code loads CLAUDE.md from there
-    const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
+    // IMPORTANT: Only set CLAUDE_CONFIG_DIR for non-default accounts. When set explicitly
+    // (even to ~/.claude), Claude Code uses a different state file path internally,
+    // causing it to miss existing auth state and prompt for login.
+    const defaultAccount = path.join(homeDir, ".claude");
+    const isDefaultAccount = accountPath === defaultAccount;
+    const tmuxCmd = isDefaultAccount
+      ? ["claude", ...claudeArgParts]
+      : ["env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", ...claudeArgParts];
     execFileSync("tmux", [
-      "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
+      "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40",
+      ...tmuxCmd,
     ], { cwd: centralDir, stdio: "ignore" });
+    // Keep tmux session alive after claude exits (replaces "; exec bash" pattern)
+    try { execFileSync("tmux", ["set-option", "-t", sessionName, "remain-on-exit", "on"], { stdio: "ignore" }); } catch {}
 
     // Kill any leftover ttyd for this session before starting a new one
     killExistingTtyd(sessionName);

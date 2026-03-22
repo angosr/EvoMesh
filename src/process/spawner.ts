@@ -74,9 +74,13 @@ function spawnForeground(
   loopPrompt: string,
   claudeArgs: string[] = ["--dangerously-skip-permissions"]
 ): SpawnedRole {
+  // Only set CLAUDE_CONFIG_DIR for non-default accounts. When set explicitly
+  // (even to ~/.claude), Claude Code uses a different internal state file path,
+  // causing it to miss existing auth state and prompt for login.
+  const defaultAccount = path.join(process.env.HOME || "/home", ".claude");
   const env: Record<string, string> = {
     ...process.env as Record<string, string>,
-    CLAUDE_CONFIG_DIR: accountPath,
+    ...(accountPath !== defaultAccount ? { CLAUDE_CONFIG_DIR: accountPath } : {}),
   };
 
   const pty = ptySpawn("claude", claudeArgs, {
@@ -160,9 +164,14 @@ function spawnTmux(
   fs.writeFileSync(logPath, "", "utf-8");
 
   // Create tmux session running claude
+  // Only set CLAUDE_CONFIG_DIR for non-default accounts (see routes-admin.ts comment)
+  const defaultAccount = path.join(process.env.HOME || "/home", ".claude");
+  const tmuxCmd = accountPath !== defaultAccount
+    ? ["env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", ...claudeArgs]
+    : ["claude", ...claudeArgs];
   execFileSync("tmux", [
     "new-session", "-d", "-s", session, "-x", "120", "-y", "40",
-    "env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", ...claudeArgs,
+    ...tmuxCmd,
   ], { cwd: root, stdio: "ignore" });
 
   // Mouse off: allows native text selection in web terminal

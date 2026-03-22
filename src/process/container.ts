@@ -173,9 +173,15 @@ function startRoleHost(
   if (roleConfig.model) claudeArgs = `--model ${roleConfig.model} ${claudeArgs}`;
 
   // Start tmux session with claude
-  const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
+  // Only set CLAUDE_CONFIG_DIR for non-default accounts. When set explicitly
+  // (even to ~/.claude), Claude Code uses a different internal state file path,
+  // causing it to miss existing auth state and prompt for login.
+  const defaultAccount = path.join(os.homedir(), ".claude");
+  const tmuxCmd = accountPath !== defaultAccount
+    ? `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`
+    : `claude ${claudeArgs}; exec bash`;
   execFileSync("tmux", [
-    "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", claudeCmd,
+    "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", tmuxCmd,
   ], { cwd: path.resolve(root), stdio: "ignore" });
 
   // Start ttyd pointing at tmux session
