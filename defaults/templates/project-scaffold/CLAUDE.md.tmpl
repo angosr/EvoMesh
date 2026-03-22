@@ -6,11 +6,12 @@
 2. **`cat` and read**: ROLE.md, inbox/*, memory/short-term.md (EVERY loop, do NOT rely on memory)
    Also read (every 5 loops or when notified): blueprint.md, status.md, shared/decisions.md
 3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/ → `git rm` the original (stages deletion so it survives context clears)
-4. **Update claims**: Read `.evomesh/shared/claims.json`. Update your claim:
+4. **Update claims**: Read `.evomesh/shared/claims.json`. **Lead creates** claim entries when dispatching (includes claim `id` in inbox message). **Workers update** their assigned claims:
    - `status`: unclaimed → in-progress → blocked → in-review → completed
    - `lastActivityAt`: current timestamp
    - `notes`: append what you did this loop
-   - `blockedReason`: set if blocked (lead will see immediately)
+   - `blockedReason`: set if blocked (lead sees immediately)
+   - Match your claim by `id` from the inbox message
 5. Execute role work
 6. Write outputs (ALL mandatory, do in one step):
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus

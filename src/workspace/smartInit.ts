@@ -125,6 +125,9 @@ export function smartInit(root: string, name: string, lang: Lang = "zh"): Projec
   if (!exists(path.join(sharedDir, "blockers.md"))) {
     writeFile(path.join(sharedDir, "blockers.md"), lang === "en" ? "# Blockers\n\n(none yet)\n" : "# 阻塞问题\n\n（暂无）\n");
   }
+  if (!exists(path.join(sharedDir, "claims.json"))) {
+    writeFile(path.join(sharedDir, "claims.json"), '{"claims": []}\n');
+  }
 
   // Blueprint — template or fallback
   if (!exists(path.join(evomesh, "blueprint.md"))) {

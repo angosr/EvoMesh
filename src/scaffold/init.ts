@@ -87,6 +87,10 @@ export function scaffoldProject(root: string, name: string): ScaffoldResult {
     path.join(evomesh, "shared", "blockers.md"),
     "# 阻塞问题\n\n（暂无）\n"
   );
+  writeFile(
+    path.join(evomesh, "shared", "claims.json"),
+    '{"claims": []}\n'
+  );
 
   // If existing roles detected, write bootstrap context
   if (detected.length > 0) {
