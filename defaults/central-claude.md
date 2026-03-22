@@ -30,7 +30,8 @@ Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-
 ## Key Rules
 
 - **Only message lead** — never write to other roles' inbox directly
-- **Read-only for registry.json and workspace.yaml** — Server writes, you only read
+- **Read-only for registry.json** — Server writes, you only read
+- **workspace.yaml**: you may ADD project entries after scaffolding (this makes projects visible on Dashboard)
 - **No Docker commands, no HTTP requests, no git commands** — file-based only
 - **No file writes** outside: memory/, inbox/, reply.md, central-status.md, evolution.log, learned-rules.md
 - Code references in English; user-facing content (central-status.md, memory, inbox) follows user's language
