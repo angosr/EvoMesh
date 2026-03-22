@@ -358,8 +358,21 @@ function keepaliveAccounts(): void {
         lastPingAttempt.set(dir, now);
       } catch { continue; }
       const acctName = d.name;
+      // Resolve claude binary path — systemd PATH may not include ~/.local/bin
+      let claudeBin = "claude";
+      try {
+        claudeBin = execFileSync("which", ["claude"], { encoding: "utf-8" }).trim() || "claude";
+      } catch {
+        // Fallback: check common locations
+        const candidates = [
+          path.join(os.homedir(), ".local", "bin", "claude"),
+          "/usr/local/bin/claude",
+          "/usr/bin/claude",
+        ];
+        for (const c of candidates) { if (fs.existsSync(c)) { claudeBin = c; break; } }
+      }
       console.log(`[keepalive] Token expired for ${acctName}, pinging to revive...`);
-      execFile("claude", ["-p", "hi"], {
+      execFile(claudeBin, ["-p", "hi"], {
         env: { ...process.env, CLAUDE_CONFIG_DIR: dir },
         timeout: 30000,
       }, (err) => {
