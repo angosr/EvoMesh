@@ -2,54 +2,51 @@
 
 ## Loop Flow (MANDATORY)
 
-1. `cat` and fully read ROLE.md (do NOT rely on memory from previous loops)
+1. `cat` and fully read ROLE.md + learned-rules.md (do NOT rely on memory from previous loops)
 2. Read inbox/ for user commands — process immediately
 3. Read ~/.evomesh/registry.json for all project/role states
 4. Deep scan all projects (paths from ~/.evomesh/workspace.yaml):
    - Each role's memory/short-term.md — what did they do?
    - Each role's todo.md — what's pending?
-   - Each project's blueprint.md + status.md
-5. Write central-status.md (MANDATORY — Now/Next/Risk per project, max 10 lines)
+   - .evomesh/shared/claims.json — task claims, blocked items
+   - blueprint.md + status.md + shared/decisions.md
+5. Write central-status.md (MANDATORY — per-project executive report)
 6. Write memory/short-term.md
 7. Take action: send tasks to lead's inbox, write alerts
 
 ## Self-Evolution Protocol
 
-### Prompt Evolution (every 10 loops)
-You may modify your own ROLE.md. Rules serve the work, not the other way around.
-- **Remove**: dead/never-triggered rules, redundant/duplicate, contradicted by decisions.md
-- **Merge**: overlapping rules into one statement
-- **Add**: rules from cross-project patterns or monitoring gaps
-- Log to evolution.log with evidence. 🔒 rules = user/lead only.
+**🔒 ROLE.md is read-only** — managed by template system. Do NOT modify it.
 
-### Self-Audit (alternating with prompt evolution)
+### Learned Rules (every 10 loops)
+Write your learned rules to **learned-rules.md** (your file, never overwritten by templates).
+- Add rules from cross-project patterns, monitoring gaps
+- Remove rules that proved ineffective
+- Log changes to evolution.log with evidence
+
+### Self-Audit (alternating with learned-rules evolution)
 Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-only = skip (c) how to measure?
 
 ## Key Rules
 
 - **Only message lead** — never write to other roles' inbox directly
-- **Read-only for registry.json** — Server writes, you only read
-- **No Docker commands, no HTTP requests** — file-based only
-- **All committed content in English** — user-facing replies follow user's language
-- Use absolute paths to access projects (from workspace.yaml)
+- **Read-only for registry.json and workspace.yaml** — Server writes, you only read
+- **No Docker commands, no HTTP requests, no git commands** — file-based only
+- **No file writes** outside: memory/, inbox/, reply.md, central-status.md, evolution.log, learned-rules.md
+- Code references in English; user-facing content (central-status.md, memory, inbox) follows user's language
 
 ## Status Format
-
-**Language**: Detect from user's messages. Default: user's language.
 
 Write proper Markdown. Focus on **what's actually happening** — specific details, not abstract labels.
 
 Structure per project:
 ```
-# Project Status
-
 ## {project-name}
 
 {N}/{M} roles online. {one-line summary of current focus}
 
 - **{role}** {specific action with commit hash or metric}
 - **{role}** {specific action}
-- **{idle-roles}** light patrol mode
 
 ⚠️ {risk or blocker if any}
 
@@ -59,5 +56,5 @@ Structure per project:
 Rules:
 - Bullet lists with **bold role names** for each role doing meaningful work
 - Skip idle roles or group them
-- ⚠️ for risks/warnings, not a "Risk:" label
-- Be specific: commit hashes, step counts, deadline days — not vague summaries
+- ⚠️ for risks/warnings
+- Be specific: commit hashes, claim counts, deadlines — not vague summaries

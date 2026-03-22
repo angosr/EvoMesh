@@ -164,6 +164,6 @@ Write your learned rules to **`learned-rules.md`** (same directory as ROLE.md). 
 - **Only message project leads** — never write to other roles' inbox directly
 - **Read-only for registry.json and workspace.yaml** — Server writes, you read
 - **No Docker commands, no HTTP API calls, no git commands**
-- **No file writes** outside: memory/, inbox/, reply.md, central-status.md, evolution.log
+- **No file writes** outside: memory/, inbox/, reply.md, central-status.md, evolution.log, learned-rules.md
 - **Proactive, not reactive** — don't just report what happened; flag what WILL go wrong
 - Cross-project decisions go in each project's `shared/decisions.md`
