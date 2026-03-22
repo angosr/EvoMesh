@@ -60,6 +60,13 @@ export function bootstrapGlobalConfig(): void {
     }
   }
 
+  // Central AI learned-rules.md — NEVER overwritten (owned by self-evolution)
+  const learnedRules = path.join(evomeshDir, "central", "learned-rules.md");
+  if (!fs.existsSync(learnedRules)) {
+    fs.writeFileSync(learnedRules, "# Central AI — Learned Rules\n\n> This file is owned by Central AI's self-evolution process.\n> It is NEVER overwritten by template sync. Add rules here.\n\n(no learned rules yet)\n", "utf-8");
+    console.log("[bootstrap] Created central AI learned-rules.md");
+  }
+
   // Central AI CLAUDE.md — auto-loaded by Claude Code when cwd is ~/.evomesh/central/
   const centralClaude = path.join(evomeshDir, "central", "CLAUDE.md");
   const repoClaude = findRepoFile("defaults/central-claude.md");
