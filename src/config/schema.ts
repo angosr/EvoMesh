@@ -15,6 +15,25 @@ export interface RoleConfig {
   mcp?: Record<string, McpServerConfig>;  // MCP servers for this role
   launch_mode?: "docker" | "host";  // Container launch mode
   idle_policy?: "reset" | "compact" | "stop" | "ignore";  // What to do when role is idle
+  model?: "opus" | "sonnet" | "haiku";  // Claude model tier; default: sonnet
+}
+
+export interface Claim {
+  id: string;
+  task: string;
+  priority: "P0" | "P1" | "P2";
+  assignedBy: string;
+  assignedTo: string;
+  status: "unclaimed" | "in-progress" | "blocked" | "in-review" | "completed";
+  claimedAt: string | null;
+  lastActivityAt: string;
+  notes: string[];
+  blockedReason: string | null;
+  inboxRef: string | null;
+}
+
+export interface ClaimsData {
+  claims: Claim[];
 }
 
 export interface GitConfig {

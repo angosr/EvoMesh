@@ -23,6 +23,7 @@ import type { ServerContext } from "./index.js";
 import { registerRoleRoutes } from "./routes-roles.js";
 import { registerAdminRoutes } from "./routes-admin.js";
 import { registerFeedRoutes } from "./routes-feed.js";
+import { registerClaimsRoutes } from "./routes-claims.js";
 import { registerUsageRoutes } from "./routes-usage.js";
 
 export const ROLE_NAME_RE = /^[a-zA-Z0-9_-]+$/;
@@ -224,6 +225,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           account: rc.account, needsLogin: ctx.checkNeedsLogin(accountDir),
           memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
           idle_policy: rc.idle_policy || "ignore",
+          model: rc.model || "sonnet",
           actualMem, actualCpu,
         };
       });
@@ -367,5 +369,6 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
   registerRoleRoutes(app, ctx);
   registerUsageRoutes(app, ctx);
   registerFeedRoutes(app, ctx);
+  registerClaimsRoutes(app, ctx);
   registerAdminRoutes(app, ctx);
 }

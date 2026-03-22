@@ -170,6 +170,7 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
   // NOTE: Multi-user limitation — polls ALL projects and broadcasts to ALL subscribers.
   // For multi-user isolation, this would need per-user feed channels or subscriber filtering.
   const globalLastMtime = new Map<string, number>();
+  const globalLastClaimsMtime = new Map<string, number>();
   const globalLastText = new Map<string, string>();
 
   function pollRoleUpdates() {
@@ -200,6 +201,23 @@ export function registerFeedRoutes(app: import("express").Express, ctx: ServerCo
           } catch (e: unknown) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error(`[feed] error checking STM for ${name}: ${errorMessage(e)}`); }
         }
       }
+      // Poll claims.json for changes
+      for (const p2 of projects) {
+        const claimsPath = path.join(p2.root, ".evomesh", "shared", "claims.json");
+        try {
+          if (!fs.existsSync(claimsPath)) continue;
+          const stat = fs.statSync(claimsPath);
+          const claimsKey = `${p2.slug}/claims`;
+          const prevMtime = globalLastClaimsMtime.get(claimsKey) || 0;
+          if (stat.mtimeMs > prevMtime) {
+            globalLastClaimsMtime.set(claimsKey, stat.mtimeMs);
+            if (prevMtime > 0) { // skip first detection
+              broadcastFeed({ type: "system", text: `[${p2.slug}] Task claims updated`, time: new Date().toISOString() });
+            }
+          }
+        } catch { /* non-critical */ }
+      }
+
       activeKeys.add("central");
       for (const key of globalLastMtime.keys()) {
         if (!activeKeys.has(key)) { globalLastMtime.delete(key); globalLastText.delete(key); }

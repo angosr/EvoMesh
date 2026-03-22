@@ -6,12 +6,13 @@
 2. **`cat` and read**: ROLE.md, inbox/*, memory/short-term.md (EVERY loop, do NOT rely on memory)
    Also read (every 5 loops or when notified): blueprint.md, status.md, shared/decisions.md
 3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/ → `git rm` the original (stages deletion so it survives context clears)
-4. Execute role work
-5. Write outputs (ALL mandatory, do in one step):
+4. **Update claims**: If you have claimed tasks in `.evomesh/shared/claims.json`, update your claim's `status`, `lastActivityAt`, and `notes`. If blocked, set `blockedReason`.
+5. Execute role work
+6. Write outputs (ALL mandatory, do in one step):
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
    - `heartbeat.json` — write `{"ts": <unix_ms>}` (server uses this to detect brain-dead roles)
    - `todo.md` — mark completed, add new
-6. If this loop produced real output (code, new dispatches, new decisions): `git add <own files only>` → commit (include bookkeeping files) → push. Lead: `git pull --rebase` before push. Workers: push directly (do NOT pull/stash/rebase — if push fails due to conflict, skip this push and retry next loop).
+7. If this loop produced real output (code, new dispatches, new decisions): `git add <own files only>` → commit (include bookkeeping files) → push. Lead: `git pull --rebase` before push. Workers: push directly (do NOT pull/stash/rebase — if push fails due to conflict, skip this push and retry next loop).
    If only bookkeeping (heartbeat/memory/todo/inbox processed/status update): write files locally but do NOT commit. They will be included in the next real commit.
 
 Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no commit).

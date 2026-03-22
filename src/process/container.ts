@@ -169,6 +169,9 @@ function startRoleHost(
     claudeArgs = `--name ${roleName} ${claudeArgs}`;
   }
 
+  // Model tier
+  if (roleConfig.model) claudeArgs = `--model ${roleConfig.model} ${claudeArgs}`;
+
   // Start tmux session with claude
   const claudeCmd = `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`;
   execFileSync("tmux", [
@@ -318,6 +321,7 @@ export function startRole(
   args.push("-e", `CLAUDE_CONFIG_DIR=${accountPath}`);
   args.push("-e", `ROLE_NAME=${roleName}`);
   args.push("-e", `LOOP_INTERVAL=${roleConfig.loop_interval || "10m"}`);
+  if (roleConfig.model) args.push("-e", `CLAUDE_MODEL=${roleConfig.model}`);
 
   // Working directory — same as host
   args.push("-w", path.resolve(root));

@@ -190,7 +190,9 @@ async function renderDashboard() {
       const modeSelect = `<select class="mode-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}"><option value="docker"${launchMode==='docker'?' selected':''}>docker</option><option value="host"${launchMode==='host'?' selected':''}>host</option></select>`;
       const idlePolicy = r.idle_policy || 'ignore';
       const idleSelect = `<select class="idle-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Idle policy (3x idle → action)"><option value="ignore"${idlePolicy==='ignore'?' selected':''}>Ignore</option><option value="compact"${idlePolicy==='compact'?' selected':''}>Compress</option><option value="reset"${idlePolicy==='reset'?' selected':''}>Reset</option></select>`;
-      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${modeSelect}${idleSelect}</div>` : '';
+      const modelVal = r.model || 'sonnet';
+      const modelSelect = `<select class="model-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Claude model tier"><option value="opus"${modelVal==='opus'?' selected':''}>Opus</option><option value="sonnet"${modelVal==='sonnet'?' selected':''}>Sonnet</option><option value="haiku"${modelVal==='haiku'?' selected':''}>Haiku</option></select>`;
+      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${modeSelect}${idleSelect}${modelSelect}</div>` : '';
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span>${statusBadge}${loginBadge}</td>
         <td>${acctCol}</td>
@@ -204,6 +206,32 @@ async function renderDashboard() {
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
     html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>${membersPanel}</div>`;
   }
+  // Claims Board — fetch and render per-project claims
+  for (const p of state.projects) {
+    try {
+      const cr = await authFetch(`${API}/projects/${p.slug}/claims`);
+      if (!cr.ok) continue;
+      const cd = await cr.json();
+      const claims = cd.claims || [];
+      if (!claims.length) continue;
+      const statusGroups = { unclaimed: [], 'in-progress': [], blocked: [], 'in-review': [], completed: [] };
+      for (const c of claims) { if (statusGroups[c.status]) statusGroups[c.status].push(c); }
+      const claimCols = ['unclaimed', 'in-progress', 'blocked', 'in-review'].filter(s => statusGroups[s].length > 0);
+      if (!claimCols.length) continue;
+      const claimHtml = claimCols.map(s => {
+        const items = statusGroups[s].map(c =>
+          `<div class="claim-item claim-${s}" title="${esc(c.task)}">
+            <span class="badge ${s === 'blocked' ? 'login-needed' : s === 'in-progress' ? 'running' : 'stopped'}">${esc(s)}</span>
+            <strong>${esc(c.assignedTo)}</strong>: ${esc(c.task.slice(0, 60))}
+            ${c.blockedReason ? `<div style="color:var(--red);font-size:10px">⚠ ${esc(c.blockedReason)}</div>` : ''}
+          </div>`
+        ).join('');
+        return `<div class="claim-col"><div class="claim-col-title">${esc(s)} (${statusGroups[s].length})</div>${items}</div>`;
+      }).join('');
+      html += `<div class="card"><h3>Claims — ${esc(p.name)}</h3><div class="claims-board">${claimHtml}</div></div>`;
+    } catch { /* claims API not available */ }
+  }
+
   // Central AI row — same table style as project roles, placed after Project Overview header
   let centralHtml = '';
   try {
@@ -251,6 +279,9 @@ async function renderDashboard() {
   });
   projectsEl.querySelectorAll('.idle-select').forEach(sel => {
     sel.addEventListener('change', () => saveIdlePolicy(sel.dataset.slug, sel.dataset.role, sel.value));
+  });
+  projectsEl.querySelectorAll('.model-select').forEach(sel => {
+    sel.addEventListener('change', () => saveModel(sel.dataset.slug, sel.dataset.role, sel.value));
   });
   projectsEl.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));

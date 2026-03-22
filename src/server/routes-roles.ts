@@ -121,7 +121,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
-      const { memory, cpus, launch_mode, idle_policy } = req.body;
+      const { memory, cpus, launch_mode, idle_policy, model } = req.body;
 
       // Track whether container-level config changed (requires restart)
       const oldMemory = rc.memory;
@@ -140,6 +140,13 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         }
         rc.idle_policy = idle_policy;
       }
+      if (model !== undefined) {
+        const VALID_MODELS = ["opus", "sonnet", "haiku"];
+        if (!VALID_MODELS.includes(model)) {
+          res.status(400).json({ error: `Invalid model. Must be one of: ${VALID_MODELS.join(", ")}` }); return;
+        }
+        rc.model = model;
+      }
       writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
       // Only restart if container-level config actually changed (memory, cpus, launch_mode)
@@ -153,7 +160,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         restarted = true;
       }
 
-      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, restarted });
+      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, model: rc.model, restarted });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 

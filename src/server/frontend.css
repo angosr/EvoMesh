@@ -257,6 +257,16 @@
   .acct-select:hover, .acct-select:focus { border-color: var(--accent); outline: none; }
   .mode-select, .idle-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 4px 6px; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer; transition: border-color 0.2s; }
   .mode-select:hover, .idle-select:hover, .mode-select:focus, .idle-select:focus { border-color: var(--accent); outline: none; }
+  .model-select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 4px 6px; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer; transition: border-color 0.2s; }
+  .model-select:hover, .model-select:focus { border-color: var(--accent); outline: none; }
+
+  /* Claims Board */
+  .claims-board { display: flex; gap: 10px; overflow-x: auto; }
+  .claim-col { flex: 1; min-width: 140px; }
+  .claim-col-title { font-size: 10px; text-transform: uppercase; color: var(--text-faint); font-family: var(--font-mono); margin-bottom: 6px; letter-spacing: 0.05em; }
+  .claim-item { padding: 6px 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 4px; font-size: 11px; }
+  .claim-item strong { color: var(--text); }
+  .claim-blocked { border-color: var(--red); background: rgba(248,113,133,0.05); }
   .onboarding { text-align: center; padding: 40px 24px; }
   .onboarding h3 { color: var(--accent); margin-bottom: 16px; font-size: 18px; font-weight: 600; }
   .onboarding ol { text-align: left; display: inline-block; margin: 16px 0; line-height: 2; color: var(--text-dim); font-size: 13px; }

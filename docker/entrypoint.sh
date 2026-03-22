@@ -24,6 +24,9 @@ ROLE_SESSION_FILE="${WORK_DIR}/${ROLE_SESSION_DIR}/.session-id"
 CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 HISTORY_FILE="${CONFIG_DIR}/history.jsonl"
 CLAUDE_ARGS="--dangerously-skip-permissions"
+if [ -n "$CLAUDE_MODEL" ]; then
+  CLAUDE_ARGS="--model $CLAUDE_MODEL $CLAUDE_ARGS"
+fi
 
 SESSION_ID=""
 if [ -f "$ROLE_SESSION_FILE" ] && [ -s "$ROLE_SESSION_FILE" ]; then
