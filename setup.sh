@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+EVOMESH_PORT="${EVOMESH_PORT:-8123}"
+WORKDIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_DIR="$HOME/.evomesh/logs"
+
 echo "=== EvoMesh Setup ==="
 echo ""
 
@@ -107,41 +111,106 @@ echo "Building Docker image (evomesh-role)..."
 docker build -t evomesh-role docker/
 echo ""
 
-# 4. Install systemd service (optional)
-if command -v systemctl >/dev/null 2>&1 && [ -f deploy/evomesh.service ]; then
-  echo "systemd detected. Install service? (y/N)"
+# 4. Prepare log directory
+mkdir -p "$LOG_DIR"
+
+# 5. Install systemd service and start (or fallback to nohup)
+USE_SYSTEMD=false
+
+if command -v systemctl >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1 || command -v systemctl >/dev/null 2>&1; then
+  echo "systemd detected. Install as system service for auto-start on boot? (Y/n)"
   read -r yn
-  if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
-    sudo cp deploy/evomesh.service /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable evomesh
-    echo "  systemd service installed and enabled"
+  if [ "$yn" != "n" ] && [ "$yn" != "N" ]; then
+    USE_SYSTEMD=true
   fi
-  echo ""
 fi
 
-# 5. Start server
-echo "Starting EvoMesh server..."
-nohup npx tsx --watch --watch-path=src bin/evomesh.ts serve --port 8123 > /tmp/evomesh.log 2>&1 &
-SERVER_PID=$!
-sleep 3
+if [ "$USE_SYSTEMD" = true ]; then
+  echo "Installing systemd service..."
 
-if kill -0 $SERVER_PID 2>/dev/null; then
-  echo ""
-  echo "=== EvoMesh is running ==="
-  echo ""
-  echo "  Web UI: http://localhost:8123"
-  echo "  Logs:   /tmp/evomesh.log"
-  echo "  PID:    $SERVER_PID"
-  echo ""
-  echo "  First visit: create admin account at /login"
-  echo "  Then use Central AI to add your project"
-  echo ""
-  echo "  No public IP? Use a tunnel:"
-  echo "    cloudflared tunnel --url http://localhost:8123"
-  echo "    # or: ngrok http 8123"
-  echo ""
+  # Resolve real paths for node
+  NODE_BIN="$(command -v node)"
+  NODE_DIR="$(dirname "$NODE_BIN")"
+
+  # Generate service file from template
+  sed \
+    -e "s|__WORKDIR__|${WORKDIR}|g" \
+    -e "s|__USER__|$(whoami)|g" \
+    -e "s|__NODE_BIN__|${NODE_BIN}|g" \
+    -e "s|__NODE_DIR__|${NODE_DIR}|g" \
+    -e "s|__PORT__|${EVOMESH_PORT}|g" \
+    -e "s|__HOME__|${HOME}|g" \
+    -e "s|__LOG_DIR__|${LOG_DIR}|g" \
+    deploy/evomesh.service > /tmp/evomesh.service
+
+  sudo cp /tmp/evomesh.service /etc/systemd/system/evomesh.service
+  rm -f /tmp/evomesh.service
+  sudo systemctl daemon-reload
+  sudo systemctl enable evomesh
+
+  # Stop old instance if running (nohup or previous systemd)
+  sudo systemctl stop evomesh 2>/dev/null || true
+  pkill -f "tsx.*bin/evomesh.ts serve" 2>/dev/null || true
+  sleep 1
+
+  sudo systemctl start evomesh
+  sleep 3
+
+  if systemctl is-active --quiet evomesh; then
+    echo ""
+    echo "=== EvoMesh is running (systemd) ==="
+    echo ""
+    echo "  Web UI:      http://localhost:${EVOMESH_PORT}"
+    echo "  Logs:        journalctl -u evomesh -f"
+    echo "               ${LOG_DIR}/evomesh.log"
+    echo "  Auto-start:  enabled (on boot)"
+    echo "  Auto-reload: enabled (watches src/ for changes)"
+    echo ""
+    echo "  Management:"
+    echo "    sudo systemctl status evomesh   # check status"
+    echo "    sudo systemctl restart evomesh  # manual restart"
+    echo "    sudo systemctl stop evomesh     # stop server"
+    echo "    sudo systemctl disable evomesh  # disable auto-start"
+    echo ""
+  else
+    echo "ERROR: systemd service failed to start."
+    echo "  Check: journalctl -u evomesh -n 50 --no-pager"
+    exit 1
+  fi
 else
-  echo "ERROR: Server failed to start. Check /tmp/evomesh.log"
-  exit 1
+  # Fallback: nohup (no boot auto-start)
+  echo "Starting EvoMesh server (nohup)..."
+
+  # Kill any existing instance
+  pkill -f "tsx.*bin/evomesh.ts serve" 2>/dev/null || true
+  sleep 1
+
+  nohup npx tsx --watch --watch-path=src bin/evomesh.ts serve --port "$EVOMESH_PORT" >> "$LOG_DIR/evomesh.log" 2>&1 &
+  SERVER_PID=$!
+  sleep 3
+
+  if kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo ""
+    echo "=== EvoMesh is running (nohup) ==="
+    echo ""
+    echo "  Web UI:      http://localhost:${EVOMESH_PORT}"
+    echo "  Logs:        ${LOG_DIR}/evomesh.log"
+    echo "  PID:         ${SERVER_PID}"
+    echo "  Auto-reload: enabled (watches src/ for changes)"
+    echo ""
+    echo "  NOTE: nohup mode — server will NOT auto-start on reboot."
+    echo "  Re-run ./setup.sh and choose systemd to enable boot auto-start."
+    echo ""
+  else
+    echo "ERROR: Server failed to start. Check ${LOG_DIR}/evomesh.log"
+    exit 1
+  fi
 fi
+
+echo "  First visit: create admin account at /login"
+echo "  Then use Central AI to add your project"
+echo ""
+echo "  No public IP? Use a tunnel:"
+echo "    cloudflared tunnel --url http://localhost:${EVOMESH_PORT}"
+echo "    # or: ngrok http ${EVOMESH_PORT}"
+echo ""
