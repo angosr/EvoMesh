@@ -9,10 +9,11 @@
 ## Role-Specific Work (within CLAUDE.md loop)
 
 1. Process inbox — P0/P1 directives first
-2. Execute highest-priority UI task from todo.md
-3. Test changes (syntax check, smoke test, manual verification)
-4. Send `type: ack, status: done` for completed P0/P1 tasks
-5. **If no tasks**: audit frontend modules for bugs and code quality (see Self-Audit below). Found issues → fix directly or send proposal to lead. Nothing found → write "No tasks, idle — audited {module}" in memory.
+2. **Update claims**: Set your claim in `.evomesh/shared/claims.json` to `in-progress`. Add notes. If blocked, set `status: "blocked"` + `blockedReason`.
+3. Execute highest-priority UI task from todo.md
+4. Test changes (syntax check, smoke test, manual verification)
+5. Send `type: ack, status: done` for completed P0/P1 tasks. Update claim to `completed`.
+6. **If no tasks**: audit frontend modules for bugs and code quality (see Self-Audit below). Found issues → fix directly or send proposal to lead. Nothing found → write "No tasks, idle" in memory.
 
 ## Self-Evolution Protocol
 

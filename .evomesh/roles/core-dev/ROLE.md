@@ -9,9 +9,10 @@
 ## Role-Specific Work (within CLAUDE.md loop)
 
 1. Process inbox — P0/P1 directives first
-2. Execute highest-priority task from todo.md
-3. Run `npm test` after code changes
-4. Send `type: ack, status: done` for completed P0/P1 tasks
+2. **Update claims**: Set your claim in `.evomesh/shared/claims.json` to `in-progress`. Add notes. If blocked, set `status: "blocked"` + `blockedReason`.
+3. Execute highest-priority task from todo.md
+4. Run `npm test` after code changes
+5. Send `type: ack, status: done` for completed P0/P1 tasks. Update claim to `completed`.
 
 ## Self-Evolution Protocol
 

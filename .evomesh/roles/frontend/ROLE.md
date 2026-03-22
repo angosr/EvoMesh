@@ -17,11 +17,12 @@
 ## Loop Flow
 
 1. Read this file + todo.md + inbox/ + memory/short-term.md (do NOT git pull — lead handles that)
-2. Work on highest-priority task (inbox P0 > P1 > todo items)
-3. Run tests: syntax check → `npm test`
-4. Update todo.md (mark completed, add new tasks)
-5. Write memory/short-term.md (done, blockers, next focus)
-6. If real work done: commit + push directly (do NOT pull/stash/rebase before push — if push fails, skip and retry next loop). If only heartbeat/memory/todo changed: skip commit.
+2. **Update claims**: Set your claim in `.evomesh/shared/claims.json` to `in-progress`. Add notes. If blocked, set `status: "blocked"` + `blockedReason`. On completion, set `completed`.
+3. Work on highest-priority task (inbox P0 > P1 > todo items)
+4. Run tests: syntax check → `npm test`
+5. Update todo.md (mark completed, add new tasks)
+6. Write memory/short-term.md (done, blockers, next focus)
+7. If real work done: commit + push directly (do NOT pull/stash/rebase before push — if push fails, skip and retry next loop). If only heartbeat/memory/todo changed: skip commit.
 
 ## Self-Evolution Protocol
 

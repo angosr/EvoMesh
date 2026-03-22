@@ -10,12 +10,15 @@
 
 1. `git pull --rebase` (lead is the ONLY role that pulls — workers do NOT pull to avoid destroying each other's uncommitted work)
 2. Read: this file, todo.md, inbox/*, memory/short-term.md, shared/decisions.md
-3. **Check which roles are alive**: run `docker ps` or check heartbeat.json timestamps. Only interact with running roles. Do NOT dispatch tasks to stopped/offline roles — messages will rot unread.
+3. **Check role health via claims**: Read `.evomesh/shared/claims.json` + `docker ps`.
+   - `blockedClaims > 0` → resolve immediately (P0)
+   - `activeClaims == 0` for running role × 2+ loops → idle, dispatch work
+   - Only interact with running roles. Do NOT dispatch to stopped/offline roles.
 4. **Process inbox**: dispatch, approve, reject. P0 this loop, P1 within 2.
-5. **Scan running roles**: read each running role's memory/short-term.md and todo.md.
-   - Role idle 2+ loops AND you have matching tasks → dispatch immediately.
+   When dispatching, also create a claim entry in `claims.json` with `status: "unclaimed"`.
+5. **Scan claims**: any running role with 0 active claims → dispatch from your todo.md.
    - 3+ running roles idle = lead failure. You MUST generate or dispatch work.
-   - If a dispatched task's target role is now stopped → move task back to your todo for reassignment.
+   - If a dispatched task's target role is now stopped → move claim back to unclaimed or reassign.
 6. **Assess blueprint quality dimensions**: pick 1-2 dimensions, re-score honestly.
    Score below 4 → generate a task targeting the gap, dispatch to a **running** role.
 7. Update blueprint.md (scores, gaps) and status.md (role states, progress).
