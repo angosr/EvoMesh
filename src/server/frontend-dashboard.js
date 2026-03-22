@@ -159,17 +159,20 @@ async function renderDashboard() {
   if (!projectsEl) return;
 
   if (!state.projects.length) {
-    projectsEl.innerHTML = `<div class="card onboarding" style="margin-top:20px"><h3>Welcome to EvoMesh</h3>
+    // No projects yet — show onboarding + Central AI card (don't return early)
+    projectsEl.innerHTML = '';
+    renderAccountUsage();
+  }
+  const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
+  let html = '';
+  if (!state.projects.length) {
+    html += `<div class="card onboarding" style="margin-top:20px"><h3>Welcome to EvoMesh</h3>
       <p>Tell Central AI what project you want to work on:</p>
       <ol><li>Open the Feed panel (right side)</li>
       <li>Type: "Create a project for /path/to/my-project"</li>
       <li>Central AI will analyze your code and set up roles</li></ol>
       <p style="color:var(--text-faint)">Or add an existing project by path or GitHub URL.</p></div>`;
-    renderAccountUsage();
-    return;
   }
-  const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
-  let html = '';
   for (const p of state.projects) {
     const isOwner = p.myRole === 'owner';
     const rows = p.roles.map(r => {
