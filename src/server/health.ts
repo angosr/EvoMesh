@@ -101,7 +101,6 @@ function notifyFeed(ctx: ServerContext, role: string, project: string, text: str
   if (broadcast) broadcast({ type: "role", role: `${role} [monitor]`, project, text, time: new Date().toISOString() });
 }
 
-// parseIntervalMinutes removed — was only used by brain-dead detection
 
 // --- Tmux command sending (SSOT for host/docker dispatch) ---
 const gosuUser = process.env.USER || "user";
@@ -460,7 +459,7 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
 }
 
 /**
- * Auto-restart crashed/brain-dead roles.
+ * Auto-restart crashed roles.
  *
  * SINGLE SOURCE OF TRUTH: running-roles.json (desired state)
  * - Role in running-roles.json + not running → restart (crashed)
@@ -515,10 +514,7 @@ export function autoRestartCrashed(ctx: ServerContext): void {
           } catch (e) { console.error(`[auto-restart] Failed to restart vanished ${name}:`, e); }
         }
 
-        // Brain-dead detection REMOVED — too many false positives.
-        // Roles doing long tasks (training, analysis) were killed repeatedly.
-        // Context-cleanup via heartbeat.json REMOVED — stopping containers
-        // mid-work causes state loss. Users can restart manually if needed.
+        // Only auto-restart and idle-cleanup remain. No brain-dead detection or tmux injection.
       }
     }
   } catch (e) { console.error("[autoRestartCrashed] Error:", e); }

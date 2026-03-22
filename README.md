@@ -84,25 +84,23 @@ The server runs a health monitoring loop every 15 seconds with multiple detectio
 | Mechanism | What it detects | Action |
 |-----------|----------------|--------|
 | **Auto-restart** | Container/session crashed while desired state says "should run" | Restart with cooldown |
-| **Brain-dead** | Role running but no STM output for 10x loop interval AND no git commits AND container uptime exceeds threshold | Stop + auto-restart |
-| **Idle cleanup** | Role explicitly writes "No tasks, idle" 3 consecutive times | Execute configured policy |
-| **Nudge** | STM not written for 1.5x loop interval | Send `[SYSTEM]` reminder |
+| **Idle cleanup** | Role explicitly writes "No tasks, idle" 3 consecutive times | Execute configured policy (default: ignore) |
+| **Token keepalive** | Account token expired (expiresAt < now) | Ping account from host to revive session |
 
 ### Safety Guarantees
 
 - **Working roles are NEVER cleared/compacted/stopped** — only explicit "No tasks, idle" declarations trigger idle cleanup
 - **Circuit breaker**: After 3 monitor-initiated restarts without new output, all actions are suspended (persisted to `~/.evomesh/monitor-state.json`)
-- **Server warmup**: 5-minute quiet period after server (re)start — no idle/nudge actions
-- **Container uptime check**: Brain-dead detection uses `docker inspect` for real uptime, not in-memory state
+- **Server warmup**: 5-minute quiet period after server (re)start — no idle actions
+- **No tmux injection**: Monitor never sends commands into running AI sessions except for explicitly configured idle cleanup (reset/compact)
 
 ### Idle Policies (per-role, configurable)
 
 | Policy | Behavior |
 |--------|----------|
-| `reset` (default for workers) | `/clear` + `/loop` — fresh context |
-| `compact` (default for lead) | `/compact` — compress context, keep session |
-| `stop` | Stop the container entirely |
-| `ignore` | Do nothing |
+| `ignore` (default) | Do nothing — just notify in feed |
+| `compact` | `/compact` — compress context, keep session |
+| `reset` | `/clear` + `/loop` — fresh context, same container |
 
 ## Self-Evolution
 
