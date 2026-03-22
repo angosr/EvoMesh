@@ -100,16 +100,27 @@ export function scaffoldProject(root: string, name: string): ScaffoldResult {
     );
   }
 
-  // Ensure .evomesh/runtime/ is in .gitignore
+  // Gitignore — exclude runtime files that are regenerated each loop
+  const RUNTIME_GITIGNORE = `
+# EvoMesh runtime (regenerated each loop, not source code)
+.evomesh/runtime/
+.evomesh/project.yaml
+.evomesh/project.yaml.bak
+.evomesh/templates/
+.evomesh/roles/*/.session-id
+.evomesh/roles/*/memory/short-term.md
+.evomesh/roles/*/heartbeat.json
+.evomesh/roles/*/role-card.json
+.evomesh/roles/*/inbox/processed/
+`;
   const gitignorePath = path.join(root, ".gitignore");
-  const gitignoreEntry = "\n.evomesh/runtime/\n";
   if (exists(gitignorePath)) {
     const content = fs.readFileSync(gitignorePath, "utf-8");
-    if (!content.includes(".evomesh/runtime/")) {
-      fs.appendFileSync(gitignorePath, gitignoreEntry);
+    if (!content.includes(".evomesh/roles/*/heartbeat.json")) {
+      fs.appendFileSync(gitignorePath, RUNTIME_GITIGNORE);
     }
   } else {
-    writeFile(gitignorePath, gitignoreEntry);
+    writeFile(gitignorePath, RUNTIME_GITIGNORE.trim() + "\n");
   }
 
   return { hasExistingRoles: detected.length > 0, detected };

@@ -150,15 +150,27 @@ export function smartInit(root: string, name: string, lang: Lang = "zh"): Projec
     }
   }
 
-  // Gitignore
+  // Gitignore — exclude runtime files that are regenerated each loop
+  const RUNTIME_GITIGNORE = `
+# EvoMesh runtime (regenerated each loop, not source code)
+.evomesh/runtime/
+.evomesh/project.yaml
+.evomesh/project.yaml.bak
+.evomesh/templates/
+.evomesh/roles/*/.session-id
+.evomesh/roles/*/memory/short-term.md
+.evomesh/roles/*/heartbeat.json
+.evomesh/roles/*/role-card.json
+.evomesh/roles/*/inbox/processed/
+`;
   const gitignorePath = path.join(root, ".gitignore");
   if (exists(gitignorePath)) {
     const content = fs.readFileSync(gitignorePath, "utf-8");
-    if (!content.includes(".evomesh/runtime/")) {
-      fs.appendFileSync(gitignorePath, "\n.evomesh/runtime/\n");
+    if (!content.includes(".evomesh/roles/*/heartbeat.json")) {
+      fs.appendFileSync(gitignorePath, RUNTIME_GITIGNORE);
     }
   } else {
-    writeFile(gitignorePath, ".evomesh/runtime/\n");
+    writeFile(gitignorePath, RUNTIME_GITIGNORE.trim() + "\n");
   }
 
   // Create default roles — template-based ROLE.md if available
