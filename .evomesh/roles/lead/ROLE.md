@@ -31,7 +31,7 @@
      "inboxRef": "YYYYMMDDTHHMM_lead_topic.md" }
    ```
 6. **Idle detection + backlog dispatch** (MANDATORY every loop):
-   - Read claims.json: any running role with 0 active claims → dispatch from your todo.md
+   - Read claims.json: any running role with 0 active claims for 2+ loops → dispatch from your todo.md (note: CLAUDE.md's "3× idle → light mode" is the role's own threshold; this 2-loop threshold is lead's proactive dispatch trigger)
    - **Rule: idle system = lead failure.** If 3+ running roles are idle and you have P1/P2 backlog, you MUST dispatch.
    - If a dispatched task's target role is now stopped, move claim back to unclaimed or reassign.
 7. **Proactive scan** (after idle check):
@@ -42,7 +42,7 @@
 8. Update status.md / blueprint.md if changes warrant
 9. Update own todo.md — mark dispatched tasks, add new ones
 10. **Write `memory/short-term.md`** (MANDATORY)
-11. Only commit if this loop produced **real output** (new task dispatches, new decisions, config changes). Do NOT commit if only bookkeeping changed (heartbeat, memory, todo, inbox→processed, status.md updates with no new decisions). Bookkeeping files will be bundled into the next real commit.
+11. Only commit if this loop produced **real output** (see CLAUDE.md §Git "NO bookkeeping-only commits" for full definition). Bookkeeping files bundled into next real commit.
 
 ## Anti-Attention-Decay: Periodic Self-Audit Dispatch
 

@@ -6,7 +6,11 @@
 2. **`cat` and read**: ROLE.md, inbox/*, memory/short-term.md (EVERY loop, do NOT rely on memory)
    Also read (every 5 loops or when notified): blueprint.md, status.md, shared/decisions.md
 3. Process inbox (P0 immediately, P1 within 2 loops) → move to inbox/processed/ → `git rm` the original (stages deletion so it survives context clears)
-4. **Update claims**: If you have claimed tasks in `.evomesh/shared/claims.json`, update your claim's `status`, `lastActivityAt`, and `notes`. If blocked, set `blockedReason`.
+4. **Update claims**: Read `.evomesh/shared/claims.json`. Update your claim:
+   - `status`: unclaimed → in-progress → blocked → in-review → completed
+   - `lastActivityAt`: current timestamp
+   - `notes`: append what you did this loop
+   - `blockedReason`: set if blocked (lead will see immediately)
 5. Execute role work
 6. Write outputs (ALL mandatory, do in one step):
    - `memory/short-term.md` — Done / Blockers / In-progress / Next focus
@@ -24,6 +28,7 @@ Idle? Write "No tasks, idle". 3× idle → light mode (inbox + memory only, no c
 - **NEVER**: `git add -A`, `git add .`, `rm -rf`, `git push --force`, `git reset --hard`, `git checkout -- .`, `git restore .`, `git stash`
 - **NEVER** start background processes
 - **Git pull only by lead**: Only the lead role runs `git pull --rebase` (step 1). Worker roles do NOT pull — they read files directly from the working tree. This prevents workers from running stash/checkout/restore to resolve conflicts, which can destroy other roles' uncommitted work.
+- **Push conflict**: If push fails, skip and retry next loop. If push fails 3 consecutive loops, report blocker to lead inbox. Do NOT force push.
 - **NO bookkeeping-only commits**: Do NOT commit if the only changes are: `heartbeat.json`, `memory/short-term.md`, `todo.md`, or updating `status.md`/`blueprint.md` with no new decisions. These are administrative overhead, not deliverables. Only commit when the loop produces **real output**: code changes, new inbox messages dispatched, inbox deletions (`git rm`), new decisions in `shared/decisions.md`, config changes, or documentation with new content. Bundle all bookkeeping files into the next commit that contains real work.
 - Code, commit messages, shared/decisions.md, blueprint.md: English.
 - `memory/short-term.md`, `todo.md`, inbox messages: follow user's language (these are user-facing via the Feed panel, not technical documentation).
@@ -56,6 +61,12 @@ You may modify your own ROLE.md. Rules serve the work, not the other way around.
 - **Add**: rules learned from repeated mistakes or new patterns
 - Also: delete LTM entries that contradict CLAUDE.md, ROLE.md, or decisions.md
 - Log every change to evolution.log with evidence. 🔒 rules = user/lead only.
+- Evolution log format:
+  ```
+  [YYYY-MM-DD Loop N] CHANGE: {what changed}
+  EVIDENCE: {what problem, metrics, specific incident}
+  VERIFY: {how to measure if this helps}
+  ```
 
 ### Self-Audit (alternating with prompt evolution)
 Quality gate: (a) what problem? cite metrics (b) what behavior changes? wording-only = skip (c) how to measure?

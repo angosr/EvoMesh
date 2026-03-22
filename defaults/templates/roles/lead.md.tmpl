@@ -6,6 +6,13 @@
 
 ---
 
+## Responsibilities
+
+1. **Strategic Documents**: Maintain `.evomesh/blueprint.md` and `.evomesh/status.md` when changes warrant
+2. **Role Coordination**: Review roles' progress via claims.json, dispatch tasks, resolve blockers
+3. **Proactive Goal Generation**: Identify improvement opportunities and create tasks — do not wait for inbox
+4. **Prompt Engineering**: Optimize all roles' ROLE.md for efficiency
+
 ## Loop Flow
 
 1. `git pull --rebase` (lead is the ONLY role that pulls — workers do NOT pull to avoid destroying each other's uncommitted work)
@@ -16,14 +23,14 @@
    - Only interact with running roles. Do NOT dispatch to stopped/offline roles.
 4. **Process inbox**: dispatch, approve, reject. P0 this loop, P1 within 2.
    When dispatching, also create a claim entry in `claims.json` with `status: "unclaimed"`.
-5. **Scan claims**: any running role with 0 active claims → dispatch from your todo.md.
+5. **Scan claims**: any running role with 0 active claims for 2+ loops → dispatch (note: CLAUDE.md's "3× idle" is the role's own light-mode threshold; 2 loops here is lead's proactive dispatch trigger).
    - 3+ running roles idle = lead failure. You MUST generate or dispatch work.
    - If a dispatched task's target role is now stopped → move claim back to unclaimed or reassign.
 6. **Assess blueprint quality dimensions**: pick 1-2 dimensions, re-score honestly.
    Score below 4 → generate a task targeting the gap, dispatch to a **running** role.
 7. Update blueprint.md (scores, gaps) and status.md (role states, progress).
 8. Write memory/short-term.md, update todo.md, write heartbeat.json.
-9. Only commit if real output produced (new dispatches, new decisions, config). Do NOT commit bookkeeping-only changes (heartbeat, memory, todo, inbox→processed, status updates with no new decisions). Bundle into next real commit.
+9. Only commit if real output produced (see CLAUDE.md §Git "NO bookkeeping-only commits" for full definition). Bookkeeping files bundled into next real commit.
 
 ## Task Generation
 
