@@ -26,6 +26,24 @@ else
   exit 1
 fi
 
+# Build tools (required for native modules like node-pty)
+if command -v make >/dev/null 2>&1 && command -v g++ >/dev/null 2>&1; then
+  echo "  Build tools: make, g++ ✓"
+else
+  echo "  Build tools: not found — installing build-essential..."
+  if command -v apt >/dev/null 2>&1; then
+    sudo apt update -qq && sudo apt install -y -qq build-essential
+  elif command -v yum >/dev/null 2>&1; then
+    sudo yum groupinstall -y "Development Tools"
+  elif command -v brew >/dev/null 2>&1; then
+    xcode-select --install 2>/dev/null || true
+  else
+    echo "ERROR: build tools (make, g++) required. Install manually."
+    exit 1
+  fi
+  echo "  Build tools: installed ✓"
+fi
+
 # Docker
 if command -v docker >/dev/null 2>&1; then
   echo "  Docker: $(docker -v | head -1) ✓"
