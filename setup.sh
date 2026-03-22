@@ -103,12 +103,29 @@ echo ""
 
 # 2. Install dependencies
 echo "Installing dependencies..."
-npm install --silent
+if npm install; then
+  echo "  Dependencies installed ✓"
+else
+  echo "ERROR: npm install failed"
+  exit 1
+fi
 echo ""
 
 # 3. Build Docker image
-echo "Building Docker image (evomesh-role)..."
-docker build -t evomesh-role docker/
+if docker image inspect evomesh-role >/dev/null 2>&1; then
+  echo "Docker image (evomesh-role) already exists. Rebuild? (y/N)"
+  read -r yn
+  if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
+    docker build -q -t evomesh-role docker/
+    echo "  Docker image rebuilt ✓"
+  else
+    echo "  Skipped docker build ✓"
+  fi
+else
+  echo "Building Docker image (evomesh-role)..."
+  docker build -q -t evomesh-role docker/
+  echo "  Docker image built ✓"
+fi
 echo ""
 
 # 4. Prepare log directory
@@ -117,7 +134,7 @@ mkdir -p "$LOG_DIR"
 # 5. Install systemd service and start (or fallback to nohup)
 USE_SYSTEMD=false
 
-if command -v systemctl >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1 || command -v systemctl >/dev/null 2>&1; then
+if command -v systemctl >/dev/null 2>&1; then
   echo "systemd detected. Install as system service for auto-start on boot? (Y/n)"
   read -r yn
   if [ "$yn" != "n" ] && [ "$yn" != "N" ]; then
