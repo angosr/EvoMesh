@@ -159,7 +159,7 @@ async function renderDashboard() {
   if (!projectsEl) return;
 
   if (!state.projects.length) {
-    projectsEl.innerHTML = `<div class="card onboarding"><h3>Welcome to EvoMesh</h3>
+    projectsEl.innerHTML = `<div class="card onboarding" style="margin-top:20px"><h3>Welcome to EvoMesh</h3>
       <p>Tell Central AI what project you want to work on:</p>
       <ol><li>Open the Feed panel (right side)</li>
       <li>Type: "Create a project for /path/to/my-project"</li>
