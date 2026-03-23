@@ -235,9 +235,10 @@ async function renderDashboard() {
     } catch { /* claims API not available */ }
   }
 
-  // Central AI row — same table style as project roles, placed after Project Overview header
+  // Central AI row — admin only
   let centralHtml = '';
-  try {
+  if (state.systemRole !== 'admin') { /* non-admin: skip Central AI card */ }
+  else try {
     const centralRes = await authFetch(`${API}/admin/status`);
     const cs = await centralRes.json();
     const statusBadge = cs.enabled === false ? '<span class="badge stopped">disabled</span>'

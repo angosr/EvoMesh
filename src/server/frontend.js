@@ -111,6 +111,12 @@ const state = {
 // Load cached user info
 try { const u = JSON.parse(localStorage.getItem('evomesh-user') || '{}'); if (u.role) state.systemRole = u.role; } catch {}
 
+// Hide admin-only UI for non-admin users
+if (state.systemRole !== 'admin') {
+  const centralSidebar = document.querySelector('#central-btn')?.parentElement;
+  if (centralSidebar) centralSidebar.style.display = 'none';
+}
+
 // ==================== Data ====================
 // Track whether user is actively typing — skip DOM rebuilds to prevent input lag
 let _userTyping = false, _typingTimer = null, _pendingRender = false;
