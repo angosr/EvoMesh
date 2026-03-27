@@ -365,14 +365,15 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
 
     // Handle spawn failure (command not found, permission denied, etc.)
     proc.on("error", (err) => {
+      console.error(`[invite-login] spawn error for ${invite.accountName}:`, err.message);
       if (responded) return;
       responded = true;
       clearInterval(pollTimer);
       res.status(500).json({ error: `claude command failed: ${err.message}` });
     });
 
-    // Handle early exit (claude exits before producing auth URL)
     proc.on("exit", (exitCode) => {
+      console.error(`[invite-login] claude exited (code=${exitCode}) for ${invite.accountName}, output: ${output.slice(0, 300)}`);
       loginProcesses.delete(resolved);
       if (responded) return;
       responded = true;
@@ -380,7 +381,6 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       res.status(500).json({ error: `claude exited with code ${exitCode}`, output: output.slice(0, 500) });
     });
 
-    // Poll for auth URL every 200ms
     const pollTimer = setInterval(() => {
       if (responded) return;
       const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
@@ -393,12 +393,12 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       }
     }, 200);
 
-    // Timeout after 8s
     setTimeout(() => {
       if (responded) return;
       responded = true;
       clearInterval(pollTimer);
       try { proc.kill(); } catch {}
+      console.error(`[invite-login] timeout for ${invite.accountName}, output: ${output.slice(0, 300)}`);
       res.status(500).json({ error: "Timeout waiting for auth URL", output: output.slice(0, 500) });
     }, 8000);
   });

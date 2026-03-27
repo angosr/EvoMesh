@@ -85,7 +85,8 @@ async function startLogin() {
     const r = await fetch(`${API}/api/invite/${code}/login/start`, { method: 'POST' });
     const d = await r.json();
     if (!d.ok || !d.authUrl) {
-      setStatus(d.error || 'Failed to start login', 'err');
+      const detail = d.output ? `\n[output]: ${d.output}` : '';
+      setStatus((d.error || 'Failed to start login') + detail, 'err');
       btn.disabled = false; btn.textContent = 'Start Login';
       return;
     }
