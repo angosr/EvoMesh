@@ -150,8 +150,9 @@ initResize('rh-right', 'chat-sidebar', 'right');
 
     if (kbOpen && !kbVisible) {
       kbVisible = true;
-      const kbHeight = fullHeight - vvh;
-      // Freeze iframe heights — prevents xterm resize
+      // Freeze iframe heights — prevents xterm resize cascade.
+      // The viewport meta interactive-widget=overlays-content makes the keyboard
+      // overlay on top without resizing. This is just a fallback for older browsers.
       document.querySelectorAll('.panel iframe').forEach(iframe => {
         const h = iframe.offsetHeight;
         if (h > 0) {
@@ -160,13 +161,6 @@ initResize('rh-right', 'chat-sidebar', 'right');
           iframe.style.maxHeight = h + 'px';
         }
       });
-      // Shift content up by keyboard height using transform (no layout change)
-      // Body has overflow:hidden so scrolling is impossible — transform is the only way
-      const main = document.getElementById('main');
-      if (main) {
-        main.style.transform = `translateY(-${kbHeight}px)`;
-        main.style.transition = 'transform 0.2s ease-out';
-      }
     } else if (!kbOpen && kbVisible) {
       kbVisible = false;
       document.querySelectorAll('.panel iframe').forEach(iframe => {
@@ -174,11 +168,6 @@ initResize('rh-right', 'chat-sidebar', 'right');
         iframe.style.minHeight = '';
         iframe.style.maxHeight = '';
       });
-      const main = document.getElementById('main');
-      if (main) {
-        main.style.transform = '';
-        main.style.transition = '';
-      }
     }
   });
 
