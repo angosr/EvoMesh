@@ -62,7 +62,9 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
     ['\u2193', 'arrow-down', 0, dpad, 'dpad-down'],
     ['\u21DE', 'up', 20, pageCtrl, ''],
     ['\u21DF', 'down', 20, pageCtrl, ''],
-    ['Esc', 'esc', 0, pageCtrl, ''],
+    ['Esc', 'send-esc', 0, pageCtrl, ''],
+    ['q', 'send-q', 0, pageCtrl, ''],
+    ['Clr', 'clear-line', 0, pageCtrl, ''],
   ];
   for (const [label, action, lines, container, cls] of allBtns) {
     const btn = document.createElement('button');
@@ -399,8 +401,8 @@ function termAction(key, action, lines) {
 
   if (action === 'copy') { showCopyDialog(); return; }
 
-  // Esc and arrow keys: direct API call. up/down scroll: batched queue.
-  if (action === 'esc' || action.startsWith('arrow-')) {
+  // Direct actions: arrow keys, esc, q, clear-line. up/down scroll: batched queue.
+  if (action === 'send-esc' || action === 'send-q' || action === 'esc' || action === 'clear-line' || action.startsWith('arrow-')) {
     authFetch(`${API}/projects/${parts[0]}/roles/${parts[1]}/scroll`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ direction: action, lines: 0 }),

@@ -385,7 +385,7 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     if (!project || !/^[a-zA-Z0-9_-]+$/.test(req.params.name)) { res.status(400).json({ error: "Invalid" }); return; }
     if (!requireProjectRole(req, res, project.root, "owner")) return;
     const { direction, lines } = req.body;
-    const VALID = ["up", "down", "esc", "arrow-up", "arrow-down", "arrow-left", "arrow-right"];
+    const VALID = ["up", "down", "esc", "send-q", "send-esc", "clear-line", "arrow-up", "arrow-down", "arrow-left", "arrow-right"];
     if (!VALID.includes(direction)) { res.status(400).json({ error: "Bad direction" }); return; }
     const config = loadConfig(project.root);
     const rc = config.roles?.[req.params.name];
@@ -396,11 +396,26 @@ export function registerAdminRoutes(app: import("express").Express, ctx: ServerC
     // tmux target: host mode = session name directly, docker = "claude" inside container
     const tmuxTarget = isHost ? cname : "claude";
     try {
-      if (direction === "esc") {
+      if (direction === "esc" || direction === "send-q") {
+        // Legacy "esc" sends q (for Claude Code exit prompts); "send-q" is explicit q
         if (isHost) {
           execFileSync("tmux", ["send-keys", "-t", tmuxTarget, "q"], { stdio: "ignore" });
         } else {
           execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", tmuxTarget, "q"], { stdio: "ignore" });
+        }
+      } else if (direction === "send-esc") {
+        // Real Escape key
+        if (isHost) {
+          execFileSync("tmux", ["send-keys", "-t", tmuxTarget, "Escape"], { stdio: "ignore" });
+        } else {
+          execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", tmuxTarget, "Escape"], { stdio: "ignore" });
+        }
+      } else if (direction === "clear-line") {
+        // Ctrl+U — clear current input line
+        if (isHost) {
+          execFileSync("tmux", ["send-keys", "-t", tmuxTarget, "C-u"], { stdio: "ignore" });
+        } else {
+          execFileSync("docker", ["exec", cname, "gosu", user, "tmux", "send-keys", "-t", tmuxTarget, "C-u"], { stdio: "ignore" });
         }
       } else if (direction.startsWith("arrow-")) {
         const keyName = ({ "arrow-up": "Up", "arrow-down": "Down", "arrow-left": "Left", "arrow-right": "Right" } as Record<string,string>)[direction];
