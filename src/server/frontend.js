@@ -137,6 +137,35 @@ document.addEventListener('input', () => {
   }, 2000);
 }, true);
 
+// ==================== Global focus theft protection ====================
+// When the user is actively typing in any input/textarea, prevent ANY focus
+// change — including xterm.js inside iframes calling .focus() on load/reconnect.
+// We catch this at the document level by monitoring blur events on input elements.
+let _focusGuardEl = null;
+document.addEventListener('focus', (e) => {
+  const tag = e.target?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) {
+    _focusGuardEl = e.target;
+  }
+}, true);
+
+document.addEventListener('blur', (e) => {
+  if (!_userTyping && !_imeComposing) { _focusGuardEl = null; return; }
+  const lost = e.target;
+  const tag = lost?.tagName;
+  if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT' && !lost?.isContentEditable) return;
+  // Focus was stolen from an input while user was typing — restore it immediately
+  // Use requestAnimationFrame to run after the browser's focus change completes
+  const restoreTarget = lost;
+  requestAnimationFrame(() => {
+    // Only restore if focus actually moved away (to an iframe or body)
+    const now = document.activeElement;
+    if (now === restoreTarget) return; // already back
+    if (now?.tagName === 'INPUT' || now?.tagName === 'TEXTAREA' || now?.tagName === 'SELECT') return; // user clicked another input
+    try { restoreTarget.focus(); } catch {}
+  });
+}, true);
+
 // Dedup guard: prevent concurrent fetchAll requests from stacking up
 let _fetchInProgress = false;
 
