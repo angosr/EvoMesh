@@ -130,19 +130,14 @@ initResize('rh-left', 'sidebar', 'left');
 initResize('rh-right', 'chat-sidebar', 'right');
 
 // ==================== Mobile keyboard handling ====================
-// Problem: keyboard opens → viewport shrinks → iframe shrinks → xterm reports new size
-// → Claude Code detects resize → redraws/refreshes → terrible UX
-//
-// Solution: keep terminal at full original size. The keyboard overlays on top (via
-// viewport meta interactive-widget=overlays-content). For browsers that don't support
-// that, we freeze body/panels to the original height so terminals never see a resize.
+// Problem: keyboard opens → viewport shrinks → iframe shrinks → xterm resize → Claude refreshes
+// Solution: freeze only iframe heights (prevent xterm resize), but let the page scroll
+// normally so content above the keyboard stays visible.
 (function() {
   if (!window.visualViewport) return;
-  let frozenHeight = 0;   // original body height before keyboard
   let kbVisible = false;
   const KEYBOARD_THRESHOLD = 150;
 
-  // Capture the "full" height once on load and orientation change
   let fullHeight = window.innerHeight;
   window.addEventListener('orientationchange', () => {
     setTimeout(() => { fullHeight = window.innerHeight; }, 500);
@@ -151,16 +146,12 @@ initResize('rh-right', 'chat-sidebar', 'right');
   window.visualViewport.addEventListener('resize', () => {
     if (!isMobile()) return;
     const vvh = window.visualViewport.height;
-    // Detect keyboard: visual viewport significantly smaller than the known full height
     const kbOpen = (fullHeight - vvh) > KEYBOARD_THRESHOLD;
 
     if (kbOpen && !kbVisible) {
       kbVisible = true;
-      frozenHeight = fullHeight;
-      // Lock body to full height — prevents layout from shrinking
-      document.body.style.height = frozenHeight + 'px';
-      document.body.style.minHeight = frozenHeight + 'px';
-      // Freeze each terminal iframe to its current pixel size
+      // Only freeze iframe heights — prevents xterm from seeing a resize
+      // Do NOT freeze body/main — let the page scroll naturally
       document.querySelectorAll('.panel iframe').forEach(iframe => {
         const h = iframe.offsetHeight;
         if (h > 0) {
@@ -169,12 +160,15 @@ initResize('rh-right', 'chat-sidebar', 'right');
           iframe.style.maxHeight = h + 'px';
         }
       });
-      // Do NOT shrink #main — that's what triggers the cascade
+      // Scroll the focused element into view above the keyboard
+      setTimeout(() => {
+        const ae = document.activeElement;
+        if (ae && ae !== document.body) {
+          ae.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }, 100);
     } else if (!kbOpen && kbVisible) {
       kbVisible = false;
-      // Unfreeze everything
-      document.body.style.height = '';
-      document.body.style.minHeight = '';
       document.querySelectorAll('.panel iframe').forEach(iframe => {
         iframe.style.height = '';
         iframe.style.minHeight = '';
@@ -183,7 +177,7 @@ initResize('rh-right', 'chat-sidebar', 'right');
     }
   });
 
-  // Feed input: scroll into view without resizing terminal
+  // Feed input: scroll into view when focused
   const feedMsg = document.getElementById('feed-msg');
   if (feedMsg) {
     feedMsg.addEventListener('focus', () => {
