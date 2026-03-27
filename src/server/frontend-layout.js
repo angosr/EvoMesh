@@ -150,8 +150,8 @@ initResize('rh-right', 'chat-sidebar', 'right');
 
     if (kbOpen && !kbVisible) {
       kbVisible = true;
-      // Only freeze iframe heights — prevents xterm from seeing a resize
-      // Do NOT freeze body/main — let the page scroll naturally
+      const kbHeight = fullHeight - vvh;
+      // Freeze iframe heights — prevents xterm resize
       document.querySelectorAll('.panel iframe').forEach(iframe => {
         const h = iframe.offsetHeight;
         if (h > 0) {
@@ -160,13 +160,13 @@ initResize('rh-right', 'chat-sidebar', 'right');
           iframe.style.maxHeight = h + 'px';
         }
       });
-      // Scroll the focused element into view above the keyboard
-      setTimeout(() => {
-        const ae = document.activeElement;
-        if (ae && ae !== document.body) {
-          ae.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-      }, 100);
+      // Shift content up by keyboard height using transform (no layout change)
+      // Body has overflow:hidden so scrolling is impossible — transform is the only way
+      const main = document.getElementById('main');
+      if (main) {
+        main.style.transform = `translateY(-${kbHeight}px)`;
+        main.style.transition = 'transform 0.2s ease-out';
+      }
     } else if (!kbOpen && kbVisible) {
       kbVisible = false;
       document.querySelectorAll('.panel iframe').forEach(iframe => {
@@ -174,6 +174,11 @@ initResize('rh-right', 'chat-sidebar', 'right');
         iframe.style.minHeight = '';
         iframe.style.maxHeight = '';
       });
+      const main = document.getElementById('main');
+      if (main) {
+        main.style.transform = '';
+        main.style.transition = '';
+      }
     }
   });
 
