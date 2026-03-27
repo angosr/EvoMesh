@@ -185,7 +185,7 @@ function startRoleHost(
   ], { cwd: path.resolve(root), stdio: "ignore" });
 
   // Start ttyd pointing at tmux session
-  const ttydCmd = `ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${ttydPort} -- tmux attach-session -t ${sessionName}`;
+  const ttydCmd = `ttyd --writable --ping-interval 30 -t fontSize=14 -t scrollback=10000 --port ${ttydPort} -- tmux attach-session -t ${sessionName}`;
   execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
 
   // Send /loop command after delay

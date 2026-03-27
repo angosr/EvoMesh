@@ -75,6 +75,7 @@ tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
 # ttyd attaches to tmux
 ttyd \
   --writable \
+  --ping-interval 30 \
   -t fontSize=14 \
   -t scrollback=10000 \
   -t scrollOnOutput=true \

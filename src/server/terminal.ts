@@ -217,6 +217,12 @@ export function setupTerminalProxy(
       // Disable Nagle's algorithm — reduces latency for small packets (keystrokes)
       if ("setNoDelay" in socket) (socket as any).setNoDelay(true);
       if ("setNoDelay" in proxySocket) (proxySocket as any).setNoDelay(true);
+      // TCP keepalive — prevents NAT/firewall/proxy from killing idle connections
+      if ("setKeepAlive" in socket) (socket as any).setKeepAlive(true, 30000);
+      if ("setKeepAlive" in proxySocket) (proxySocket as any).setKeepAlive(true, 30000);
+      // No idle timeout — terminal connections are long-lived
+      if ("setTimeout" in socket) (socket as any).setTimeout(0);
+      if ("setTimeout" in proxySocket) (proxySocket as any).setTimeout(0);
       socket.write(responseHead);
       if (proxyHead.length) socket.write(proxyHead);
       if (head.length) proxySocket.write(head);

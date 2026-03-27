@@ -120,10 +120,18 @@ if (state.systemRole !== 'admin') {
 // ==================== Data ====================
 // Track whether user is actively typing — skip DOM rebuilds to prevent input lag
 let _userTyping = false, _typingTimer = null, _pendingRender = false;
+// Track IME composition state — during composition, ALL focus changes are blocked
+let _imeComposing = false;
+document.addEventListener('compositionstart', () => { _imeComposing = true; _userTyping = true; }, true);
+document.addEventListener('compositionend', () => {
+  // Delay clearing IME flag — some browsers fire compositionend before the final input event
+  setTimeout(() => { _imeComposing = false; }, 300);
+}, true);
 document.addEventListener('input', () => {
   _userTyping = true;
   clearTimeout(_typingTimer);
   _typingTimer = setTimeout(() => {
+    if (_imeComposing) return; // Don't clear typing flag while IME is active
     _userTyping = false;
     if (_pendingRender) { _pendingRender = false; renderSidebar(); renderDashboard(); renderOpenTabs(); }
   }, 2000);
@@ -202,16 +210,18 @@ async function _fetchAllInner() {
 
 // Restore focus to the active panel's iframe after DOM updates
 function focusActiveIframe() {
+  // ABSOLUTE BLOCK: never touch focus during IME composition — this destroys input
+  if (_imeComposing) return;
   // Never steal focus when compose dialog is open
   if (typeof _composeOpen !== 'undefined' && _composeOpen) return;
-  // Never steal focus while user is actively typing (IME composition, etc.)
+  // Never steal focus while user is actively typing
   if (_userTyping) return;
   const p = state.openPanels[state.activePanel];
   if (p?.iframe) {
-    // Never steal focus from text inputs — this causes typing lag
     const ae = document.activeElement;
+    // Never steal focus from text inputs
     if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
-    // Also check if focus is on another terminal iframe (user intentionally clicked it)
+    // Never steal focus from another terminal iframe (user intentionally clicked it)
     if (ae && ae.tagName === 'IFRAME' && ae !== p.iframe) return;
     if (!ae || ae === document.body || ae.tagName === 'BUTTON') {
       p.iframe.focus();
@@ -330,19 +340,35 @@ async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
 function setConnStatus(connected) {
   if (connected && !serverConnected) {
-    // Reconnect active panel first, then stagger others to avoid focus theft
-    const activeKey = state.activePanel;
-    if (state.openPanels[activeKey]?.iframe) reconnectPanel(activeKey);
-    let delay = 500;
-    for (const key of Object.keys(state.openPanels)) {
-      if (key === activeKey) continue;
-      if (!state.openPanels[key]?.iframe) continue;
-      setTimeout(() => reconnectPanel(key), delay);
-      delay += 300;
+    // If user is typing or composing, defer reconnection to avoid disruption
+    if (_imeComposing || _userTyping) {
+      const deferCheck = setInterval(() => {
+        if (!_imeComposing && !_userTyping) {
+          clearInterval(deferCheck);
+          _doReconnectAll();
+        }
+      }, 500);
+      // Safety: don't defer forever
+      setTimeout(() => clearInterval(deferCheck), 30000);
+    } else {
+      _doReconnectAll();
     }
   }
   serverConnected = connected;
   for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } }
+}
+
+function _doReconnectAll() {
+  // Reconnect active panel first, then stagger others to avoid focus theft
+  const activeKey = state.activePanel;
+  if (state.openPanels[activeKey]?.iframe) reconnectPanel(activeKey);
+  let delay = 500;
+  for (const key of Object.keys(state.openPanels)) {
+    if (key === activeKey) continue;
+    if (!state.openPanels[key]?.iframe) continue;
+    setTimeout(() => reconnectPanel(key), delay);
+    delay += 300;
+  }
 }
 
 // ==================== Layout persistence ====================

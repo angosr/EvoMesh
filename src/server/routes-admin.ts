@@ -165,7 +165,7 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
     // Start ttyd pointing at tmux session using execFileSync with array args
     const logFile = `/tmp/ttyd-${sessionName}.log`;
     execFileSync("bash", ["-c",
-      `nohup ttyd --writable -t fontSize=14 -t scrollback=10000 --port ${adminPort} -- tmux attach-session -t ${sessionName} > ${logFile} 2>&1 &`,
+      `nohup ttyd --writable --ping-interval 30 -t fontSize=14 -t scrollback=10000 --port ${adminPort} -- tmux attach-session -t ${sessionName} > ${logFile} 2>&1 &`,
     ], { stdio: "ignore" });
 
     // Send /loop command after delay (background)
