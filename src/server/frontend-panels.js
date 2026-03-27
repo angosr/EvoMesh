@@ -224,9 +224,41 @@ function switchTo(name) {
       const ae = document.activeElement;
       const isTyping = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable);
       if (!isTyping) sp.iframe.focus();
+      // Auto-dismiss ttyd's reconnect overlay when user switches to this tab
+      _autoDismissTtyd(sp.iframe);
     }
   }
 }
+
+// Silently dismiss ttyd's "Connection Closed" overlay by pressing Enter.
+// Only called when the user actively views this terminal (switchTo / visibility change).
+// No polling, no background activity, no iframe replacement.
+function _autoDismissTtyd(iframe) {
+  if (!iframe) return;
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
+    const ttydOverlay = doc.querySelector('#overlay');
+    if (ttydOverlay && ttydOverlay.style.display !== 'none') {
+      doc.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+        bubbles: true, cancelable: true,
+      }));
+      ttydOverlay.click();
+    }
+  } catch { /* cross-origin or iframe not ready */ }
+}
+
+// When user returns to the browser tab, auto-dismiss ttyd overlays on all visible terminals
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  // Small delay — let browser fully activate the tab first
+  setTimeout(() => {
+    for (const [key, p] of Object.entries(state.openPanels)) {
+      if (p.iframe) _autoDismissTtyd(p.iframe);
+    }
+  }, 500);
+});
 
 function refreshGrid() {
   const panels = document.getElementById('panels');
