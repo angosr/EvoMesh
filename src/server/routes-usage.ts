@@ -150,8 +150,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     // Poll for auth URL every 200ms
     const pollTimer = setInterval(() => {
       if (responded) return;
-      const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
-                       output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
+      const urlMatch = output.match(/(https:\/\/[^\s]*oauth\/authorize[^\s]+)/);
       if (urlMatch) {
         responded = true;
         clearInterval(pollTimer);
@@ -411,8 +410,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
 
     const pollTimer = setInterval(() => {
       if (responded) return;
-      const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
-                       output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
+      const urlMatch = output.match(/(https:\/\/[^\s]*oauth\/authorize[^\s]+)/);
       if (urlMatch) {
         responded = true;
         clearInterval(pollTimer);
