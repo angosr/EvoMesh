@@ -7,144 +7,30 @@ function _cleanupIframe(iframe) {
     iframe._scrollCleanup();
     iframe._scrollCleanup = null;
   }
-  if (iframe && typeof iframe._reconnectCleanup === 'function') {
-    iframe._reconnectCleanup();
-    iframe._reconnectCleanup = null;
-  }
 }
 
-// ==================== In-iframe auto-reconnect ====================
-// Injects a MutationObserver + poller into the ttyd iframe to auto-dismiss
-// the "Connection Closed" overlay. This lets ttyd handle reconnection natively —
-// no iframe replacement, no focus disruption, no xterm.js reload.
-function _injectAutoReconnect(iframe, overlay) {
-  let aborted = false;
-  let pollTimeout = null;
-  let attempts = 0;
-  const MAX_ATTEMPTS = 30; // keep trying for 15s after iframe loads
-
-  function tryInject() {
-    if (aborted) return;
-    attempts++;
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!doc || !doc.body) {
-        if (attempts < MAX_ATTEMPTS) pollTimeout = setTimeout(tryInject, 500);
-        return;
-      }
-      // Already injected?
-      if (doc.body.dataset.autoReconnectInjected) return;
-      doc.body.dataset.autoReconnectInjected = 'true';
-
-      // Watch for ttyd's disconnect overlay and auto-dismiss it ONCE.
-      // Key design: don't spam Enter every check cycle — that creates a
-      // reconnect → disconnect → reconnect loop. Instead, send Enter once,
-      // then wait for the result before trying again.
-      let disconnectCount = 0;
-      let connectCount = 0;           // consecutive connected checks (for stability)
-      let reconnectCooldown = 0;      // timestamp: don't retry before this
-      const CHECK_INTERVAL = 2000;
-      const COOLDOWN_MS = 10000;
-      const SHOW_THRESHOLD = 10;      // 20s of disconnect before showing overlay
-      const STABLE_THRESHOLD = 3;     // 6s of stable connection before hiding overlay
-
-      const checker = setInterval(() => {
-        if (aborted) { clearInterval(checker); return; }
-        try {
-          const ttydOverlay = doc.querySelector('#overlay');
-          const xtermScreen = doc.querySelector('.xterm-screen');
-          const overlayVisible = ttydOverlay && ttydOverlay.style.display !== 'none';
-          const isConnected = xtermScreen && !overlayVisible;
-
-          if (isConnected) {
-            disconnectCount = 0;
-            connectCount++;
-            // Only hide overlay after connection is stable (not just a brief flicker)
-            if (connectCount >= STABLE_THRESHOLD) overlay.classList.remove('show');
-            return;
-          }
-
-          // Disconnected
-          connectCount = 0;
-          disconnectCount++;
-
-          // Show overlay only after long sustained disconnect (20s)
-          if (disconnectCount >= SHOW_THRESHOLD) overlay.classList.add('show');
-
-          // Auto-dismiss ttyd overlay: once, then respect cooldown
-          if (overlayVisible && Date.now() > reconnectCooldown) {
-            reconnectCooldown = Date.now() + COOLDOWN_MS;
-            try {
-              doc.dispatchEvent(new KeyboardEvent('keydown', {
-                key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-                bubbles: true, cancelable: true,
-              }));
-              ttydOverlay.click();
-            } catch {}
-          }
-        } catch { /* cross-origin or iframe gone */ }
-      }, CHECK_INTERVAL);
-
-      // Store cleanup
-      const prevCleanup = iframe._reconnectCleanup;
-      iframe._reconnectCleanup = () => {
-        aborted = true;
-        clearInterval(checker);
-        if (typeof prevCleanup === 'function') prevCleanup();
-      };
-    } catch {
-      if (!aborted && attempts < MAX_ATTEMPTS) pollTimeout = setTimeout(tryInject, 500);
-    }
-  }
-
-  const onLoad = () => { attempts = 0; tryInject(); };
-  iframe.addEventListener('load', onLoad);
-  tryInject();
-
-  // Return cleanup function
-  return () => {
-    aborted = true;
-    if (pollTimeout) { clearTimeout(pollTimeout); pollTimeout = null; }
-    iframe.removeEventListener('load', onLoad);
-    if (typeof iframe._reconnectCleanup === 'function') {
-      iframe._reconnectCleanup();
-      iframe._reconnectCleanup = null;
-    }
-  };
-}
-
-// ==================== Fallback disconnect detection ====================
-// Only used for the hard-failure case where in-iframe reconnect can't recover
-// (e.g., iframe completely dead). Shows overlay with "Reconnect" button.
-// Much higher threshold than before — this is a last resort, not primary reconnect.
-function _startFallbackDetection(iframe, overlay, panelKey) {
+// ==================== Disconnect detection ====================
+// Minimal design: NO auto-reconnect, NO simulated keypresses, NO iframe replacement.
+// ttyd handles its own WebSocket reconnection natively (press Enter on its overlay).
+// We only show a manual "Reconnect" button after 60s of completely dead iframe
+// as an absolute last resort. Everything else is hands-off.
+function _startDisconnectWatch(iframe, overlay) {
   let deadCount = 0;
-  const DEAD_THRESHOLD = 15; // 30 seconds of completely dead iframe before hard reconnect
-  let hardReconnectTimer = null;
+  const DEAD_THRESHOLD = 30; // 60s (30 checks × 2s) before showing button
   return setInterval(() => {
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      // If we can't even access the document, iframe might be totally dead
       if (!doc || !doc.body) {
         deadCount++;
-        if (deadCount >= DEAD_THRESHOLD && !hardReconnectTimer) {
-          overlay.classList.add('show');
-          // Schedule hard reconnect (iframe replacement) as absolute last resort
-          hardReconnectTimer = setTimeout(() => {
-            hardReconnectTimer = null;
-            if (state.openPanels[panelKey] && overlay.classList.contains('show')) {
-              reconnectPanel(panelKey);
-            }
-          }, 10000);
-        }
+        if (deadCount >= DEAD_THRESHOLD) overlay.classList.add('show');
         return;
       }
-      // Document accessible — in-iframe auto-reconnect handles everything
-      // Only reset dead counter; overlay state is managed by _injectAutoReconnect
+      // Document accessible — ttyd is handling things. Stay out of the way.
       deadCount = 0;
-      if (hardReconnectTimer) { clearTimeout(hardReconnectTimer); hardReconnectTimer = null; }
+      overlay.classList.remove('show');
     } catch {
       deadCount++;
+      if (deadCount >= DEAD_THRESHOLD) overlay.classList.add('show');
     }
   }, 2000);
 }
@@ -209,14 +95,10 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   toolbar.appendChild(pageCtrl);
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
-  // Primary: in-iframe auto-reconnect (silent, no focus disruption)
-  const autoReconnectCleanup = _injectAutoReconnect(iframe, overlay);
-  // Fallback: hard reconnect only for completely dead iframes
-  let rTimer = _startFallbackDetection(iframe, overlay, key);
-  iframe.addEventListener('error', () => overlay.classList.add('show'));
+  let rTimer = _startDisconnectWatch(iframe, overlay);
   injectTouchScroll(iframe);
   injectKeyboardScroll(iframe, key);
-  state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer, autoReconnectCleanup };
+  state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
   if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
 
   if (state.layout === 'grid') {
@@ -275,51 +157,32 @@ async function startAndOpenTerminal(slug, projectName, roleName) {
   }
 }
 
-// Hard reconnect — iframe replacement. Only used as absolute last resort when
-// the in-iframe auto-reconnect fails (iframe completely dead/unresponsive).
+// Hard reconnect — iframe replacement. Manual only (user clicks "Reconnect").
+// Never called automatically.
 function reconnectPanel(key) {
   const p = state.openPanels[key];
   if (!p || !p.iframe) return;
   p.overlay.classList.remove('show');
-  // Clean up everything on old iframe
   _cleanupIframe(p.iframe);
-  if (p.autoReconnectCleanup) { p.autoReconnectCleanup(); p.autoReconnectCleanup = null; }
   if (p.reconnectTimer) { clearInterval(p.reconnectTimer); p.reconnectTimer = null; }
   const oldSrc = p.iframe.src;
   const newIframe = document.createElement('iframe');
   newIframe.allow = 'clipboard-read; clipboard-write';
   newIframe.style.cssText = p.iframe.style.cssText;
   // Prevent non-active terminals from stealing focus on load
-  const isActive = state.activePanel === key;
-  if (!isActive) {
-    newIframe.setAttribute('tabindex', '-1');
-    const onLoad = () => {
-      newIframe.removeEventListener('load', onLoad);
-      setTimeout(() => {
-        if (state.activePanel !== key && document.activeElement === newIframe) {
-          const activeP = state.openPanels[state.activePanel];
-          if (activeP?.iframe) activeP.iframe.focus();
-          else document.body.focus();
-        }
-      }, 100);
-    };
-    newIframe.addEventListener('load', onLoad);
-  }
+  if (state.activePanel !== key) newIframe.setAttribute('tabindex', '-1');
   newIframe.src = oldSrc;
   p.iframe.replaceWith(newIframe);
   p.iframe = newIframe;
   injectTouchScroll(newIframe);
   injectKeyboardScroll(newIframe, key);
-  // Re-inject in-iframe auto-reconnect + fallback detection
-  p.autoReconnectCleanup = _injectAutoReconnect(newIframe, p.overlay);
-  p.reconnectTimer = _startFallbackDetection(newIframe, p.overlay, key);
+  p.reconnectTimer = _startDisconnectWatch(newIframe, p.overlay);
 }
 
 function closePanel(key) {
   const p = state.openPanels[key];
   if (!p) return;
   if (p.reconnectTimer) { clearInterval(p.reconnectTimer); p.reconnectTimer = null; }
-  if (p.autoReconnectCleanup) { p.autoReconnectCleanup(); p.autoReconnectCleanup = null; }
   if (p.startPoll) { clearInterval(p.startPoll); p.startPoll = null; }
   // Clean up iframe scroll event listeners
   _cleanupIframe(p.iframe);

@@ -192,9 +192,11 @@ async function _fetchAllInner() {
       const r = statusResults[i];
       if (r.status === 'fulfilled') {
         const s = r.value;
-        return { ...p, roles: s.roles || [], accounts: s.accounts || {}, myRole: s.myRole || p.myRole || null };
+        return { ...p, roles: s.roles || [], accounts: s.accounts || {}, myRole: s.myRole || p.myRole || null, _statusOk: true };
       }
-      return { ...p, roles: [], accounts: {}, myRole: p.myRole || null };
+      // API failed — keep previous roles data to avoid closing panels
+      const prev = state.projects.find(pp => pp.slug === p.slug);
+      return { ...p, roles: prev?.roles || [], accounts: prev?.accounts || {}, myRole: prev?.myRole || p.myRole || null, _statusOk: false };
     });
     state.projects = projects;
     if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
@@ -235,7 +237,6 @@ async function _fetchAllInner() {
       if (!knownRoles.has(key)) closePanel(key);
     }
     if (!_userTyping) { renderOpenTabs(); }
-    focusActiveIframe();
   } catch { document.getElementById('status-bar').textContent = 'Connection error'; }
 }
 
