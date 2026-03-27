@@ -87,18 +87,39 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     if (existing) { try { existing.proc.kill(); } catch {} loginProcesses.delete(resolved); }
 
     // Spawn claude auth login
-    const proc = spawn("claude", ["auth", "login", "--claudeai"], {
-      env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    let proc: import("node:child_process").ChildProcess;
+    try {
+      proc = spawn("claude", ["auth", "login", "--claudeai"], {
+        env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (e: unknown) {
+      res.status(500).json({ error: `Failed to spawn claude: ${errorMessage(e)}` });
+      return;
+    }
 
     let output = "";
+    let responded = false;
 
     proc.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
     proc.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
 
-    // Poll for auth URL every 200ms instead of fixed 3s wait (avoids proxy timeouts)
-    let responded = false;
+    proc.on("error", (err) => {
+      if (responded) return;
+      responded = true;
+      clearInterval(pollTimer);
+      res.status(500).json({ error: `claude command failed: ${err.message}` });
+    });
+
+    proc.on("exit", (exitCode) => {
+      loginProcesses.delete(resolved);
+      if (responded) return;
+      responded = true;
+      clearInterval(pollTimer);
+      res.status(500).json({ error: `claude exited with code ${exitCode}`, output: output.slice(0, 500) });
+    });
+
+    // Poll for auth URL every 200ms
     const pollTimer = setInterval(() => {
       if (responded) return;
       const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
@@ -116,11 +137,9 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       if (responded) return;
       responded = true;
       clearInterval(pollTimer);
-      proc.kill();
-      res.status(500).json({ error: "Failed to get auth URL", output: output.slice(0, 500) });
+      try { proc.kill(); } catch {}
+      res.status(500).json({ error: "Timeout waiting for auth URL", output: output.slice(0, 500) });
     }, 8000);
-
-    proc.on("exit", () => { loginProcesses.delete(resolved); });
   });
 
   // --- Account login: submit auth code to complete login ---
@@ -327,17 +346,41 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     const existing = loginProcesses.get(resolved);
     if (existing) { try { existing.proc.kill(); } catch {} loginProcesses.delete(resolved); }
 
-    const proc = spawn("claude", ["auth", "login", "--claudeai"], {
-      env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    let proc: import("node:child_process").ChildProcess;
+    try {
+      proc = spawn("claude", ["auth", "login", "--claudeai"], {
+        env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (e: unknown) {
+      res.status(500).json({ error: `Failed to spawn claude: ${errorMessage(e)}` });
+      return;
+    }
 
     let output = "";
+    let responded = false;
+
     proc.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
     proc.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
 
-    // Poll for auth URL every 200ms instead of fixed 3s wait (avoids proxy timeouts)
-    let responded = false;
+    // Handle spawn failure (command not found, permission denied, etc.)
+    proc.on("error", (err) => {
+      if (responded) return;
+      responded = true;
+      clearInterval(pollTimer);
+      res.status(500).json({ error: `claude command failed: ${err.message}` });
+    });
+
+    // Handle early exit (claude exits before producing auth URL)
+    proc.on("exit", (exitCode) => {
+      loginProcesses.delete(resolved);
+      if (responded) return;
+      responded = true;
+      clearInterval(pollTimer);
+      res.status(500).json({ error: `claude exited with code ${exitCode}`, output: output.slice(0, 500) });
+    });
+
+    // Poll for auth URL every 200ms
     const pollTimer = setInterval(() => {
       if (responded) return;
       const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
@@ -355,11 +398,9 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       if (responded) return;
       responded = true;
       clearInterval(pollTimer);
-      proc.kill();
-      res.status(500).json({ error: "Failed to get auth URL. Is 'claude' installed?", output: output.slice(0, 500) });
+      try { proc.kill(); } catch {}
+      res.status(500).json({ error: "Timeout waiting for auth URL", output: output.slice(0, 500) });
     }, 8000);
-
-    proc.on("exit", () => { loginProcesses.delete(resolved); });
   });
 
   // Complete login via invite link (no auth required) — consumes the invite
