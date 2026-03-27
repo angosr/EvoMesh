@@ -93,31 +93,32 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     });
 
     let output = "";
-    let authUrl = "";
 
     proc.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
     proc.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
 
-    // Wait a bit for the auth URL to appear
-    setTimeout(() => {
-      const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/);
+    // Poll for auth URL every 200ms instead of fixed 3s wait (avoids proxy timeouts)
+    let responded = false;
+    const pollTimer = setInterval(() => {
+      if (responded) return;
+      const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
+                       output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
       if (urlMatch) {
-        authUrl = urlMatch[1];
-        loginProcesses.set(resolved, { proc, authUrl });
-        res.json({ ok: true, authUrl, accountPath });
-      } else {
-        // Try platform.claude.com URL
-        const altMatch = output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
-        if (altMatch) {
-          authUrl = altMatch[1];
-          loginProcesses.set(resolved, { proc, authUrl });
-          res.json({ ok: true, authUrl, accountPath });
-        } else {
-          proc.kill();
-          res.status(500).json({ error: "Failed to get auth URL", output: output.slice(0, 500) });
-        }
+        responded = true;
+        clearInterval(pollTimer);
+        loginProcesses.set(resolved, { proc, authUrl: urlMatch[1] });
+        res.json({ ok: true, authUrl: urlMatch[1], accountPath });
       }
-    }, 3000);
+    }, 200);
+
+    // Timeout after 8s
+    setTimeout(() => {
+      if (responded) return;
+      responded = true;
+      clearInterval(pollTimer);
+      proc.kill();
+      res.status(500).json({ error: "Failed to get auth URL", output: output.slice(0, 500) });
+    }, 8000);
 
     proc.on("exit", () => { loginProcesses.delete(resolved); });
   });
@@ -335,18 +336,28 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     proc.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
     proc.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
 
-    setTimeout(() => {
+    // Poll for auth URL every 200ms instead of fixed 3s wait (avoids proxy timeouts)
+    let responded = false;
+    const pollTimer = setInterval(() => {
+      if (responded) return;
       const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
                        output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
       if (urlMatch) {
-        const authUrl = urlMatch[1];
-        loginProcesses.set(resolved, { proc, authUrl });
-        res.json({ ok: true, authUrl });
-      } else {
-        proc.kill();
-        res.status(500).json({ error: "Failed to get auth URL", output: output.slice(0, 500) });
+        responded = true;
+        clearInterval(pollTimer);
+        loginProcesses.set(resolved, { proc, authUrl: urlMatch[1] });
+        res.json({ ok: true, authUrl: urlMatch[1] });
       }
-    }, 3000);
+    }, 200);
+
+    // Timeout after 8s
+    setTimeout(() => {
+      if (responded) return;
+      responded = true;
+      clearInterval(pollTimer);
+      proc.kill();
+      res.status(500).json({ error: "Failed to get auth URL. Is 'claude' installed?", output: output.slice(0, 500) });
+    }, 8000);
 
     proc.on("exit", () => { loginProcesses.delete(resolved); });
   });

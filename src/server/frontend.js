@@ -204,11 +204,15 @@ async function _fetchAllInner() {
 function focusActiveIframe() {
   // Never steal focus when compose dialog is open
   if (typeof _composeOpen !== 'undefined' && _composeOpen) return;
+  // Never steal focus while user is actively typing (IME composition, etc.)
+  if (_userTyping) return;
   const p = state.openPanels[state.activePanel];
   if (p?.iframe) {
     // Never steal focus from text inputs — this causes typing lag
     const ae = document.activeElement;
     if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
+    // Also check if focus is on another terminal iframe (user intentionally clicked it)
+    if (ae && ae.tagName === 'IFRAME' && ae !== p.iframe) return;
     if (!ae || ae === document.body || ae.tagName === 'BUTTON') {
       p.iframe.focus();
     }
@@ -324,7 +328,22 @@ let serverConnected = true;
 // ==================== Metrics ====================
 async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
-function setConnStatus(connected) { if (connected && !serverConnected) { for (const [key] of Object.entries(state.openPanels)) { reconnectPanel(key); } } serverConnected = connected; for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } } }
+function setConnStatus(connected) {
+  if (connected && !serverConnected) {
+    // Reconnect active panel first, then stagger others to avoid focus theft
+    const activeKey = state.activePanel;
+    if (state.openPanels[activeKey]?.iframe) reconnectPanel(activeKey);
+    let delay = 500;
+    for (const key of Object.keys(state.openPanels)) {
+      if (key === activeKey) continue;
+      if (!state.openPanels[key]?.iframe) continue;
+      setTimeout(() => reconnectPanel(key), delay);
+      delay += 300;
+    }
+  }
+  serverConnected = connected;
+  for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } }
+}
 
 // ==================== Layout persistence ====================
 const STORAGE_KEY = 'evomesh-layout';

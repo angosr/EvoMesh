@@ -10,9 +10,13 @@ function _cleanupIframe(iframe) {
 }
 
 // Shared disconnect detection — 3 consecutive checks (grace period) before showing overlay
-function _startDisconnectDetection(iframe, overlay) {
+// Auto-reconnects with exponential backoff (5s, 10s, 20s, 40s... max 60s)
+function _startDisconnectDetection(iframe, overlay, panelKey) {
   let count = 0;
   const THRESHOLD = 3;
+  let autoReconnectDelay = 5000;
+  let autoReconnectTimer = null;
+  const MAX_DELAY = 60000;
   return setInterval(() => {
     try {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -25,9 +29,23 @@ function _startDisconnectDetection(iframe, overlay) {
         (doc.readyState === 'complete' && !xtermScreen && !doc.querySelector('canvas'));
       if (isDisconnected) {
         count++;
-        if (count >= THRESHOLD) overlay.classList.add('show');
+        if (count >= THRESHOLD) {
+          overlay.classList.add('show');
+          // Auto-reconnect after delay (only schedule once)
+          if (!autoReconnectTimer && panelKey) {
+            autoReconnectTimer = setTimeout(() => {
+              autoReconnectTimer = null;
+              if (overlay.classList.contains('show') && state.openPanels[panelKey]) {
+                reconnectPanel(panelKey);
+                autoReconnectDelay = Math.min(autoReconnectDelay * 2, MAX_DELAY);
+              }
+            }, autoReconnectDelay);
+          }
+        }
       } else {
         count = 0;
+        autoReconnectDelay = 5000; // reset backoff on successful connection
+        if (autoReconnectTimer) { clearTimeout(autoReconnectTimer); autoReconnectTimer = null; }
         overlay.classList.remove('show');
       }
     } catch {}
@@ -94,7 +112,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   toolbar.appendChild(pageCtrl);
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
-  let rTimer = _startDisconnectDetection(iframe, overlay);
+  let rTimer = _startDisconnectDetection(iframe, overlay, key);
   iframe.addEventListener('error', () => overlay.classList.add('show'));
   injectTouchScroll(iframe);
   injectKeyboardScroll(iframe, key);
@@ -167,14 +185,33 @@ function reconnectPanel(key) {
   if (p.reconnectTimer) { clearInterval(p.reconnectTimer); p.reconnectTimer = null; }
   const oldSrc = p.iframe.src;
   const newIframe = document.createElement('iframe');
-  newIframe.src = oldSrc;
   newIframe.allow = 'clipboard-read; clipboard-write';
   newIframe.style.cssText = p.iframe.style.cssText;
+  // Prevent non-active terminals from stealing focus on load
+  const isActive = state.activePanel === key;
+  if (!isActive) {
+    newIframe.setAttribute('tabindex', '-1');
+    // Block focus theft: when a background iframe loads, xterm.js grabs focus.
+    // We detect this and restore focus to the previously active element.
+    const onLoad = () => {
+      newIframe.removeEventListener('load', onLoad);
+      // If this iframe grabbed focus while it's not the active panel, give it back
+      setTimeout(() => {
+        if (state.activePanel !== key && document.activeElement === newIframe) {
+          const activeP = state.openPanels[state.activePanel];
+          if (activeP?.iframe) activeP.iframe.focus();
+          else document.body.focus();
+        }
+      }, 100);
+    };
+    newIframe.addEventListener('load', onLoad);
+  }
+  newIframe.src = oldSrc;
   p.iframe.replaceWith(newIframe);
   p.iframe = newIframe;
   injectTouchScroll(newIframe);
   injectKeyboardScroll(newIframe, key);
-  p.reconnectTimer = _startDisconnectDetection(newIframe, p.overlay);
+  p.reconnectTimer = _startDisconnectDetection(newIframe, p.overlay, key);
 }
 
 function closePanel(key) {
