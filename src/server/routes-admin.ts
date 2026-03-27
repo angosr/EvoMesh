@@ -6,7 +6,7 @@ import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
 import { slugify, loadWorkspace, saveWorkspace } from "../workspace/config.js";
-import { getContainerState, getContainerPort, containerName, centralContainerName } from "../process/container.js";
+import { getContainerState, getContainerPort, containerName, centralContainerName, findClaudeBin } from "../process/container.js";
 import type { ServerContext } from "./index.js";
 import type { SessionInfo } from "./auth.js";
 import { requireProjectRole, allocatePort, reqLinuxUser } from "./routes.js";
@@ -149,9 +149,10 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
     // causing it to miss existing auth state and prompt for login.
     const defaultAccount = path.join(homeDir, ".claude");
     const isDefaultAccount = accountPath === defaultAccount;
+    const claudeBinPath = findClaudeBin();
     const tmuxCmd = isDefaultAccount
-      ? ["claude", ...claudeArgParts]
-      : ["env", `CLAUDE_CONFIG_DIR=${accountPath}`, "claude", ...claudeArgParts];
+      ? [claudeBinPath, ...claudeArgParts]
+      : ["env", `CLAUDE_CONFIG_DIR=${accountPath}`, claudeBinPath, ...claudeArgParts];
     execFileSync("tmux", [
       "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40",
       ...tmuxCmd,

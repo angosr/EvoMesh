@@ -7,6 +7,30 @@ import { ensureDir } from "../utils/fs.js";
 import { slugify } from "../workspace/config.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
 
+// Resolve claude binary absolute path — needed because server process PATH
+// may not include ~/.local/bin (e.g., when started via systemd)
+let _claudeBinCache: string | null = null;
+export function findClaudeBin(): string {
+  if (_claudeBinCache) return _claudeBinCache;
+  try {
+    _claudeBinCache = execFileSync("readlink", ["-f", execFileSync("which", ["claude"], { encoding: "utf-8" }).trim()], { encoding: "utf-8" }).trim();
+    if (_claudeBinCache && fs.existsSync(_claudeBinCache)) return _claudeBinCache;
+  } catch {}
+  const candidates = [
+    path.join(os.homedir(), ".local", "bin", "claude"),
+    "/usr/local/bin/claude",
+    "/usr/bin/claude",
+  ];
+  for (const c of candidates) {
+    try {
+      const resolved = execFileSync("readlink", ["-f", c], { encoding: "utf-8" }).trim();
+      if (resolved && fs.existsSync(resolved)) { _claudeBinCache = resolved; return resolved; }
+    } catch {}
+  }
+  _claudeBinCache = "claude"; // fallback
+  return _claudeBinCache;
+}
+
 export interface ContainerRole {
   role: string;
   containerName: string;
@@ -177,9 +201,10 @@ function startRoleHost(
   // (even to ~/.claude), Claude Code uses a different internal state file path,
   // causing it to miss existing auth state and prompt for login.
   const defaultAccount = path.join(os.homedir(), ".claude");
+  const claudeBinPath = findClaudeBin();
   const tmuxCmd = accountPath !== defaultAccount
-    ? `CLAUDE_CONFIG_DIR=${accountPath} claude ${claudeArgs}; exec bash`
-    : `claude ${claudeArgs}; exec bash`;
+    ? `CLAUDE_CONFIG_DIR=${accountPath} ${claudeBinPath} ${claudeArgs}; exec bash`
+    : `${claudeBinPath} ${claudeArgs}; exec bash`;
   execFileSync("tmux", [
     "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", tmuxCmd,
   ], { cwd: path.resolve(root), stdio: "ignore" });
@@ -280,24 +305,8 @@ export function startRole(
 
   // Mount host Claude Code binary (RO) — always matches host version, no image rebuild needed
   {
-    let claudeBin = "";
-    try {
-      claudeBin = execFileSync("readlink", ["-f", execFileSync("which", ["claude"], { encoding: "utf-8" }).trim()], { encoding: "utf-8" }).trim();
-    } catch {
-      // which may fail in systemd (PATH doesn't include ~/.local/bin) — check common locations
-      const candidates = [
-        path.join(os.homedir(), ".local", "bin", "claude"),
-        "/usr/local/bin/claude",
-        "/usr/bin/claude",
-      ];
-      for (const c of candidates) {
-        try {
-          const resolved = execFileSync("readlink", ["-f", c], { encoding: "utf-8" }).trim();
-          if (resolved && fs.existsSync(resolved)) { claudeBin = resolved; break; }
-        } catch { /* try next */ }
-      }
-    }
-    if (claudeBin && fs.existsSync(claudeBin)) {
+    const claudeBin = findClaudeBin();
+    if (claudeBin && claudeBin !== "claude" && fs.existsSync(claudeBin)) {
       args.push("-v", `${claudeBin}:/usr/local/bin/claude:ro`);
     } else {
       console.error("[container] WARNING: claude binary not found on host — container will have no claude command");
