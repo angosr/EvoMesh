@@ -40,38 +40,39 @@ function _injectAutoReconnect(iframe, overlay) {
       // Key design: don't spam Enter every check cycle — that creates a
       // reconnect → disconnect → reconnect loop. Instead, send Enter once,
       // then wait for the result before trying again.
-      let consecutiveDisconnects = 0;
-      let reconnectAttempted = false; // true = we sent Enter, waiting for result
-      let reconnectCooldown = 0;     // timestamp: don't retry before this
+      let disconnectCount = 0;
+      let connectCount = 0;           // consecutive connected checks (for stability)
+      let reconnectCooldown = 0;      // timestamp: don't retry before this
       const CHECK_INTERVAL = 2000;
-      const COOLDOWN_MS = 8000;      // wait 8s between reconnect attempts
+      const COOLDOWN_MS = 10000;
+      const SHOW_THRESHOLD = 10;      // 20s of disconnect before showing overlay
+      const STABLE_THRESHOLD = 3;     // 6s of stable connection before hiding overlay
 
       const checker = setInterval(() => {
         if (aborted) { clearInterval(checker); return; }
         try {
           const ttydOverlay = doc.querySelector('#overlay');
           const xtermScreen = doc.querySelector('.xterm-screen');
-
-          // Detect: ttyd overlay visible = disconnected
           const overlayVisible = ttydOverlay && ttydOverlay.style.display !== 'none';
           const isConnected = xtermScreen && !overlayVisible;
 
           if (isConnected) {
-            // Connection is healthy — reset everything
-            consecutiveDisconnects = 0;
-            reconnectAttempted = false;
-            overlay.classList.remove('show');
+            disconnectCount = 0;
+            connectCount++;
+            // Only hide overlay after connection is stable (not just a brief flicker)
+            if (connectCount >= STABLE_THRESHOLD) overlay.classList.remove('show');
             return;
           }
 
-          consecutiveDisconnects++;
+          // Disconnected
+          connectCount = 0;
+          disconnectCount++;
 
-          // Show our overlay after sustained disconnect (8s = 4 checks)
-          if (consecutiveDisconnects >= 4) overlay.classList.add('show');
+          // Show overlay only after long sustained disconnect (20s)
+          if (disconnectCount >= SHOW_THRESHOLD) overlay.classList.add('show');
 
-          // Auto-dismiss: only if we haven't already tried, and cooldown expired
-          if (overlayVisible && !reconnectAttempted && Date.now() > reconnectCooldown) {
-            reconnectAttempted = true;
+          // Auto-dismiss ttyd overlay: once, then respect cooldown
+          if (overlayVisible && Date.now() > reconnectCooldown) {
             reconnectCooldown = Date.now() + COOLDOWN_MS;
             try {
               doc.dispatchEvent(new KeyboardEvent('keydown', {
@@ -80,8 +81,6 @@ function _injectAutoReconnect(iframe, overlay) {
               }));
               ttydOverlay.click();
             } catch {}
-            // After cooldown, allow another attempt
-            setTimeout(() => { reconnectAttempted = false; }, COOLDOWN_MS);
           }
         } catch { /* cross-origin or iframe gone */ }
       }, CHECK_INTERVAL);
