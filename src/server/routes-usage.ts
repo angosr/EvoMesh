@@ -14,6 +14,34 @@ import type { ServerContext } from "./index.js";
 // Active login processes — keyed by account path
 const loginProcesses = new Map<string, { proc: import("node:child_process").ChildProcess; authUrl: string }>();
 
+// Resolve claude binary path — needed because the server process may have a
+// limited PATH (e.g., when started via systemd) that doesn't include ~/.local/bin
+let _claudeBin: string | null = null;
+function getClaudeBin(): string {
+  if (_claudeBin) return _claudeBin;
+  // Try common locations
+  const candidates = [
+    "claude", // rely on PATH
+    path.join(os.homedir(), ".local", "bin", "claude"),
+    "/usr/local/bin/claude",
+    path.join(os.homedir(), ".nvm", "versions", "node", "current", "bin", "claude"),
+  ];
+  for (const c of candidates) {
+    try {
+      execFileSync(c, ["--version"], { stdio: "ignore", timeout: 5000 });
+      _claudeBin = c;
+      return c;
+    } catch {}
+  }
+  // Also try `which` as fallback
+  try {
+    _claudeBin = execFileSync("which", ["claude"], { encoding: "utf-8", timeout: 3000 }).trim();
+    if (_claudeBin) return _claudeBin;
+  } catch {}
+  _claudeBin = "claude"; // fallback to bare name
+  return _claudeBin;
+}
+
 // One-time invite links — keyed by invite code
 interface InviteLink {
   code: string;
@@ -89,7 +117,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     // Spawn claude auth login
     let proc: import("node:child_process").ChildProcess;
     try {
-      proc = spawn("claude", ["auth", "login", "--claudeai"], {
+      proc = spawn(getClaudeBin(), ["auth", "login", "--claudeai"], {
         env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -348,7 +376,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
 
     let proc: import("node:child_process").ChildProcess;
     try {
-      proc = spawn("claude", ["auth", "login", "--claudeai"], {
+      proc = spawn(getClaudeBin(), ["auth", "login", "--claudeai"], {
         env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
         stdio: ["pipe", "pipe", "pipe"],
       });
