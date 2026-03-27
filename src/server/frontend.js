@@ -223,14 +223,16 @@ async function _fetchAllInner() {
         toggle.title = centralData.enabled === false ? 'Enable Central AI' : 'Disable Central AI';
       }
     } catch {}
-    // Clean up tabs for roles that are no longer running
-    const activeTerminals = new Set();
-    state.projects.forEach(p => p.roles.forEach(r => { if (r.terminal) activeTerminals.add(`${p.slug}/${r.name}`); }));
+    // Clean up tabs only for roles that no longer exist in the project config.
+    // Do NOT close panels just because r.terminal is temporarily null (transient
+    // API error / slow response) — that causes unnecessary iframe replacement.
+    const knownRoles = new Set();
+    state.projects.forEach(p => p.roles.forEach(r => knownRoles.add(`${p.slug}/${r.name}`)));
     for (const key of Object.keys(state.openPanels)) {
-      if (key !== 'dashboard' && key !== 'settings' && key !== 'central/ai' && !activeTerminals.has(key)) {
-        if (!state.openPanels[key].iframe) continue;
-        closePanel(key);
-      }
+      if (key === 'dashboard' || key === 'settings' || key === 'central/ai') continue;
+      if (!state.openPanels[key].iframe) continue;
+      // Only close if the role itself was removed from the project, not just stopped
+      if (!knownRoles.has(key)) closePanel(key);
     }
     if (!_userTyping) { renderOpenTabs(); }
     focusActiveIframe();
@@ -365,39 +367,31 @@ function withLoading(btn, asyncFn) {
 let serverConnected = true;
 
 // ==================== Metrics ====================
-async function fetchMetrics() { try { const r = await authFetch(`${API}/metrics`); const d = await r.json(); updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`); updateMetric('mem',d.memory.percent,`${d.memory.percent}%`); updateMetric('disk',d.disk.percent,`${d.disk.percent}%`); setConnStatus(true); } catch { setConnStatus(false); } }
+let _connFailCount = 0;
+const CONN_FAIL_THRESHOLD = 3; // need 3 consecutive failures before declaring disconnected
+async function fetchMetrics() {
+  try {
+    const r = await authFetch(`${API}/metrics`);
+    const d = await r.json();
+    updateMetric('cpu',d.cpu.percent,`${d.cpu.percent}%`);
+    updateMetric('mem',d.memory.percent,`${d.memory.percent}%`);
+    updateMetric('disk',d.disk.percent,`${d.disk.percent}%`);
+    _connFailCount = 0;
+    setConnStatus(true);
+  } catch {
+    _connFailCount++;
+    // Only declare disconnected after multiple consecutive failures
+    // A single network hiccup should NOT trigger reconnect of all terminals
+    if (_connFailCount >= CONN_FAIL_THRESHOLD) setConnStatus(false);
+  }
+}
 function updateMetric(id, pct, label) { const bar = document.getElementById(`m-${id}2`), val = document.getElementById(`m-${id}-val2`); if (!bar||!val) return; bar.style.width = pct+'%'; bar.className = 'metric-bar-fill '+(pct>90?'crit':pct>70?'warn':'ok'); val.textContent = label; }
 function setConnStatus(connected) {
-  if (connected && !serverConnected) {
-    // If user is typing or composing, defer reconnection to avoid disruption
-    if (_imeComposing || _userTyping) {
-      const deferCheck = setInterval(() => {
-        if (!_imeComposing && !_userTyping) {
-          clearInterval(deferCheck);
-          _doReconnectAll();
-        }
-      }, 500);
-      // Safety: don't defer forever
-      setTimeout(() => clearInterval(deferCheck), 30000);
-    } else {
-      _doReconnectAll();
-    }
-  }
+  // Don't trigger mass iframe replacement on reconnect — each terminal's
+  // in-iframe auto-reconnect handles its own recovery silently.
+  // We only update the visual status indicator here.
   serverConnected = connected;
   for (const id of ['conn-dot','conn-dot2']) { const dot = document.getElementById(id); if (dot) { dot.className = 'conn-dot '+(connected?'connected':'disconnected'); dot.title = connected?'Connected':'Disconnected'; } }
-}
-
-function _doReconnectAll() {
-  // Reconnect active panel first, then stagger others to avoid focus theft
-  const activeKey = state.activePanel;
-  if (state.openPanels[activeKey]?.iframe) reconnectPanel(activeKey);
-  let delay = 500;
-  for (const key of Object.keys(state.openPanels)) {
-    if (key === activeKey) continue;
-    if (!state.openPanels[key]?.iframe) continue;
-    setTimeout(() => reconnectPanel(key), delay);
-    delay += 300;
-  }
 }
 
 // ==================== Layout persistence ====================

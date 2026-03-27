@@ -36,43 +36,52 @@ function _injectAutoReconnect(iframe, overlay) {
       if (doc.body.dataset.autoReconnectInjected) return;
       doc.body.dataset.autoReconnectInjected = 'true';
 
-      // Strategy: poll for ttyd's overlay element and auto-dismiss it
-      // ttyd shows #overlay with display:block when disconnected;
-      // pressing Enter or clicking triggers reconnection
+      // Watch for ttyd's disconnect overlay and auto-dismiss it ONCE.
+      // Key design: don't spam Enter every check cycle — that creates a
+      // reconnect → disconnect → reconnect loop. Instead, send Enter once,
+      // then wait for the result before trying again.
       let consecutiveDisconnects = 0;
-      const CHECK_INTERVAL = 1500;
+      let reconnectAttempted = false; // true = we sent Enter, waiting for result
+      let reconnectCooldown = 0;     // timestamp: don't retry before this
+      const CHECK_INTERVAL = 2000;
+      const COOLDOWN_MS = 8000;      // wait 8s between reconnect attempts
 
       const checker = setInterval(() => {
         if (aborted) { clearInterval(checker); return; }
         try {
           const ttydOverlay = doc.querySelector('#overlay');
           const xtermScreen = doc.querySelector('.xterm-screen');
-          const bodyText = doc.body?.innerText || '';
 
-          // Detect disconnection
-          const isDisconnected = (ttydOverlay && ttydOverlay.style.display !== 'none') ||
-            (!xtermScreen && bodyText.length > 0 && bodyText.length < 200 && doc.readyState === 'complete');
+          // Detect: ttyd overlay visible = disconnected
+          const overlayVisible = ttydOverlay && ttydOverlay.style.display !== 'none';
+          const isConnected = xtermScreen && !overlayVisible;
 
-          if (isDisconnected) {
-            consecutiveDisconnects++;
-            // Show our overlay only after sustained disconnect (6s = 4 checks)
-            if (consecutiveDisconnects >= 4) overlay.classList.add('show');
-
-            // Auto-dismiss ttyd's overlay by simulating Enter key
-            // This triggers ttyd's built-in reconnect without iframe replacement
-            if (ttydOverlay && ttydOverlay.style.display !== 'none') {
-              try {
-                doc.dispatchEvent(new KeyboardEvent('keydown', {
-                  key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-                  bubbles: true, cancelable: true,
-                }));
-                // Also try clicking the overlay directly (some ttyd versions)
-                ttydOverlay.click();
-              } catch {}
-            }
-          } else {
-            if (consecutiveDisconnects > 0) consecutiveDisconnects = 0;
+          if (isConnected) {
+            // Connection is healthy — reset everything
+            consecutiveDisconnects = 0;
+            reconnectAttempted = false;
             overlay.classList.remove('show');
+            return;
+          }
+
+          consecutiveDisconnects++;
+
+          // Show our overlay after sustained disconnect (8s = 4 checks)
+          if (consecutiveDisconnects >= 4) overlay.classList.add('show');
+
+          // Auto-dismiss: only if we haven't already tried, and cooldown expired
+          if (overlayVisible && !reconnectAttempted && Date.now() > reconnectCooldown) {
+            reconnectAttempted = true;
+            reconnectCooldown = Date.now() + COOLDOWN_MS;
+            try {
+              doc.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+                bubbles: true, cancelable: true,
+              }));
+              ttydOverlay.click();
+            } catch {}
+            // After cooldown, allow another attempt
+            setTimeout(() => { reconnectAttempted = false; }, COOLDOWN_MS);
           }
         } catch { /* cross-origin or iframe gone */ }
       }, CHECK_INTERVAL);
