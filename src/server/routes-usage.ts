@@ -334,7 +334,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       res.status(410).type("html").send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Link Expired</title>
         <style>body{background:#000;color:#e0e0e0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh}
         .box{background:#111;border:1px solid #222;border-radius:12px;padding:32px;text-align:center}
-        h1{color:#e94560;font-size:20px;margin-bottom:8px}p{color:#666;font-size:13px}</style></head>
+        h1{color:#38bdf8;font-size:20px;margin-bottom:8px}p{color:#666;font-size:13px}</style></head>
         <body><div class="box"><h1>Link Expired</h1><p>This invite link has expired or already been used.</p></div></body></html>`);
       return;
     }
