@@ -28,6 +28,7 @@ async function renderAccountUsage() {
         const loginBtnStyle = isExpired ? 'color:var(--red);border-color:var(--red)' : (isExpiring ? 'color:var(--yellow);border-color:var(--yellow)' : '');
         const loginBtnText = isExpired ? '🔑 Login' : (isExpiring ? '🔑 Refresh' : '↻ Refresh');
         const loginBtn = `<button class="dash-action acct-login-btn" data-path="${esc(a.path)}" style="margin-left:6px;${loginBtnStyle}">${loginBtnText}</button>`;
+        const shareBtn = `<button class="dash-action acct-share-btn" data-path="${esc(a.path)}" data-name="${esc(a.name)}" style="margin-left:4px" title="Generate one-time login link">🔗 Share</button>`;
         return `<div class="card acct-card-v2" ${isExpired?'style="border-color:var(--red);box-shadow:0 0 8px rgba(248,113,113,0.15)"':''}>
           <div class="acct-row">
             <span class="acct-dot ${statusCls}"></span>
@@ -35,7 +36,7 @@ async function renderAccountUsage() {
             <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
             ${a.rateLimitTier ? `<span class="acct-tier">${esc(a.rateLimitTier.replace('default_claude_','').replace(/_/g,' '))}</span>` : ''}
             <span class="acct-status ${statusCls}">${statusText}</span>
-            ${loginBtn}
+            ${loginBtn}${shareBtn}
           </div>
           <div class="acct-stats">
             <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
@@ -79,6 +80,10 @@ async function renderAccountUsage() {
       // Login button handlers
       section.querySelectorAll('.acct-login-btn').forEach(btn => {
         btn.addEventListener('click', () => startAccountLogin(btn.dataset.path, btn));
+      });
+      // Share button handlers
+      section.querySelectorAll('.acct-share-btn').forEach(btn => {
+        btn.addEventListener('click', () => generateInviteLink(btn.dataset.path, btn.dataset.name, btn));
       });
     }
   } catch {}
@@ -149,6 +154,59 @@ async function startAccountLogin(accountPath, btn) {
     });
 
     codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
+  } catch (e) { alert('Failed: ' + e.message); }
+  btn.disabled = false; btn.textContent = origText;
+}
+
+async function generateInviteLink(accountPath, accountName, btn) {
+  const origText = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳...';
+  try {
+    const r = await authFetch(`${API}/accounts/invite`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountPath, accountName }),
+    });
+    const d = await r.json();
+    if (!d.ok || !d.url) { alert(d.error || 'Failed to generate link'); btn.disabled = false; btn.textContent = origText; return; }
+
+    // Show modal with the invite link
+    const overlay = document.createElement('div');
+    overlay.className = 'copy-modal-overlay';
+    overlay.innerHTML = `<div class="copy-modal" style="width:520px">
+      <div class="copy-modal-header">
+        <span>Share Login Link: ${esc(accountName)}</span>
+        <button class="copy-modal-close" id="invite-close">&times;</button>
+      </div>
+      <div style="margin:12px 0">
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Send this one-time link to the account owner. They can use it to complete the login for <strong>${esc(accountName)}</strong>.</p>
+        <div style="display:flex;gap:6px;align-items:stretch">
+          <input id="invite-url-input" type="text" readonly value="${esc(d.url)}" style="flex:1;padding:10px;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font-size:12px;font-family:var(--font-mono)">
+          <button class="dash-action" id="invite-copy-btn" style="padding:8px 14px;white-space:nowrap">Copy</button>
+        </div>
+        <p style="font-size:11px;color:var(--text-faint);margin-top:10px">This link expires in 24 hours and can only be used once.</p>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    document.getElementById('invite-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    const urlInput = document.getElementById('invite-url-input');
+    const copyBtn = document.getElementById('invite-copy-btn');
+    urlInput.addEventListener('click', () => urlInput.select());
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(d.url);
+        copyBtn.textContent = '✓ Copied';
+        copyBtn.style.color = 'var(--green)';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.style.color = ''; }, 2000);
+      } catch {
+        urlInput.select();
+        document.execCommand('copy');
+        copyBtn.textContent = '✓ Copied';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      }
+    });
   } catch (e) { alert('Failed: ' + e.message); }
   btn.disabled = false; btn.textContent = origText;
 }

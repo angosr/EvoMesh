@@ -1,7 +1,9 @@
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import crypto from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config/loader.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
@@ -11,6 +13,21 @@ import type { ServerContext } from "./index.js";
 
 // Active login processes — keyed by account path
 const loginProcesses = new Map<string, { proc: import("node:child_process").ChildProcess; authUrl: string }>();
+
+// One-time invite links — keyed by invite code
+interface InviteLink {
+  code: string;
+  accountPath: string;   // resolved absolute path
+  accountName: string;
+  createdBy: string;
+  createdAt: number;
+  expiresAt: number;     // auto-expire after 24h even if unused
+}
+const inviteLinks = new Map<string, InviteLink>();
+
+function generateInviteCode(): string {
+  return crypto.randomBytes(24).toString("base64url");
+}
 
 export function registerUsageRoutes(app: import("express").Express, ctx: ServerContext): void {
 
@@ -230,6 +247,153 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
         });
       res.json({ accounts });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
+  });
+
+  // --- Invite links (one-time login sharing) ---
+
+  // Generate an invite link for an account (admin only)
+  app.post("/api/accounts/invite", (req, res) => {
+    const session = (req as any)._session as SessionInfo | undefined;
+    if (!session || session.role !== "admin") { res.status(403).json({ error: "Admin access required" }); return; }
+    const { accountPath, accountName } = req.body;
+    if (!accountPath) { res.status(400).json({ error: "accountPath required" }); return; }
+    const resolved = expandHome(accountPath);
+    if (!fs.existsSync(resolved)) { res.status(404).json({ error: "Account directory not found" }); return; }
+
+    const code = generateInviteCode();
+    const now = Date.now();
+    inviteLinks.set(code, {
+      code,
+      accountPath: resolved,
+      accountName: accountName || path.basename(resolved),
+      createdBy: session.username,
+      createdAt: now,
+      expiresAt: now + 24 * 60 * 60 * 1000, // 24h
+    });
+
+    // Build the invite URL based on request host
+    const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || `localhost:${ctx.port}`;
+    const inviteUrl = `${proto}://${host}/invite/${code}`;
+
+    res.json({ ok: true, code, url: inviteUrl, expiresAt: now + 24 * 60 * 60 * 1000 });
+  });
+
+  // Serve invite page (no auth required — checked in auth exempt)
+  app.get("/invite/:code", (req, res) => {
+    const invite = inviteLinks.get(req.params.code);
+    if (!invite || Date.now() > invite.expiresAt) {
+      inviteLinks.delete(req.params.code);
+      res.status(410).type("html").send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Link Expired</title>
+        <style>body{background:#000;color:#e0e0e0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh}
+        .box{background:#111;border:1px solid #222;border-radius:12px;padding:32px;text-align:center}
+        h1{color:#e94560;font-size:20px;margin-bottom:8px}p{color:#666;font-size:13px}</style></head>
+        <body><div class="box"><h1>Link Expired</h1><p>This invite link has expired or already been used.</p></div></body></html>`);
+      return;
+    }
+    const __dir = path.dirname(fileURLToPath(import.meta.url));
+    const srcPath = path.join(__dir, "..", "..", "src", "server", "invite.html");
+    const distPath = path.join(__dir, "invite.html");
+    const p = fs.existsSync(srcPath) ? srcPath : distPath;
+    if (!p || !fs.existsSync(p)) { res.status(500).send("Invite page not found"); return; }
+    res.type("html").sendFile(path.resolve(p));
+  });
+
+  // Get invite info (no auth required)
+  app.get("/api/invite/:code", (req, res) => {
+    const invite = inviteLinks.get(req.params.code);
+    if (!invite || Date.now() > invite.expiresAt) {
+      inviteLinks.delete(req.params.code);
+      res.status(410).json({ error: "Invite link expired or invalid" });
+      return;
+    }
+    res.json({ accountName: invite.accountName, expiresAt: invite.expiresAt });
+  });
+
+  // Start login via invite link (no auth required)
+  app.post("/api/invite/:code/login/start", (req, res) => {
+    const invite = inviteLinks.get(req.params.code);
+    if (!invite || Date.now() > invite.expiresAt) {
+      inviteLinks.delete(req.params.code);
+      res.status(410).json({ error: "Invite link expired or invalid" });
+      return;
+    }
+    const resolved = invite.accountPath;
+    if (!fs.existsSync(resolved)) {
+      try { fs.mkdirSync(resolved, { recursive: true, mode: 0o700 }); } catch {}
+    }
+    // Kill any existing login process for this account
+    const existing = loginProcesses.get(resolved);
+    if (existing) { try { existing.proc.kill(); } catch {} loginProcesses.delete(resolved); }
+
+    const proc = spawn("claude", ["auth", "login", "--claudeai"], {
+      env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    let output = "";
+    proc.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+    proc.stderr?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+
+    setTimeout(() => {
+      const urlMatch = output.match(/(https:\/\/claude\.ai\/oauth\/authorize[^\s]+)/) ||
+                       output.match(/(https:\/\/platform\.claude\.com\/oauth\/authorize[^\s]+)/);
+      if (urlMatch) {
+        const authUrl = urlMatch[1];
+        loginProcesses.set(resolved, { proc, authUrl });
+        res.json({ ok: true, authUrl });
+      } else {
+        proc.kill();
+        res.status(500).json({ error: "Failed to get auth URL", output: output.slice(0, 500) });
+      }
+    }, 3000);
+
+    proc.on("exit", () => { loginProcesses.delete(resolved); });
+  });
+
+  // Complete login via invite link (no auth required) — consumes the invite
+  app.post("/api/invite/:code/login/complete", (req, res) => {
+    const invite = inviteLinks.get(req.params.code);
+    if (!invite || Date.now() > invite.expiresAt) {
+      inviteLinks.delete(req.params.code);
+      res.status(410).json({ error: "Invite link expired or invalid" });
+      return;
+    }
+    const { code: authCode } = req.body;
+    if (!authCode) { res.status(400).json({ error: "Authorization code required" }); return; }
+    const resolved = invite.accountPath;
+    const entry = loginProcesses.get(resolved);
+    if (!entry) { res.status(404).json({ error: "No active login session. Start login first." }); return; }
+
+    entry.proc.stdin?.write(authCode.trim() + "\n");
+
+    let completed = false;
+    entry.proc.on("exit", (exitCode) => {
+      if (completed) return;
+      completed = true;
+      loginProcesses.delete(resolved);
+      // Consume the invite link (one-time use)
+      inviteLinks.delete(req.params.code);
+      if (exitCode === 0) {
+        res.json({ ok: true, message: "Login successful. This link has been consumed." });
+      } else {
+        res.json({ ok: false, error: "Login may have failed. Link has been consumed — request a new one if needed." });
+      }
+    });
+
+    setTimeout(() => {
+      if (completed) return;
+      completed = true;
+      try { entry.proc.kill(); } catch {}
+      loginProcesses.delete(resolved);
+      // Consume the invite regardless
+      inviteLinks.delete(req.params.code);
+      if (fs.existsSync(path.join(resolved, ".credentials.json"))) {
+        res.json({ ok: true, message: "Login completed. Link consumed." });
+      } else {
+        res.status(500).json({ error: "Login timed out. Link consumed — request a new one if needed." });
+      }
+    }, 10000);
   });
 
   // --- System metrics ---

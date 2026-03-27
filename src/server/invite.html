@@ -1,0 +1,146 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvoMesh — Account Login</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, monospace; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .box { background: #111; border: 1px solid #222; border-radius: 12px; padding: 32px; width: 90vw; max-width: 480px; }
+  h1 { color: #e94560; font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 20px; }
+  .acct-label { color: #e94560; font-weight: 600; font-size: 14px; margin-bottom: 16px; display: inline-block; background: rgba(233,69,96,0.1); padding: 6px 12px; border-radius: 6px; }
+  .step { margin-bottom: 16px; }
+  .step-num { color: #e94560; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .step-desc { color: #888; font-size: 12px; margin-bottom: 8px; }
+  .auth-url { display: block; padding: 10px; background: #0a0a0a; border: 1px solid #222; border-radius: 6px; color: #818cf8; font-size: 11px; word-break: break-all; text-decoration: none; margin-bottom: 4px; }
+  .auth-url:hover { border-color: #818cf8; }
+  input { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #222; color: #e0e0e0; border-radius: 6px; font-size: 14px; font-family: monospace; }
+  input:focus { outline: none; border-color: #e94560; }
+  button { width: 100%; padding: 12px; background: #e94560; border: none; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+  button:hover { background: #d63851; }
+  button:disabled { background: #333; color: #666; cursor: not-allowed; }
+  .status { font-size: 12px; margin-top: 10px; min-height: 18px; }
+  .status.ok { color: #22c55e; }
+  .status.err { color: #ef4444; }
+  .status.wait { color: #888; }
+  .done-box { text-align: center; padding: 20px 0; }
+  .done-box h2 { color: #22c55e; font-size: 18px; margin-bottom: 8px; }
+  .done-box p { color: #666; font-size: 13px; }
+  #login-steps { display: none; }
+</style></head><body>
+<div class="box">
+  <h1>EvoMesh</h1>
+  <div class="sub">Account Login via Invite Link</div>
+  <div id="loading" style="color:#666;font-size:13px">Verifying link...</div>
+  <div id="error" style="display:none;color:#ef4444;font-size:13px"></div>
+
+  <div id="invite-info" style="display:none">
+    <div class="acct-label" id="acct-name"></div>
+    <div id="login-steps">
+      <div class="step">
+        <div class="step-num">Step 1: Authorize</div>
+        <div class="step-desc">Click the link below to sign in with your Claude account:</div>
+        <a id="auth-url-link" class="auth-url" href="#" target="_blank" rel="noopener">Loading...</a>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 2: Paste Code</div>
+        <div class="step-desc">After authorizing, paste the code you received:</div>
+        <input id="auth-code" type="text" placeholder="Paste authorization code here..." />
+        <button id="submit-btn" onclick="submitCode()">Submit & Complete Login</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+    <button id="start-btn" onclick="startLogin()">Start Login</button>
+  </div>
+
+  <div id="done" class="done-box" style="display:none">
+    <h2>Login Complete</h2>
+    <p>The account has been authenticated successfully.<br>You can close this page.</p>
+  </div>
+</div>
+<script>
+const code = location.pathname.split('/invite/')[1];
+const API = '';
+
+async function init() {
+  try {
+    const r = await fetch(`${API}/api/invite/${code}`);
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      showError(d.error || 'This invite link has expired or is invalid.');
+      return;
+    }
+    const d = await r.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('invite-info').style.display = 'block';
+    document.getElementById('acct-name').textContent = 'Account: ' + d.accountName;
+  } catch (e) {
+    showError('Failed to verify link: ' + e.message);
+  }
+}
+
+async function startLogin() {
+  const btn = document.getElementById('start-btn');
+  btn.disabled = true; btn.textContent = 'Getting auth URL...';
+  try {
+    const r = await fetch(`${API}/api/invite/${code}/login/start`, { method: 'POST' });
+    const d = await r.json();
+    if (!d.ok || !d.authUrl) {
+      setStatus(d.error || 'Failed to start login', 'err');
+      btn.disabled = false; btn.textContent = 'Start Login';
+      return;
+    }
+    btn.style.display = 'none';
+    document.getElementById('login-steps').style.display = 'block';
+    const link = document.getElementById('auth-url-link');
+    link.href = d.authUrl;
+    link.textContent = d.authUrl;
+    document.getElementById('auth-code').focus();
+  } catch (e) {
+    setStatus('Network error: ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = 'Start Login';
+  }
+}
+
+async function submitCode() {
+  const input = document.getElementById('auth-code');
+  const authCode = input.value.trim();
+  if (!authCode) { input.focus(); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  setStatus('Completing login...', 'wait');
+  try {
+    const r = await fetch(`${API}/api/invite/${code}/login/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: authCode }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('invite-info').style.display = 'none';
+      document.getElementById('done').style.display = 'block';
+    } else {
+      setStatus(d.error || 'Login failed', 'err');
+      btn.disabled = false; btn.textContent = 'Submit & Complete Login';
+    }
+  } catch (e) {
+    setStatus('Network error: ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = 'Submit & Complete Login';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + (cls || '');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') { const btn = document.getElementById('submit-btn'); if (btn && !btn.disabled) btn.click(); } });
+init();
+</script></body></html>

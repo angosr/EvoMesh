@@ -170,7 +170,7 @@ export function startServer(port: number, initialRoot?: string) {
   // --- Auth + role middleware ---
   // Whitelist of paths that don't require auth (exact match or prefix)
   const AUTH_EXEMPT_EXACT = new Set(["/login", "/", "/auth/status", "/auth/setup", "/auth/login"]);
-  const AUTH_EXEMPT_PREFIX = ["/auth/", "/terminal/"]; // terminal.ts handles its own auth
+  const AUTH_EXEMPT_PREFIX = ["/auth/", "/terminal/", "/invite/", "/api/invite/"]; // terminal.ts handles its own auth; invite links are self-authenticating
 
   app.use((req, res, next) => {
     if (AUTH_EXEMPT_EXACT.has(req.path)) return next();
