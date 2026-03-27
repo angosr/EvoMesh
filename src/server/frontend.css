@@ -190,18 +190,18 @@
   /* Terminal toolbar: hidden on desktop, visible on mobile/touch only */
   .term-toolbar { display: none; position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 3; justify-content: space-between; align-items: flex-end; pointer-events: none; }
   .term-toolbar > * { pointer-events: auto; }
-  .term-toolbar button { background: rgba(12,15,20,0.85); border: 1px solid var(--text-faint); color: var(--text); width: 44px; height: 44px; border-radius: 8px; cursor: pointer; font-size: 18px; user-select: none; -webkit-user-select: none; transition: background 0.15s; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .term-toolbar button { background: rgba(12,15,20,0.85); border: 1px solid var(--text-faint); color: var(--text); width: 36px; height: 36px; border-radius: 6px; cursor: pointer; font-size: 14px; user-select: none; -webkit-user-select: none; transition: background 0.15s; display: flex; align-items: center; justify-content: center; padding: 0; }
   .term-toolbar button:active { background: var(--accent); color: #fff; }
 
   /* D-pad: cross layout */
-  .term-dpad { display: grid; grid-template-columns: 44px 44px 44px; grid-template-rows: 44px 44px; gap: 3px; }
+  .term-dpad { display: grid; grid-template-columns: 36px 36px 36px; grid-template-rows: 36px 36px; gap: 2px; }
   .dpad-up { grid-column: 2; grid-row: 1; }
   .dpad-left { grid-column: 1; grid-row: 2; }
   .dpad-right { grid-column: 3; grid-row: 2; }
   .dpad-down { grid-column: 2; grid-row: 2; }
 
-  /* Page controls */
-  .term-page { display: flex; gap: 3px; }
+  /* Page controls — wrap to 2 rows when narrow */
+  .term-page { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; max-width: 120px; }
 
   /* Show toolbar only on touch devices */
   @media (pointer: coarse) {
