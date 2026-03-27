@@ -35,6 +35,24 @@ function _startDisconnectWatch(iframe, overlay) {
   }, 2000);
 }
 
+// ==================== Focus theft prevention ====================
+// xterm.js inside iframes calls .focus() on its internal textarea on load/reconnect.
+// The parent document cannot intercept this. Our solution: add a focus listener on
+// every iframe. If the iframe is NOT the active panel, immediately give focus back.
+// This is the ONLY reliable way to prevent background terminals from stealing input.
+function _guardIframeFocus(iframe, panelKey) {
+  iframe.addEventListener('focus', () => {
+    if (state.activePanel === panelKey) return; // this IS the active panel, allow
+    // Background iframe stole focus — give it back
+    const activeP = state.openPanels[state.activePanel];
+    if (activeP?.iframe) {
+      activeP.iframe.focus();
+    } else {
+      iframe.blur();
+    }
+  });
+}
+
 // ==================== Panels ====================
 function openTerminal(slug, projectName, roleName, terminalPath) {
   const key = `${slug}/${roleName}`;
@@ -98,6 +116,7 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   panel.appendChild(iframe); panel.appendChild(toolbar); panel.appendChild(overlay);
   document.getElementById('panels').appendChild(panel);
   let rTimer = _startDisconnectWatch(iframe, overlay);
+  _guardIframeFocus(iframe, key);
   injectTouchScroll(iframe);
   injectKeyboardScroll(iframe, key);
   state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
@@ -109,6 +128,28 @@ function openTerminal(slug, projectName, roleName, terminalPath) {
   } else {
     switchTo(key);
   }
+  renderOpenTabs(); saveLayout();
+}
+
+// Open a terminal in the background without switching to it or stealing focus
+function _openTerminalBackground(slug, projectName, roleName, terminalPath) {
+  const key = `${slug}/${roleName}`;
+  if (state.openPanels[key]) return;
+  if (!terminalPath) return;
+  const authPath = terminalPath + (terminalPath.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(AUTH_TOKEN);
+  const panel = document.createElement('div'); panel.className = 'panel'; panel.id = `panel-${key}`;
+  const iframe = document.createElement('iframe'); iframe.src = authPath; iframe.allow = 'clipboard-read; clipboard-write';
+  const overlay = document.createElement('div'); overlay.className = 'reconnect-overlay';
+  overlay.innerHTML = `<span class="reconnect-msg">Terminal disconnected</span><button class="reconnect-btn">Reconnect</button>`;
+  overlay.querySelector('.reconnect-btn').addEventListener('click', () => reconnectPanel(key));
+  panel.appendChild(iframe); panel.appendChild(overlay);
+  document.getElementById('panels').appendChild(panel);
+  _guardIframeFocus(iframe, key);
+  const rTimer = _startDisconnectWatch(iframe, overlay);
+  injectTouchScroll(iframe);
+  injectKeyboardScroll(iframe, key);
+  state.openPanels[key] = { panel, iframe, overlay, reconnectTimer: rTimer };
+  if (!state.tabOrder.includes(key)) state.tabOrder.push(key);
   renderOpenTabs(); saveLayout();
 }
 
@@ -140,10 +181,17 @@ async function startAndOpenTerminal(slug, projectName, roleName) {
         const role = s.roles?.find(r => r.name === roleName);
         if (role?.terminal) {
           clearInterval(check);
+          const wasActive = state.activePanel === key;
           panel.remove();
           delete state.openPanels[key];
           state.tabOrder = state.tabOrder.filter(k => k !== key);
-          openTerminal(slug, projectName, roleName, role.terminal);
+          // Only switch focus if user is still on this panel
+          if (wasActive) {
+            openTerminal(slug, projectName, roleName, role.terminal);
+          } else {
+            // Open terminal silently in background — don't steal focus
+            _openTerminalBackground(slug, projectName, roleName, role.terminal);
+          }
         }
       } catch {}
       if (retries > 30) {
@@ -171,11 +219,10 @@ function reconnectPanel(key) {
   const newIframe = document.createElement('iframe');
   newIframe.allow = 'clipboard-read; clipboard-write';
   newIframe.style.cssText = p.iframe.style.cssText;
-  // Prevent non-active terminals from stealing focus on load
-  if (state.activePanel !== key) newIframe.setAttribute('tabindex', '-1');
   newIframe.src = oldSrc;
   p.iframe.replaceWith(newIframe);
   p.iframe = newIframe;
+  _guardIframeFocus(newIframe, key);
   injectTouchScroll(newIframe);
   injectKeyboardScroll(newIframe, key);
   p.reconnectTimer = _startDisconnectWatch(newIframe, p.overlay);
@@ -218,14 +265,17 @@ function switchTo(name) {
   if (typeof updateMobileNav === 'function') updateMobileNav(name);
   // Close compose when switching to non-terminal panel
   if (typeof _composeOpen !== 'undefined' && _composeOpen && (name === 'dashboard' || name === 'settings')) closeCompose();
-  // Focus the terminal iframe — never during IME, compose, or typing
+  // Focus the terminal iframe — never during IME, compose, typing, or if user is in another iframe
   if (typeof _imeComposing !== 'undefined' && _imeComposing) return;
+  if (typeof _userTyping !== 'undefined' && _userTyping) return;
   if (typeof _composeOpen === 'undefined' || !_composeOpen) {
     const sp = state.openPanels[name];
     if (sp?.iframe) {
       const ae = document.activeElement;
       const isTyping = ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT' || ae.isContentEditable);
-      if (!isTyping) sp.iframe.focus();
+      if (isTyping) return; // don't steal from input fields
+      if (ae && ae.tagName === 'IFRAME' && ae !== sp.iframe) return; // don't steal from another terminal
+      sp.iframe.focus();
       // Auto-dismiss ttyd's reconnect overlay when user switches to this tab
       _autoDismissTtyd(sp.iframe);
     }

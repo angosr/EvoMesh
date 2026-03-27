@@ -536,10 +536,15 @@ async function startAndOpenCentral() {
         const s = await (await authFetch(`${API}/admin/status`)).json();
         if (s.running && s.terminal) {
           clearInterval(check);
+          const wasActive = state.activePanel === key;
           panel.remove();
           delete state.openPanels[key];
           state.tabOrder = state.tabOrder.filter(k => k !== key);
-          openTerminal('central', 'Central AI', 'ai', s.terminal);
+          if (wasActive) {
+            openTerminal('central', 'Central AI', 'ai', s.terminal);
+          } else {
+            _openTerminalBackground('central', 'Central AI', 'ai', s.terminal);
+          }
         }
       } catch {}
       if (retries > 30) {
