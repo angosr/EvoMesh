@@ -205,7 +205,7 @@
 
   /* Show toolbar only on touch devices */
   @media (pointer: coarse) {
-    .term-toolbar { display: flex; opacity: 0.7; bottom: 10px; left: 6px; right: 6px; }
+    .term-toolbar { display: flex; opacity: 0.7; bottom: 4px; left: 4px; right: 4px; }
   }
 
   /* Copy modal */
