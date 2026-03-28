@@ -51,7 +51,10 @@ async function renderAccountUsage() {
       <input id="add-acct-name" placeholder="Account name (e.g. work)" style="flex:1;padding:5px 8px;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font-size:11px;">
       <button class="dash-action" id="add-acct-btn">+ Add Account</button>
     </div>`;
-    if (html !== _lastAccountHtml) {
+    // Skip DOM rebuild if user is typing inside this section (prevents IME interruption)
+    const ae = document.activeElement;
+    const typingInSection = ae && section.contains(ae) && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT');
+    if (html !== _lastAccountHtml && !typingInSection) {
       section.innerHTML = html;
       _lastAccountHtml = html;
       const addBtn = document.getElementById('add-acct-btn');
@@ -311,6 +314,11 @@ async function renderDashboard() {
       <td>${acctCol}</td><td></td>
       <td class="act-cell"><div class="act-row">${startStopBtn}</div></td></tr></tbody></table></div>`;
   } catch { /* admin status failed — skip central card */ }
+
+  // Skip rebuild if user is typing inside a dashboard input (prevents IME interruption)
+  const dashAe = document.activeElement;
+  const typingInDash = dashAe && projectsEl.contains(dashAe) && (dashAe.tagName === 'INPUT' || dashAe.tagName === 'TEXTAREA' || dashAe.tagName === 'SELECT');
+  if (typingInDash) return;
 
   projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + centralHtml + html;
   // Set select values after innerHTML
