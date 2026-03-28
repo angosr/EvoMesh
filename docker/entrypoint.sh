@@ -89,12 +89,53 @@ trap cleanup SIGTERM SIGINT
 
 echo "[evomesh] Starting as $(whoami) (uid=$(id -u)) provider=$PROVIDER..."
 
-# Start CLI in tmux (persists when browser disconnects)
-tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
-  "$CLI_BIN $CLI_ARGS; exec bash"
-tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
+ROLE_ROOT="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME}}"
+LOOP_SECONDS=$(echo "${LOOP_INTERVAL:-10m}" | sed 's/m/*60/' | sed 's/h/*3600/' | bc 2>/dev/null || echo 600)
 
-# ttyd attaches to tmux
+if [ "$PROVIDER" = "codex" ]; then
+  # ==================== Codex: exec loop in tmux ====================
+  # Codex has no /loop command. Use `codex exec` (non-interactive, runs once and exits)
+  # in a bash while loop. Codex reads AGENTS.md automatically for project instructions.
+  LOOP_PROMPT="You are the ${ROLE_NAME} role. FIRST: cat and read ${ROLE_ROOT}/ROLE.md completely. Then follow the loop flow in AGENTS.md. Working directory: ${ROLE_ROOT}/"
+  CODEX_EXEC_ARGS="$CLI_ARGS"
+  # Replace --dangerously-bypass-approvals-and-sandbox with exec-compatible version
+  # (exec mode uses same flag)
+
+  # Build the loop script that runs inside tmux
+  cat > /tmp/evomesh-loop.sh << 'LOOPEOF'
+#!/bin/bash
+CLI_BIN="$1"; shift
+LOOP_SECONDS="$1"; shift
+PROMPT="$@"
+LOOP_N=0
+while true; do
+  LOOP_N=$((LOOP_N + 1))
+  echo ""
+  echo "========================================"
+  echo "[evomesh] Loop $LOOP_N starting at $(date)"
+  echo "========================================"
+  $CLI_BIN exec $CODEX_EXEC_ARGS "$PROMPT"
+  EXIT_CODE=$?
+  echo "[evomesh] Loop $LOOP_N finished (exit=$EXIT_CODE). Sleeping ${LOOP_SECONDS}s..."
+  sleep "$LOOP_SECONDS"
+done
+LOOPEOF
+  chmod +x /tmp/evomesh-loop.sh
+  # Export vars for the loop script
+  export CODEX_EXEC_ARGS
+
+  tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
+    "/tmp/evomesh-loop.sh $CLI_BIN $LOOP_SECONDS $LOOP_PROMPT"
+  tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
+
+else
+  # ==================== Claude Code: interactive TUI + /loop ====================
+  tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
+    "$CLI_BIN $CLI_ARGS; exec bash"
+  tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
+fi
+
+# ttyd attaches to tmux (same for both providers)
 ttyd \
   --writable \
   --ping-interval 30 \
@@ -105,61 +146,55 @@ ttyd \
   -- tmux -f /dev/null attach-session -t claude &
 TTYD_PID=$!
 
-# Send /loop command via tmux send-keys (much more reliable than WS)
-(
-  ROLE_ROOT="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME}}"
-  LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} You are the ${ROLE_NAME} role. FIRST: cat and read ${ROLE_ROOT}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${ROLE_ROOT}/"
+if [ "$PROVIDER" != "codex" ]; then
+  # Claude-specific: send /loop command + save session ID
+  (
+    LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} You are the ${ROLE_NAME} role. FIRST: cat and read ${ROLE_ROOT}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${ROLE_ROOT}/"
 
-  # Minimum wait: let Claude Code TUI fully initialize
-  MIN_WAIT=12
-  if [ "$IS_RESUME" = "true" ]; then MIN_WAIT=20; fi
+    MIN_WAIT=12
+    if [ "$IS_RESUME" = "true" ]; then MIN_WAIT=20; fi
 
-  echo "[evomesh] Waiting ${MIN_WAIT}s minimum for Claude TUI to initialize..."
-  sleep $MIN_WAIT
+    echo "[evomesh] Waiting ${MIN_WAIT}s minimum for Claude TUI to initialize..."
+    sleep $MIN_WAIT
 
-  # Then poll for the actual prompt
-  READY=false
-  for i in $(seq 1 60); do
-    PANE=$(tmux -f /dev/null capture-pane -t claude -p 2>/dev/null || echo "")
-    if echo "$PANE" | grep -q '❯'; then
-      echo "[evomesh] Claude prompt confirmed after $((MIN_WAIT + i))s total"
-      READY=true
-      break
-    fi
-    sleep 1
-  done
-
-  if [ "$READY" = "true" ]; then
-    sleep 2
-    echo "[evomesh] Sending /loop command..."
-    tmux -f /dev/null send-keys -t claude -l "$LOOP_CMD" 2>&1
-    sleep 1
-    tmux -f /dev/null send-keys -t claude Enter 2>&1
-    echo "[evomesh] /loop command sent"
-  else
-    echo "[evomesh] ERROR: Claude prompt never appeared (timeout)"
-  fi
-
-  # Save session ID — only look at NEW lines in shared history.jsonl
-  sleep 15
-  if [ -f "$HISTORY_FILE" ]; then
-    HISTORY_LINES_NOW=$(wc -l < "$HISTORY_FILE" 2>/dev/null || echo 0)
-    if [ "$HISTORY_LINES_NOW" -gt "$HISTORY_LINES_BEFORE" ]; then
-      # Only search new lines added since container started
-      NEW_LINES=$((HISTORY_LINES_NOW - HISTORY_LINES_BEFORE))
-      SID=$(tail -n "$NEW_LINES" "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | tail -1 | cut -d'"' -f4)
-      if [ -n "$SID" ]; then
-        mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
-        echo "$SID" > "$ROLE_SESSION_FILE"
-        echo "[evomesh] Saved session: $SID"
-      else
-        echo "[evomesh] No new session ID found in $NEW_LINES new history lines"
+    READY=false
+    for i in $(seq 1 60); do
+      PANE=$(tmux -f /dev/null capture-pane -t claude -p 2>/dev/null || echo "")
+      if echo "$PANE" | grep -q '❯'; then
+        echo "[evomesh] Claude prompt confirmed after $((MIN_WAIT + i))s total"
+        READY=true
+        break
       fi
+      sleep 1
+    done
+
+    if [ "$READY" = "true" ]; then
+      sleep 2
+      echo "[evomesh] Sending /loop command..."
+      tmux -f /dev/null send-keys -t claude -l "$LOOP_CMD" 2>&1
+      sleep 1
+      tmux -f /dev/null send-keys -t claude Enter 2>&1
+      echo "[evomesh] /loop command sent"
     else
-      echo "[evomesh] No new history lines (before=$HISTORY_LINES_BEFORE, now=$HISTORY_LINES_NOW)"
+      echo "[evomesh] ERROR: Claude prompt never appeared (timeout)"
     fi
-  fi
-) &
+
+    # Save session ID
+    sleep 15
+    if [ -n "$HISTORY_FILE" ] && [ -f "$HISTORY_FILE" ]; then
+      HISTORY_LINES_NOW=$(wc -l < "$HISTORY_FILE" 2>/dev/null || echo 0)
+      if [ "$HISTORY_LINES_NOW" -gt "$HISTORY_LINES_BEFORE" ]; then
+        NEW_LINES=$((HISTORY_LINES_NOW - HISTORY_LINES_BEFORE))
+        SID=$(tail -n "$NEW_LINES" "$HISTORY_FILE" 2>/dev/null | grep -o '"sessionId":"[^"]*"' | tail -1 | cut -d'"' -f4)
+        if [ -n "$SID" ]; then
+          mkdir -p "$(dirname "$ROLE_SESSION_FILE")"
+          echo "$SID" > "$ROLE_SESSION_FILE"
+          echo "[evomesh] Saved session: $SID"
+        fi
+      fi
+    fi
+  ) &
+fi
 
 wait $TTYD_PID
 USEREOF

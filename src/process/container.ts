@@ -186,34 +186,51 @@ function startRoleHost(
   const envVars = buildCLIEnv(providerName, accountPath, isDefault);
   const envPrefix = Object.entries(envVars).map(([k, v]) => `${k}=${v}`).join(" ");
   const argsStr = cliArgs.join(" ");
-  const tmuxCmd = envPrefix
-    ? `${envPrefix} ${cliBin} ${argsStr}; exec bash`
-    : `${cliBin} ${argsStr}; exec bash`;
-  execFileSync("tmux", [
-    "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", tmuxCmd,
-  ], { cwd: path.resolve(root), stdio: "ignore" });
+  const loopInterval = roleConfig.loop_interval || "10m";
+  const roleRootRel = `.evomesh/roles/${roleName}`;
+
+  if (providerName === "codex") {
+    // Codex: no /loop, use `codex exec` in a bash while loop
+    const loopSeconds = loopInterval.includes("h")
+      ? parseInt(loopInterval) * 3600
+      : parseInt(loopInterval) * 60 || 600;
+    const loopPrompt = `You are the ${roleName} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow the loop flow in AGENTS.md. Working directory: ${roleRootRel}/`;
+    const escaped = loopPrompt.replace(/'/g, "'\\''");
+    const loopScript = `while true; do echo ""; echo "==== Loop $(date) ===="; ${envPrefix ? envPrefix + " " : ""}${cliBin} exec ${argsStr} '${escaped}'; echo "[evomesh] Sleeping ${loopSeconds}s..."; sleep ${loopSeconds}; done`;
+    execFileSync("tmux", [
+      "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40",
+      "bash", "-c", loopScript,
+    ], { cwd: path.resolve(root), stdio: "ignore" });
+  } else {
+    // Claude Code: interactive TUI
+    const tmuxCmd = envPrefix
+      ? `${envPrefix} ${cliBin} ${argsStr}; exec bash`
+      : `${cliBin} ${argsStr}; exec bash`;
+    execFileSync("tmux", [
+      "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", tmuxCmd,
+    ], { cwd: path.resolve(root), stdio: "ignore" });
+  }
+  execFileSync("tmux", ["-f", "/dev/null", "set-option", "-t", sessionName, "mouse", "off"], { stdio: "ignore" });
 
   // Start ttyd pointing at tmux session
   const ttydCmd = `ttyd --writable --ping-interval 30 -t fontSize=14 -t scrollback=10000 --port ${ttydPort} -- tmux attach-session -t ${sessionName}`;
   execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
 
-  // Send /loop command after delay
-  const loopInterval = roleConfig.loop_interval || "10m";
-  const roleRootRel = `.evomesh/roles/${roleName}`;
-  const loopCmd = `/loop ${loopInterval} You are the ${roleName} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
-
-  // Background: wait for claude to be ready, then send /loop
-  execFileSync("bash", ["-c", `(
-    sleep 15
-    for i in $(seq 1 60); do
-      tmux capture-pane -t ${sessionName} -p 2>/dev/null | grep -q '❯' && break
-      sleep 1
-    done
-    sleep 2
-    tmux send-keys -t ${sessionName} -l '${loopCmd.replace(/'/g, "'\\''")}'
-    sleep 0.5
-    tmux send-keys -t ${sessionName} Enter
-  ) &`], { stdio: "ignore" });
+  if (providerName !== "codex") {
+    // Claude: send /loop command after delay
+    const loopCmd = `/loop ${loopInterval} You are the ${roleName} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
+    execFileSync("bash", ["-c", `(
+      sleep 15
+      for i in $(seq 1 60); do
+        tmux capture-pane -t ${sessionName} -p 2>/dev/null | grep -q '❯' && break
+        sleep 1
+      done
+      sleep 2
+      tmux send-keys -t ${sessionName} -l '${loopCmd.replace(/'/g, "'\\''")}'
+      sleep 0.5
+      tmux send-keys -t ${sessionName} Enter
+    ) &`], { stdio: "ignore" });
+  }
 
   return { role: roleName, containerName: sessionName, ttydPort };
 }
