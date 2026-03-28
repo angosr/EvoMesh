@@ -92,48 +92,10 @@ echo "[evomesh] Starting as $(whoami) (uid=$(id -u)) provider=$PROVIDER..."
 ROLE_ROOT="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME}}"
 LOOP_SECONDS=$(echo "${LOOP_INTERVAL:-10m}" | sed 's/m/*60/' | sed 's/h/*3600/' | bc 2>/dev/null || echo 600)
 
-if [ "$PROVIDER" = "codex" ]; then
-  # ==================== Codex: exec loop in tmux ====================
-  # Codex has no /loop command. Use `codex exec` (non-interactive, runs once and exits)
-  # in a bash while loop. Codex reads AGENTS.md automatically for project instructions.
-  LOOP_PROMPT="You are the ${ROLE_NAME} role. FIRST: cat and read ${ROLE_ROOT}/ROLE.md completely. Then follow the loop flow in AGENTS.md. Working directory: ${ROLE_ROOT}/"
-  CODEX_EXEC_ARGS="$CLI_ARGS"
-  # Replace --dangerously-bypass-approvals-and-sandbox with exec-compatible version
-  # (exec mode uses same flag)
-
-  # Build the loop script that runs inside tmux
-  cat > /tmp/evomesh-loop.sh << 'LOOPEOF'
-#!/bin/bash
-CLI_BIN="$1"; shift
-LOOP_SECONDS="$1"; shift
-PROMPT="$@"
-LOOP_N=0
-while true; do
-  LOOP_N=$((LOOP_N + 1))
-  echo ""
-  echo "========================================"
-  echo "[evomesh] Loop $LOOP_N starting at $(date)"
-  echo "========================================"
-  $CLI_BIN exec $CODEX_EXEC_ARGS "$PROMPT"
-  EXIT_CODE=$?
-  echo "[evomesh] Loop $LOOP_N finished (exit=$EXIT_CODE). Sleeping ${LOOP_SECONDS}s..."
-  sleep "$LOOP_SECONDS"
-done
-LOOPEOF
-  chmod +x /tmp/evomesh-loop.sh
-  # Export vars for the loop script
-  export CODEX_EXEC_ARGS
-
-  tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
-    "/tmp/evomesh-loop.sh $CLI_BIN $LOOP_SECONDS $LOOP_PROMPT"
-  tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
-
-else
-  # ==================== Claude Code: interactive TUI + /loop ====================
-  tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
-    "$CLI_BIN $CLI_ARGS; exec bash"
-  tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
-fi
+# Start CLI in tmux (persists when browser disconnects)
+tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
+  "$CLI_BIN $CLI_ARGS; exec bash"
+tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
 
 # ttyd attaches to tmux (same for both providers)
 ttyd \
