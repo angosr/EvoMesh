@@ -29,6 +29,19 @@ async function renderAccountUsage() {
         const loginBtnText = isExpired ? '🔑 Login' : (isExpiring ? '🔑 Refresh' : '↻ Refresh');
         const loginBtn = `<button class="dash-action acct-login-btn" data-path="${esc(a.path)}" style="margin-left:6px;${loginBtnStyle}">${loginBtnText}</button>`;
         const shareBtn = `<button class="dash-action acct-share-btn" data-path="${esc(a.path)}" data-name="${esc(a.name)}" style="margin-left:4px" title="Generate one-time login link">🔗 Share</button>`;
+        const isClaude = (a.provider || 'claude') === 'claude';
+        // Stats row: Claude shows token usage, Codex shows email + plan info
+        let statsHtml;
+        if (isClaude && u) {
+          statsHtml = `<span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
+            <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
+            <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
+            <span title="Total tokens (24h)">total <b>${fmtNum(u.total||0)}</b></span>
+            <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>`;
+        } else {
+          statsHtml = (a.email ? `<span title="Email">${esc(a.email)}</span>` : '') +
+            `<span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>`;
+        }
         return `<div class="card acct-card-v2" ${isExpired?'style="border-color:var(--red);box-shadow:0 0 8px rgba(248,113,113,0.15)"':''}>
           <div class="acct-row">
             <span class="acct-dot ${statusCls}"></span>
@@ -39,13 +52,7 @@ async function renderAccountUsage() {
             <span class="acct-status ${statusCls}">${statusText}</span>
             ${loginBtn}${shareBtn}
           </div>
-          <div class="acct-stats">
-            <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
-            <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
-            <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
-            <span title="Total tokens (24h)">total <b>${fmtNum(u.total||0)}</b></span>
-            <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>
-          </div>
+          <div class="acct-stats">${statsHtml}</div>
         </div>`;
       }).join('');
     html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center" id="add-acct-area">
