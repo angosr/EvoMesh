@@ -33,6 +33,7 @@ async function renderAccountUsage() {
           <div class="acct-row">
             <span class="acct-dot ${statusCls}"></span>
             <strong class="acct-name">${esc(a.name || a.path)}</strong>
+            <span class="badge" style="background:rgba(129,140,248,0.12);color:var(--blue);font-size:9px">${esc(a.providerDisplay || a.provider || 'claude')}</span>
             <span class="badge ${esc(a.subscriptionType || 'free')}">${esc(a.subscriptionType || 'free')}</span>
             ${a.rateLimitTier ? `<span class="acct-tier">${esc(a.rateLimitTier.replace('default_claude_','').replace(/_/g,' '))}</span>` : ''}
             <span class="acct-status ${statusCls}">${statusText}</span>
@@ -254,9 +255,15 @@ async function renderDashboard() {
       const modeSelect = `<select class="mode-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}"><option value="docker"${launchMode==='docker'?' selected':''}>docker</option><option value="host"${launchMode==='host'?' selected':''}>host</option></select>`;
       const idlePolicy = r.idle_policy || 'ignore';
       const idleSelect = `<select class="idle-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Idle policy (3x idle → action)"><option value="ignore"${idlePolicy==='ignore'?' selected':''}>Ignore</option><option value="compact"${idlePolicy==='compact'?' selected':''}>Compress</option><option value="reset"${idlePolicy==='reset'?' selected':''}>Reset</option></select>`;
-      const modelVal = r.model || 'sonnet';
-      const modelSelect = `<select class="model-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Claude model tier"><option value="opus"${modelVal==='opus'?' selected':''}>Opus</option><option value="sonnet"${modelVal==='sonnet'?' selected':''}>Sonnet</option><option value="haiku"${modelVal==='haiku'?' selected':''}>Haiku</option></select>`;
-      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${modeSelect}${idleSelect}${modelSelect}</div>` : '';
+      const providerVal = r.provider || 'claude';
+      const providerSelect = `<select class="provider-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="AI provider"><option value="claude"${providerVal==='claude'?' selected':''}>Claude</option><option value="codex"${providerVal==='codex'?' selected':''}>Codex</option></select>`;
+      const claudeModels = {'opus':'Opus','sonnet':'Sonnet','haiku':'Haiku'};
+      const codexModels = {'o3':'o3','o4-mini':'o4-mini','gpt-4.1':'GPT-4.1','codex-mini':'Codex-mini'};
+      const models = providerVal === 'codex' ? codexModels : claudeModels;
+      const modelVal = r.model || (providerVal === 'codex' ? 'o4-mini' : 'sonnet');
+      const modelOpts = Object.entries(models).map(([v,l]) => `<option value="${esc(v)}"${modelVal===v?' selected':''}>${esc(l)}</option>`).join('');
+      const modelSelect = `<select class="model-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Model">${modelOpts}</select>`;
+      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${providerSelect}${modeSelect}${idleSelect}${modelSelect}</div>` : '';
       return `<tr>
         <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span>${statusBadge}${loginBadge}</td>
         <td>${acctCol}</td>
@@ -352,6 +359,9 @@ async function renderDashboard() {
   });
   projectsEl.querySelectorAll('.model-select').forEach(sel => {
     sel.addEventListener('change', () => saveModel(sel.dataset.slug, sel.dataset.role, sel.value));
+  });
+  projectsEl.querySelectorAll('.provider-select').forEach(sel => {
+    sel.addEventListener('change', () => saveProvider(sel.dataset.slug, sel.dataset.role, sel.value));
   });
   projectsEl.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));

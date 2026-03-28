@@ -125,3 +125,20 @@ async function saveModel(slug, roleName, model) {
     }
   } catch { appendFeedMessage('Failed to save model', 'system'); }
 }
+
+async function saveProvider(slug, roleName, provider) {
+  try {
+    const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/config`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider }),
+    });
+    if (!r.ok) { appendFeedMessage(`Failed to save provider for <strong>${esc(roleName)}</strong>: ${r.status}`, 'system'); return; }
+    const d = await r.json();
+    if (d.ok) {
+      appendFeedMessage(`<strong>${esc(roleName)}</strong> provider → ${esc(provider)} (takes effect on next start)`, 'system');
+      fetchAll(); // refresh to update model options
+    } else {
+      appendFeedMessage(`Failed to save provider for <strong>${esc(roleName)}</strong>`, 'system');
+    }
+  } catch { appendFeedMessage('Failed to save provider', 'system'); }
+}

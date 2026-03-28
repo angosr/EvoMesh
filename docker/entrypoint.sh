@@ -17,47 +17,69 @@ set -e
 export HOME="${HOST_HOME:-$HOME}"
 export EVOMESH_CONTAINER=1
 
-# Session resume
+# Provider detection — supports claude (default) and codex
+PROVIDER="${EVOMESH_PROVIDER:-claude}"
 WORK_DIR="${PWD:-/project}"
 ROLE_SESSION_DIR="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME:-role}}"
 ROLE_SESSION_FILE="${WORK_DIR}/${ROLE_SESSION_DIR}/.session-id"
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-HISTORY_FILE="${CONFIG_DIR}/history.jsonl"
-CLAUDE_ARGS="--dangerously-skip-permissions"
-if [ -n "$CLAUDE_MODEL" ]; then
-  CLAUDE_ARGS="--model $CLAUDE_MODEL $CLAUDE_ARGS"
-fi
 
-SESSION_ID=""
-if [ -f "$ROLE_SESSION_FILE" ] && [ -s "$ROLE_SESSION_FILE" ]; then
-  SESSION_ID=$(cat "$ROLE_SESSION_FILE")
-  echo "[evomesh] Found saved session: $SESSION_ID"
-fi
-
-IS_RESUME=false
-if [ -n "$SESSION_ID" ]; then
-  # Verify session exists before resuming (avoids "No conversation found" on account switch)
-  if CLAUDE_CONFIG_DIR="${CONFIG_DIR}" claude --resume "$SESSION_ID" --dangerously-skip-permissions --print-session-id 2>/dev/null | grep -q "$SESSION_ID"; then
-    CLAUDE_ARGS="--resume $SESSION_ID $CLAUDE_ARGS"
-    IS_RESUME=true
-    echo "[evomesh] Resuming session: $SESSION_ID"
-  else
-    echo "[evomesh] Session $SESSION_ID not found (account changed?), starting fresh"
-    rm -f "$ROLE_SESSION_FILE"
-    CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
+# Provider-specific setup
+if [ "$PROVIDER" = "codex" ]; then
+  CLI_BIN=$(which codex 2>/dev/null || echo "/usr/local/bin/codex")
+  CONFIG_DIR="${CODEX_HOME:-$HOME/.codex}"
+  CLI_ARGS="--dangerously-bypass-approvals-and-sandbox"
+  if [ -n "$CLI_MODEL" ]; then
+    CLI_ARGS="--model $CLI_MODEL $CLI_ARGS"
   fi
+  # Codex resume
+  SESSION_ID=""
+  IS_RESUME=false
+  if [ -f "$ROLE_SESSION_FILE" ] && [ -s "$ROLE_SESSION_FILE" ]; then
+    SESSION_ID=$(cat "$ROLE_SESSION_FILE")
+    CLI_ARGS="resume $SESSION_ID $CLI_ARGS"
+    IS_RESUME=true
+    echo "[evomesh] Resuming codex session: $SESSION_ID"
+  else
+    echo "[evomesh] Starting fresh codex session for: ${ROLE_NAME:-role}"
+  fi
+  HISTORY_FILE=""
+  HISTORY_LINES_BEFORE=0
 else
-  CLAUDE_ARGS="--name ${ROLE_NAME:-role} $CLAUDE_ARGS"
-  echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
+  # Claude Code (default)
+  CLI_BIN=$(which claude 2>/dev/null || echo "/usr/local/bin/claude")
+  CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  HISTORY_FILE="${CONFIG_DIR}/history.jsonl"
+  CLI_ARGS="--dangerously-skip-permissions"
+  if [ -n "$CLI_MODEL" ]; then
+    CLI_ARGS="--model $CLI_MODEL $CLI_ARGS"
+  fi
+  SESSION_ID=""
+  if [ -f "$ROLE_SESSION_FILE" ] && [ -s "$ROLE_SESSION_FILE" ]; then
+    SESSION_ID=$(cat "$ROLE_SESSION_FILE")
+    echo "[evomesh] Found saved session: $SESSION_ID"
+  fi
+  IS_RESUME=false
+  if [ -n "$SESSION_ID" ]; then
+    if CLAUDE_CONFIG_DIR="${CONFIG_DIR}" "$CLI_BIN" --resume "$SESSION_ID" --dangerously-skip-permissions --print-session-id 2>/dev/null | grep -q "$SESSION_ID"; then
+      CLI_ARGS="--resume $SESSION_ID $CLI_ARGS"
+      IS_RESUME=true
+      echo "[evomesh] Resuming session: $SESSION_ID"
+    else
+      echo "[evomesh] Session $SESSION_ID not found, starting fresh"
+      rm -f "$ROLE_SESSION_FILE"
+      CLI_ARGS="--name ${ROLE_NAME:-role} $CLI_ARGS"
+    fi
+  else
+    CLI_ARGS="--name ${ROLE_NAME:-role} $CLI_ARGS"
+    echo "[evomesh] Starting fresh session for: ${ROLE_NAME:-role}"
+  fi
+  HISTORY_LINES_BEFORE=0
+  if [ -n "$HISTORY_FILE" ] && [ -f "$HISTORY_FILE" ]; then
+    HISTORY_LINES_BEFORE=$(wc -l < "$HISTORY_FILE" 2>/dev/null || echo 0)
+  fi
 fi
 
-# Record history.jsonl line count BEFORE starting claude (shared file)
-HISTORY_LINES_BEFORE=0
-if [ -f "$HISTORY_FILE" ]; then
-  HISTORY_LINES_BEFORE=$(wc -l < "$HISTORY_FILE" 2>/dev/null || echo 0)
-fi
-
-# Graceful shutdown (session ID saved by background task, not here)
+# Graceful shutdown
 cleanup() {
   echo "[evomesh] Shutting down..."
   tmux -f /dev/null kill-session -t claude 2>/dev/null || true
@@ -65,11 +87,11 @@ cleanup() {
 }
 trap cleanup SIGTERM SIGINT
 
-echo "[evomesh] Starting as $(whoami) (uid=$(id -u))..."
+echo "[evomesh] Starting as $(whoami) (uid=$(id -u)) provider=$PROVIDER..."
 
-# Start claude in tmux (persists when browser disconnects)
+# Start CLI in tmux (persists when browser disconnects)
 tmux -f /dev/null new-session -d -s claude -x 120 -y 40 \
-  "/usr/local/bin/claude $CLAUDE_ARGS; exec bash"
+  "$CLI_BIN $CLI_ARGS; exec bash"
 tmux -f /dev/null set-option -t claude mouse off 2>/dev/null || true
 
 # ttyd attaches to tmux

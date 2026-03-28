@@ -10,43 +10,19 @@ import { errorMessage } from "../utils/error.js";
 import { formatBytes } from "../utils/fs.js";
 import type { SessionInfo } from "./auth.js";
 import type { ServerContext } from "./index.js";
+import { findBinary, getProvider, listAccountDirs, detectProvider, getProviderNames } from "../provider.js";
+import type { ProviderName } from "../provider.js";
 
 // Active login processes — keyed by account path
 const loginProcesses = new Map<string, { proc: import("node:child_process").ChildProcess; authUrl: string }>();
 
-// Resolve claude binary path — needed because the server process may have a
-// limited PATH (e.g., when started via systemd) that doesn't include ~/.local/bin
-let _claudeBin: string | null = null;
-function getClaudeBin(): string {
-  if (_claudeBin) return _claudeBin;
-  // Try common locations
-  const candidates = [
-    "claude", // rely on PATH
-    path.join(os.homedir(), ".local", "bin", "claude"),
-    "/usr/local/bin/claude",
-    path.join(os.homedir(), ".nvm", "versions", "node", "current", "bin", "claude"),
-  ];
-  for (const c of candidates) {
-    try {
-      execFileSync(c, ["--version"], { stdio: "ignore", timeout: 5000 });
-      _claudeBin = c;
-      return c;
-    } catch {}
-  }
-  // Also try `which` as fallback
-  try {
-    _claudeBin = execFileSync("which", ["claude"], { encoding: "utf-8", timeout: 3000 }).trim();
-    if (_claudeBin) return _claudeBin;
-  } catch {}
-  _claudeBin = "claude"; // fallback to bare name
-  return _claudeBin;
-}
 
 // One-time invite links — keyed by invite code
 interface InviteLink {
   code: string;
   accountPath: string;   // resolved absolute path
   accountName: string;
+  provider: ProviderName;
   createdBy: string;
   createdAt: number;
   expiresAt: number;     // auto-expire after 24h even if unused
@@ -67,14 +43,20 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     try {
       const lu = session.linuxUser || process.env.USER || "user";
       const homeDir = lu === (process.env.USER || "user") ? os.homedir() : `/home/${lu}`;
-      const detected = fs.readdirSync(homeDir, { withFileTypes: true })
-        .filter(e => e.isDirectory() && e.name.startsWith(".claude"))
-        .map(e => ({
-          name: e.name.replace(/^\.claude/, "") || "default",
-          path: `~/${e.name}`,
-          fullPath: path.join(homeDir, e.name),
-          needsLogin: ctx.checkNeedsLogin(path.join(homeDir, e.name)),
-        }));
+      const detected: any[] = [];
+      for (const provName of getProviderNames()) {
+        const prov = getProvider(provName);
+        for (const acct of listAccountDirs(homeDir, provName)) {
+          detected.push({
+            name: acct.name,
+            path: `~/${acct.dirName}`,
+            fullPath: acct.fullPath,
+            provider: provName,
+            providerDisplay: prov.displayName,
+            needsLogin: prov.needsLogin(acct.fullPath),
+          });
+        }
+      }
       res.json({ accounts: detected });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
@@ -114,15 +96,21 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     const existing = loginProcesses.get(resolved);
     if (existing) { try { existing.proc.kill(); } catch {} loginProcesses.delete(resolved); }
 
-    // Spawn claude auth login
+    // Detect provider from account path and spawn login
+    const acctProvider = detectProvider(accountPath);
+    const acctProv = getProvider(acctProvider);
+    const acctCliBin = findBinary(acctProvider);
+    const acctLoginEnv: Record<string, string> = { ...process.env as any };
+    if (acctProv.configDirEnv) acctLoginEnv[acctProv.configDirEnv] = resolved;
+
     let proc: import("node:child_process").ChildProcess;
     try {
-      proc = spawn(getClaudeBin(), ["auth", "login", "--claudeai"], {
-        env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
+      proc = spawn(acctCliBin, acctProv.loginArgs, {
+        env: acctLoginEnv,
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (e: unknown) {
-      res.status(500).json({ error: `Failed to spawn claude: ${errorMessage(e)}` });
+      res.status(500).json({ error: `Failed to spawn ${acctProv.binaryName}: ${errorMessage(e)}` });
       return;
     }
 
@@ -309,10 +297,12 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
 
     const code = generateInviteCode();
     const now = Date.now();
+    const provider = detectProvider(resolved);
     inviteLinks.set(code, {
       code,
       accountPath: resolved,
       accountName: accountName || path.basename(resolved),
+      provider,
       createdBy: session.username,
       createdAt: now,
       expiresAt: now + 24 * 60 * 60 * 1000, // 24h
@@ -373,14 +363,19 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
     const existing = loginProcesses.get(resolved);
     if (existing) { try { existing.proc.kill(); } catch {} loginProcesses.delete(resolved); }
 
+    const invProv = getProvider(invite.provider);
+    const invCliBin = findBinary(invite.provider);
+    const invLoginEnv: Record<string, string> = { ...process.env as any };
+    if (invProv.configDirEnv) invLoginEnv[invProv.configDirEnv] = resolved;
+
     let proc: import("node:child_process").ChildProcess;
     try {
-      proc = spawn(getClaudeBin(), ["auth", "login", "--claudeai"], {
-        env: { ...process.env, CLAUDE_CONFIG_DIR: resolved },
+      proc = spawn(invCliBin, invProv.loginArgs, {
+        env: invLoginEnv,
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (e: unknown) {
-      res.status(500).json({ error: `Failed to spawn claude: ${errorMessage(e)}` });
+      res.status(500).json({ error: `Failed to spawn ${invProv.binaryName}: ${errorMessage(e)}` });
       return;
     }
 

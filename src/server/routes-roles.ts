@@ -121,7 +121,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
       const rc = config.roles[roleName];
       if (!rc) { res.status(404).json({ error: "Role not found" }); return; }
 
-      const { memory, cpus, launch_mode, idle_policy, model } = req.body;
+      const { memory, cpus, launch_mode, idle_policy, model, provider } = req.body;
 
       // Track whether container-level config changed (requires restart)
       const oldMemory = rc.memory;
@@ -140,12 +140,15 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         }
         rc.idle_policy = idle_policy;
       }
-      if (model !== undefined) {
-        const VALID_MODELS = ["opus", "sonnet", "haiku"];
-        if (!VALID_MODELS.includes(model)) {
-          res.status(400).json({ error: `Invalid model. Must be one of: ${VALID_MODELS.join(", ")}` }); return;
+      if (provider !== undefined) {
+        const VALID_PROVIDERS = ["claude", "codex"];
+        if (!VALID_PROVIDERS.includes(provider)) {
+          res.status(400).json({ error: `Invalid provider. Must be one of: ${VALID_PROVIDERS.join(", ")}` }); return;
         }
-        rc.model = model;
+        rc.provider = provider as any;
+      }
+      if (model !== undefined) {
+        rc.model = model;  // model validation is provider-specific, frontend handles options
       }
       writeYaml(path.join(evomeshDir(project.root), "project.yaml"), config);
 
@@ -160,7 +163,7 @@ export function registerRoleRoutes(app: import("express").Express, ctx: ServerCo
         restarted = true;
       }
 
-      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, model: rc.model, restarted });
+      res.json({ ok: true, memory: rc.memory, cpus: rc.cpus, idle_policy: rc.idle_policy, model: rc.model, provider: rc.provider, restarted });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 

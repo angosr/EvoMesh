@@ -225,7 +225,8 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           account: rc.account, needsLogin: ctx.checkNeedsLogin(accountDir),
           memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
           idle_policy: rc.idle_policy || "ignore",
-          model: rc.model || "sonnet",
+          provider: rc.provider || "claude",
+          model: rc.model || (rc.provider === "codex" ? "o4-mini" : "sonnet"),
           actualMem, actualCpu,
         };
       });

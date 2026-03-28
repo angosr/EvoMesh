@@ -3,6 +3,8 @@ export interface McpServerConfig {
   args: string[];
 }
 
+export type ProviderType = "claude" | "codex";
+
 export interface RoleConfig {
   type: "lead" | "worker";
   loop_interval: string;
@@ -15,7 +17,8 @@ export interface RoleConfig {
   mcp?: Record<string, McpServerConfig>;  // MCP servers for this role
   launch_mode?: "docker" | "host";  // Container launch mode
   idle_policy?: "reset" | "compact" | "ignore";  // Idle policy; default: ignore
-  model?: "opus" | "sonnet" | "haiku";  // Claude model tier; default: sonnet
+  provider?: ProviderType;  // AI CLI provider; default: "claude"
+  model?: string;   // Model name (provider-specific); default varies by provider
 }
 
 export interface Claim {

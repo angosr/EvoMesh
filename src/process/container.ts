@@ -4,32 +4,13 @@ import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { expandHome } from "../utils/paths.js";
 import { ensureDir } from "../utils/fs.js";
+import { getProvider, findBinary, buildCLIArgs, buildCLIEnv, defaultAccountDir, detectProvider } from "../provider.js";
+import type { ProviderName } from "../provider.js";
 import { slugify } from "../workspace/config.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
 
-// Resolve claude binary absolute path — needed because server process PATH
-// may not include ~/.local/bin (e.g., when started via systemd)
-let _claudeBinCache: string | null = null;
-export function findClaudeBin(): string {
-  if (_claudeBinCache) return _claudeBinCache;
-  try {
-    _claudeBinCache = execFileSync("readlink", ["-f", execFileSync("which", ["claude"], { encoding: "utf-8" }).trim()], { encoding: "utf-8" }).trim();
-    if (_claudeBinCache && fs.existsSync(_claudeBinCache)) return _claudeBinCache;
-  } catch {}
-  const candidates = [
-    path.join(os.homedir(), ".local", "bin", "claude"),
-    "/usr/local/bin/claude",
-    "/usr/bin/claude",
-  ];
-  for (const c of candidates) {
-    try {
-      const resolved = execFileSync("readlink", ["-f", c], { encoding: "utf-8" }).trim();
-      if (resolved && fs.existsSync(resolved)) { _claudeBinCache = resolved; return resolved; }
-    } catch {}
-  }
-  _claudeBinCache = "claude"; // fallback
-  return _claudeBinCache;
-}
+/** @deprecated Use findBinary("claude") from provider.ts instead */
+export function findClaudeBin(): string { return findBinary("claude"); }
 
 export interface ContainerRole {
   role: string;
@@ -174,7 +155,9 @@ function startRoleHost(
 ): ContainerRole {
   const projectSlug = projectSlugFromRoot(root);
   const sessionName = containerName(projectSlug, roleName);
-  const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
+  const providerName = roleConfig.provider || "claude";
+  const prov = getProvider(providerName);
+  const accountPath = expandHome(config.accounts[roleConfig.account] || prov.defaultConfigDir);
 
   // Already running?
   if (getContainerState(sessionName) === "running") {
@@ -184,27 +167,28 @@ function startRoleHost(
   // Session ID for resume
   const roleRoot = path.join(root, ".evomesh", "roles", roleName);
   const sessionIdFile = path.join(roleRoot, ".session-id");
-  let claudeArgs = "--dangerously-skip-permissions";
+  let sessionId: string | undefined;
   if (fs.existsSync(sessionIdFile)) {
     const sid = fs.readFileSync(sessionIdFile, "utf-8").trim();
-    if (sid) claudeArgs = `--resume ${sid} ${claudeArgs}`;
-    else claudeArgs = `--name ${roleName} ${claudeArgs}`;
-  } else {
-    claudeArgs = `--name ${roleName} ${claudeArgs}`;
+    if (sid) sessionId = sid;
   }
 
-  // Model tier
-  if (roleConfig.model) claudeArgs = `--model ${roleConfig.model} ${claudeArgs}`;
+  const cliArgs = buildCLIArgs(providerName, {
+    model: roleConfig.model,
+    sessionId,
+    roleName,
+  });
 
-  // Start tmux session with claude
-  // Only set CLAUDE_CONFIG_DIR for non-default accounts. When set explicitly
-  // (even to ~/.claude), Claude Code uses a different internal state file path,
-  // causing it to miss existing auth state and prompt for login.
-  const defaultAccount = path.join(os.homedir(), ".claude");
-  const claudeBinPath = findClaudeBin();
-  const tmuxCmd = accountPath !== defaultAccount
-    ? `CLAUDE_CONFIG_DIR=${accountPath} ${claudeBinPath} ${claudeArgs}; exec bash`
-    : `${claudeBinPath} ${claudeArgs}; exec bash`;
+  // Build tmux command with provider-specific binary and env
+  const cliBin = findBinary(providerName);
+  const defaultAcct = defaultAccountDir(providerName);
+  const isDefault = accountPath === defaultAcct;
+  const envVars = buildCLIEnv(providerName, accountPath, isDefault);
+  const envPrefix = Object.entries(envVars).map(([k, v]) => `${k}=${v}`).join(" ");
+  const argsStr = cliArgs.join(" ");
+  const tmuxCmd = envPrefix
+    ? `${envPrefix} ${cliBin} ${argsStr}; exec bash`
+    : `${cliBin} ${argsStr}; exec bash`;
   execFileSync("tmux", [
     "-f", "/dev/null", "new-session", "-d", "-s", sessionName, "-x", "120", "-y", "40", tmuxCmd,
   ], { cwd: path.resolve(root), stdio: "ignore" });
@@ -250,7 +234,9 @@ export function startRole(
   }
   const projectSlug = projectSlugFromRoot(root);
   const name = opts.containerNameOverride || containerName(projectSlug, roleName, opts.linuxUser);
-  const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
+  const providerName: ProviderName = roleConfig.provider || "claude";
+  const prov = getProvider(providerName);
+  const accountPath = expandHome(config.accounts[roleConfig.account] || prov.defaultConfigDir);
 
   // If container is already running, just return its info
   if (getContainerState(name) === "running") {
@@ -289,7 +275,9 @@ export function startRole(
     // Central AI: scoped mounts — .evomesh config + each project dir
     args.push("-v", `${path.join(homeDir, ".evomesh")}:${path.join(homeDir, ".evomesh")}:rw`);
     args.push("-v", `${accountPath}:${accountPath}:rw`);
-    args.push("-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`);
+    // Claude Code uses ~/.claude.json for global state
+    const claudeJson = path.join(homeDir, ".claude.json");
+    if (fs.existsSync(claudeJson)) args.push("-v", `${claudeJson}:${claudeJson}:rw`);
     // Mount each project directory for file-based access
     if (opts.projectRoots) {
       for (const projRoot of opts.projectRoots) {
@@ -297,19 +285,20 @@ export function startRole(
       }
     }
   } else {
-    // Normal role: mount project dir + claude config only
+    // Normal role: mount project dir + account config
     args.push("-v", `${path.resolve(root)}:${path.resolve(root)}:rw`);
     args.push("-v", `${accountPath}:${accountPath}:rw`);
-    args.push("-v", `${path.join(homeDir, ".claude.json")}:${path.join(homeDir, ".claude.json")}:rw`);
+    const claudeJsonNormal = path.join(homeDir, ".claude.json");
+    if (fs.existsSync(claudeJsonNormal)) args.push("-v", `${claudeJsonNormal}:${claudeJsonNormal}:rw`);
   }
 
-  // Mount host Claude Code binary (RO) — always matches host version, no image rebuild needed
+  // Mount host CLI binary (RO) — always matches host version, no image rebuild needed
   {
-    const claudeBin = findClaudeBin();
-    if (claudeBin && claudeBin !== "claude" && fs.existsSync(claudeBin)) {
-      args.push("-v", `${claudeBin}:/usr/local/bin/claude:ro`);
+    const cliBin = findBinary(providerName);
+    if (cliBin && cliBin !== prov.binaryName && fs.existsSync(cliBin)) {
+      args.push("-v", `${cliBin}:/usr/local/bin/${prov.binaryName}:ro`);
     } else {
-      console.error("[container] WARNING: claude binary not found on host — container will have no claude command");
+      console.error(`[container] WARNING: ${prov.binaryName} binary not found on host`);
     }
   }
 
@@ -333,10 +322,12 @@ export function startRole(
   args.push("-e", `HOST_USER=${process.env.USER || "user"}`);
   args.push("-e", `HOST_HOME=${homeDir}`);
   args.push("-e", `HOME=${homeDir}`);
-  args.push("-e", `CLAUDE_CONFIG_DIR=${accountPath}`);
+  args.push("-e", `EVOMESH_PROVIDER=${providerName}`);
   args.push("-e", `ROLE_NAME=${roleName}`);
   args.push("-e", `LOOP_INTERVAL=${roleConfig.loop_interval || "10m"}`);
-  if (roleConfig.model) args.push("-e", `CLAUDE_MODEL=${roleConfig.model}`);
+  // Provider-specific env vars
+  if (prov.configDirEnv) args.push("-e", `${prov.configDirEnv}=${accountPath}`);
+  if (roleConfig.model) args.push("-e", `CLI_MODEL=${roleConfig.model}`);
 
   // Working directory — same as host
   args.push("-w", path.resolve(root));
