@@ -258,7 +258,7 @@ async function renderDashboard() {
       const providerVal = r.provider || 'claude';
       const providerSelect = `<select class="provider-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="AI provider"><option value="claude"${providerVal==='claude'?' selected':''}>Claude</option><option value="codex"${providerVal==='codex'?' selected':''}>Codex</option></select>`;
       const claudeModels = {'opus':'Opus','sonnet':'Sonnet','haiku':'Haiku'};
-      const codexModels = {'o3':'o3','o4-mini':'o4-mini','gpt-4.1':'GPT-4.1','codex-mini':'Codex-mini'};
+      const codexModels = {'gpt-5.4':'GPT-5.4','o3':'o3','o4-mini':'o4-mini','gpt-4.1':'GPT-4.1','codex-mini':'Codex-mini'};
       const models = providerVal === 'codex' ? codexModels : claudeModels;
       const modelVal = r.model || (providerVal === 'codex' ? 'o4-mini' : 'sonnet');
       const modelOpts = Object.entries(models).map(([v,l]) => `<option value="${esc(v)}"${modelVal===v?' selected':''}>${esc(l)}</option>`).join('');

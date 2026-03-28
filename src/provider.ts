@@ -84,8 +84,8 @@ const codexProvider: ProviderInfo = {
   configDirEnv: "CODEX_HOME",
   autoApproveFlag: "--dangerously-bypass-approvals-and-sandbox",
   modelFlag: "--model",
-  models: ["o3", "o4-mini", "gpt-4.1", "codex-mini"],
-  defaultModel: "o4-mini",
+  models: ["gpt-5.4", "o3", "o4-mini", "gpt-4.1", "codex-mini"],
+  defaultModel: "gpt-5.4",
   resumeArgs: (sid) => ["resume", sid],
   nameArgs: (_name) => [],  // codex doesn't have --name
   loginArgs: ["login"],

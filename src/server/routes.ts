@@ -226,7 +226,7 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
           memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
           idle_policy: rc.idle_policy || "ignore",
           provider: rc.provider || "claude",
-          model: rc.model || (rc.provider === "codex" ? "o4-mini" : "sonnet"),
+          model: rc.model || (rc.provider === "codex" ? "gpt-5.4" : "sonnet"),
           actualMem, actualCpu,
         };
       });
