@@ -68,9 +68,12 @@ export function ensureTtydRunning(ctx: ServerContext): void {
     // Restore admin container registration if running but not tracked
     if (!ctx.ttydProcesses.has("central/ai")) {
       try {
-        const state = getContainerState(centralContainerName());
+        const cname = centralContainerName();
+        const state = getContainerState(cname);
         if (state === "running") {
-          const port = getContainerPort(centralContainerName());
+          // Try Docker port first, then host mode ttyd port
+          let port = getContainerPort(cname);
+          if (!port) port = findTtydPort(cname);
           if (port) ctx.ttydProcesses.set("central/ai", { port, roleName: "ai", projectSlug: "central" });
         }
       } catch (err: any) {
