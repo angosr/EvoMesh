@@ -400,7 +400,9 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
           const cname = containerName(p.slug, name);
           const accountPath = path.join(os.homedir(), config.accounts[rc.account] || ".claude");
           const accountDown = isAccountDown(accountPath);
-          roles[name] = { configured: true, running, port: running ? getContainerPort(cname) : null, accountDown: accountDown || undefined };
+          // Use cached ttyd port from server context if available, avoid sync docker inspect
+          const ttyd = ctx.ttydProcesses.get(`${p.slug}/${name}`);
+          roles[name] = { configured: true, running, port: ttyd?.port || null, accountDown: accountDown || undefined };
         }
         projectEntries[p.slug] = { path: p.root, roles };
       } catch (e) {

@@ -137,8 +137,7 @@ export function getContainerPort(name: string): number | null {
     ], { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] }).trim();
     const parsed = parseInt(out, 10);
     return Number.isNaN(parsed) ? null : parsed;
-  } catch (err) {
-    console.error(`getContainerPort: failed to inspect port for ${name}:`, err);
+  } catch {
     return null;
   }
 }
