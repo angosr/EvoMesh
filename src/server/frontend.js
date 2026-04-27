@@ -192,11 +192,11 @@ async function _fetchAllInner() {
       const r = statusResults[i];
       if (r.status === 'fulfilled') {
         const s = r.value;
-        return { ...p, roles: s.roles || [], accounts: s.accounts || {}, myRole: s.myRole || p.myRole || null, _statusOk: true };
+        return { ...p, roles: s.roles || [], accountProfiles: s.accountProfiles || {}, myRole: s.myRole || p.myRole || null, _statusOk: true };
       }
       // API failed — keep previous roles data to avoid closing panels
       const prev = state.projects.find(pp => pp.slug === p.slug);
-      return { ...p, roles: prev?.roles || [], accounts: prev?.accounts || {}, myRole: prev?.myRole || p.myRole || null, _statusOk: false };
+      return { ...p, roles: prev?.roles || [], accountProfiles: prev?.accountProfiles || {}, myRole: prev?.myRole || p.myRole || null, _statusOk: false };
     });
     state.projects = projects;
     if (!state.chatProject && projects.length > 0) state.chatProject = projects[0].slug;
@@ -273,6 +273,7 @@ function renderSidebar() {
     const group = document.createElement('div'); group.className = 'project-group';
     const running = p.roles.filter(r => r.running).length; totalRunning += running; totalRoles += p.roles.length;
     const isOpen = !state.collapsed[p.slug];
+    const isOwner = p.myRole === 'owner';
     const header = document.createElement('button'); header.className = 'project-header';
     header.innerHTML = `<span class="arrow ${isOpen?'open':''}">&#9654;</span><span>${esc(p.name)}</span><span class="pstats">${running}/${p.roles.length}</span>`;
     header.onclick = () => { state.collapsed[p.slug] = !state.collapsed[p.slug]; renderSidebar(); };
@@ -281,10 +282,41 @@ function renderSidebar() {
     for (const r of p.roles) {
       const btn = document.createElement('button'); const key = `${p.slug}/${r.name}`;
       btn.className = `role-btn ${state.activePanel===key?'active':''}`;
+      const isCodex = (r.provider || 'claude') === 'codex';
+      const loopOn = isCodex && r.automation_mode === 'prompt';
       const lw = r.needsLogin ? '<span class="login-warn">LOGIN</span>' : '';
-      btn.innerHTML = `<span class="dot ${r.running?'running':'stopped'}"></span><span>${esc(r.name)}</span>${lw}`;
+      const loopTag = loopOn ? '<span class="info loop-on">LOOP</span>' : '';
+      const loopAction = isOwner && isCodex ? `<span class="act-loop${loopOn ? ' on' : ''}" title="${loopOn ? 'Disable loop' : 'Enable loop'}">↻</span>` : '';
+      const actions = isOwner ? `<span class="role-actions">${loopAction}<span class="act-cfg" title="Edit">⚙</span></span>` : '';
+      btn.innerHTML = `<span class="role-main"><span class="dot ${r.running?'running':'stopped'}"></span><span class="role-name">${esc(r.name)}</span>${loopTag}${lw}</span>${actions}`;
       btn.onclick = () => openTerminal(p.slug, p.name, r.name, r.terminal);
+      const loop = btn.querySelector('.act-loop');
+      if (loop) {
+        loop.addEventListener('click', async e => {
+          e.stopPropagation();
+          e.preventDefault();
+          await toggleCodexLoopQuick(p.slug, r.name);
+        });
+      }
+      const cfg = btn.querySelector('.act-cfg');
+      if (cfg) {
+        cfg.addEventListener('click', e => {
+          e.stopPropagation();
+          e.preventDefault();
+          openRoleEditModal(p.slug, r.name);
+        });
+      }
       rd.appendChild(btn);
+    }
+    if (isOwner) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-role-btn';
+      addBtn.textContent = '+ Add Role';
+      addBtn.onclick = e => {
+        e.stopPropagation();
+        openCreateRoleModal(p.slug);
+      };
+      rd.appendChild(addBtn);
     }
     group.appendChild(rd); tree.appendChild(group);
   }

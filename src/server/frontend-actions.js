@@ -3,17 +3,19 @@
 // Depends on: authFetch, esc, API, appendFeedMessage, fetchAll, closePanel from frontend.js
 
 async function switchAccount(slug, roleName, sel) {
-  const an = sel.value, opt = sel.selectedOptions[0];
-  if (!confirm(`Switch ${roleName} to "${an}"?`)) { fetchAll(); return; }
+  const accountPath = sel.value;
+  const opt = sel.selectedOptions[0];
+  const label = opt?.textContent?.trim() || 'provider default';
+  if (!confirm(`Switch ${roleName} to "${label}"?`)) { fetchAll(); return; }
   try {
     const r = await authFetch(`${API}/projects/${slug}/roles/${roleName}/account`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accountName: an, accountPath: opt?.dataset?.path }),
+      body: JSON.stringify(accountPath ? { accountName: label, accountPath } : { useProviderDefault: true }),
     });
     if (!r.ok) { appendFeedMessage(`Failed to switch account for <strong>${esc(roleName)}</strong>: ${r.status}`, 'system'); return; }
     const d = await r.json();
     if (d.ok) {
-      appendFeedMessage(`Account: <strong>${esc(roleName)}</strong> -> ${esc(an)}${d.restarted ? ' (restarting)' : ''}`, 'system');
+      appendFeedMessage(`Account: <strong>${esc(roleName)}</strong> -> ${esc(d.newAccount || label)}${d.restarted ? ' (restarting)' : ''}`, 'system');
       closePanel(`${slug}/${roleName}`);
       setTimeout(fetchAll, 5000);
     } else {

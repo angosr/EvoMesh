@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../config/loader.js";
+import { resolveRoleAccount } from "../config/accounts.js";
 import { expandHome } from "../utils/paths.js";
 import { errorMessage } from "../utils/error.js";
 import { formatBytes } from "../utils/fs.js";
@@ -12,6 +13,7 @@ import type { SessionInfo } from "./auth.js";
 import type { ServerContext } from "./index.js";
 import { findBinary, getProvider, listAccountDirs, detectProvider, getProviderNames } from "../provider.js";
 import type { ProviderName } from "../provider.js";
+import { readAccountMetadata } from "./account-metadata.js";
 
 // Active login processes — keyed by account path
 const loginProcesses = new Map<string, { proc: import("node:child_process").ChildProcess; authUrl: string }>();
@@ -47,6 +49,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
       for (const provName of getProviderNames()) {
         const prov = getProvider(provName);
         for (const acct of listAccountDirs(homeDir, provName)) {
+          const metadata = readAccountMetadata(acct.fullPath, provName);
           detected.push({
             name: acct.name,
             path: `~/${acct.dirName}`,
@@ -54,6 +57,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
             provider: provName,
             providerDisplay: prov.displayName,
             needsLogin: prov.needsLogin(acct.fullPath),
+            email: metadata.email,
           });
         }
       }
@@ -215,42 +219,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
         const prov = getProvider(provName);
         for (const acct of listAccountDirs(homeDir, provName)) {
           const dir = acct.fullPath;
-          let email: string | null = null;
-          let subscriptionType: string | null = null;
-          let rateLimitTier: string | null = null;
-          let tokenExpiresAt: number | null = null;
-
-          if (provName === "claude") {
-            // Claude: read .claude.json + .credentials.json
-            try {
-              const claudeJson = JSON.parse(fs.readFileSync(path.join(dir, ".claude.json"), "utf-8"));
-              email = claudeJson.email || claudeJson.oauthAccount?.emailAddress || null;
-              subscriptionType = claudeJson.subscriptionType || null;
-            } catch {}
-            try {
-              const cred = JSON.parse(fs.readFileSync(path.join(dir, ".credentials.json"), "utf-8"));
-              const oauth = cred.claudeAiOauth || {};
-              if (!subscriptionType) subscriptionType = oauth.subscriptionType || null;
-              rateLimitTier = oauth.rateLimitTier || null;
-              tokenExpiresAt = oauth.expiresAt || null;
-            } catch {}
-          } else if (provName === "codex") {
-            // Codex: read auth.json, decode JWT id_token for email/plan/expiry
-            try {
-              const auth = JSON.parse(fs.readFileSync(path.join(dir, "auth.json"), "utf-8"));
-              const idToken = auth.tokens?.id_token;
-              if (idToken) {
-                const payloadB64 = idToken.split(".")[1];
-                const payload = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf-8"));
-                email = payload.email || null;
-                const authInfo = payload["https://api.openai.com/auth"] || {};
-                subscriptionType = authInfo.chatgpt_plan_type || (auth.OPENAI_API_KEY ? "api-key" : null);
-                if (payload.exp) tokenExpiresAt = payload.exp * 1000; // JWT exp is seconds
-              } else if (auth.OPENAI_API_KEY) {
-                subscriptionType = "api-key";
-              }
-            } catch {}
-          }
+          const { email, subscriptionType, rateLimitTier, tokenExpiresAt } = readAccountMetadata(dir, provName);
 
           // Claude usage: scan session JSONL files
           let inputTokens = 0, outputTokens = 0, cacheCreation = 0, cacheRead = 0, activeSessions = 0;
@@ -294,7 +263,7 @@ export function registerUsageRoutes(app: import("express").Express, ctx: ServerC
             try {
               const config = loadConfig(p.root);
               for (const rc of Object.values(config.roles)) {
-                const acctPath = expandHome(config.accounts[rc.account] || prov.defaultConfigDir);
+                const acctPath = resolveRoleAccount(config, rc).path;
                 if (acctPath === dir) roleCount++;
               }
             } catch {}

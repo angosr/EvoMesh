@@ -144,6 +144,45 @@ describe("server/routes", () => {
     assert.equal(body.roles[0].running, false);
   });
 
+  it("GET /api/projects/:slug/status falls back Codex roles to the provider default account", async () => {
+    const configPath = path.join(tmp.root, ".evomesh", "project.yaml");
+    const config = YAML.parse(fs.readFileSync(configPath, "utf-8"));
+    config.roles.lead.provider = "codex";
+    fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
+
+    const res = await fetch(`${baseUrl}/api/projects/test-project/status`);
+    assert.equal(res.status, 200);
+    const body = await res.json() as any;
+    assert.equal(body.roles[0].provider, "codex");
+    assert.equal(body.roles[0].account_path, "~/.codex");
+    assert.equal(body.roles[0].account_is_default, true);
+  });
+
+  it("GET /api/projects/:slug/status does not mark Codex as login-needed when auth.json exists", async () => {
+    const configPath = path.join(tmp.root, ".evomesh", "project.yaml");
+    const config = YAML.parse(fs.readFileSync(configPath, "utf-8"));
+    config.roles.lead.provider = "codex";
+    fs.writeFileSync(configPath, YAML.stringify(config), "utf-8");
+
+    const codexDir = path.join(os.homedir(), ".codex");
+    const authFile = path.join(codexDir, "auth.json");
+    const hadAuth = fs.existsSync(authFile);
+    const prevAuth = hadAuth ? fs.readFileSync(authFile, "utf-8") : null;
+    fs.mkdirSync(codexDir, { recursive: true });
+    fs.writeFileSync(authFile, JSON.stringify({ tokens: { id_token: "header.payload.sig" } }), "utf-8");
+
+    try {
+      const res = await fetch(`${baseUrl}/api/projects/test-project/status`);
+      assert.equal(res.status, 200);
+      const body = await res.json() as any;
+      assert.equal(body.roles[0].provider, "codex");
+      assert.equal(body.roles[0].needsLogin, false);
+    } finally {
+      if (hadAuth && prevAuth !== null) fs.writeFileSync(authFile, prevAuth, "utf-8");
+      else fs.rmSync(authFile, { force: true });
+    }
+  });
+
   it("GET /api/projects/:slug/status returns 404 for unknown project", async () => {
     const res = await fetch(`${baseUrl}/api/projects/nonexistent/status`);
     assert.equal(res.status, 404);
@@ -238,6 +277,44 @@ describe("server/routes", () => {
       body: JSON.stringify({ name: "lead", template: "executor" }),
     });
     assert.equal(res.status, 409);
+  });
+
+  it("POST /api/projects/:slug/roles creates bare codex role with prompt automation", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/test-project/roles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "codex-shell",
+        kind: "terminal",
+        provider: "codex",
+        accountPath: "~/.codex-work",
+        automation_mode: "prompt",
+        automation_prompt: "Continue the assigned task and report concrete progress.",
+      }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json() as any;
+    assert.equal(body.ok, true);
+    const config = YAML.parse(fs.readFileSync(path.join(tmp.root, ".evomesh", "project.yaml"), "utf-8"));
+    assert.equal(config.roles["codex-shell"].kind, "terminal");
+    assert.equal(config.roles["codex-shell"].provider, "codex");
+    assert.ok(config.roles["codex-shell"].account_profile);
+    assert.equal(config.roles["codex-shell"].automation_mode, "prompt");
+    assert.equal(config.roles["codex-shell"].automation_prompt, "Continue the assigned task and report concrete progress.");
+  });
+
+  it("POST /api/projects/:slug/roles rejects Claude prompt automation", async () => {
+    const res = await fetch(`${baseUrl}/api/projects/test-project/roles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "claude-shell",
+        kind: "terminal",
+        provider: "claude",
+        automation_mode: "prompt",
+      }),
+    });
+    assert.equal(res.status, 400);
   });
 
   // --- GET /api/accounts ---

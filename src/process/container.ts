@@ -7,7 +7,9 @@ import { ensureDir } from "../utils/fs.js";
 import { getProvider, findBinary, buildCLIArgs, buildCLIEnv, defaultAccountDir, detectProvider } from "../provider.js";
 import type { ProviderName } from "../provider.js";
 import { slugify } from "../workspace/config.js";
+import { resolveRoleAccount } from "../config/accounts.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
+import { buildLoopCommand, resolveAutomationMode } from "../roles/runtime.js";
 
 /** @deprecated Use findBinary("claude") from provider.ts instead */
 export function findClaudeBin(): string { return findBinary("claude"); }
@@ -156,7 +158,8 @@ function startRoleHost(
   const sessionName = containerName(projectSlug, roleName);
   const providerName = roleConfig.provider || "claude";
   const prov = getProvider(providerName);
-  const accountPath = expandHome(config.accounts[roleConfig.account] || prov.defaultConfigDir);
+  const account = resolveRoleAccount(config, roleConfig);
+  const accountPath = account.path;
 
   // Already running?
   if (getContainerState(sessionName) === "running") {
@@ -200,9 +203,9 @@ function startRoleHost(
   const ttydCmd = `ttyd --writable --ping-interval 30 -t fontSize=14 -t scrollback=10000 --port ${ttydPort} -- tmux attach-session -t ${sessionName}`;
   execFileSync("bash", ["-c", `nohup ${ttydCmd} > /tmp/ttyd-${sessionName}.log 2>&1 &`], { stdio: "ignore" });
 
-  if (providerName !== "codex") {
+  if (providerName !== "codex" && resolveAutomationMode(roleConfig) === "loop") {
     // Claude: send /loop command after delay
-    const loopCmd = `/loop ${loopInterval} You are the ${roleName} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
+    const loopCmd = buildLoopCommand(roleName, roleConfig);
     execFileSync("bash", ["-c", `(
       sleep 15
       for i in $(seq 1 60); do
@@ -237,7 +240,8 @@ export function startRole(
   const name = opts.containerNameOverride || containerName(projectSlug, roleName, opts.linuxUser);
   const providerName: ProviderName = roleConfig.provider || "claude";
   const prov = getProvider(providerName);
-  const accountPath = expandHome(config.accounts[roleConfig.account] || prov.defaultConfigDir);
+  const account = resolveRoleAccount(config, roleConfig);
+  const accountPath = account.path;
 
   // If container is already running, just return its info
   if (getContainerState(name) === "running") {
@@ -326,6 +330,7 @@ export function startRole(
   args.push("-e", `EVOMESH_PROVIDER=${providerName}`);
   args.push("-e", `ROLE_NAME=${roleName}`);
   args.push("-e", `LOOP_INTERVAL=${roleConfig.loop_interval || "10m"}`);
+  args.push("-e", `AUTOMATION_MODE=${resolveAutomationMode(roleConfig)}`);
   // Provider-specific env vars
   if (prov.configDirEnv) args.push("-e", `${prov.configDirEnv}=${accountPath}`);
   if (roleConfig.model) args.push("-e", `CLI_MODEL=${roleConfig.model}`);
@@ -416,6 +421,19 @@ export function getRoleLogs(root: string, roleName: string, tail: number = 500):
   }
 }
 
+function isPaneReady(name: string): boolean {
+  try {
+    const pane = execFileSync("tmux", ["capture-pane", "-t", name, "-p"], {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "ignore"],
+      maxBuffer: 1024 * 1024,
+    });
+    return pane.includes("❯");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Send input to the running claude process via docker exec.
  * Uses env var to pass input safely — avoids shell injection.
@@ -423,9 +441,17 @@ export function getRoleLogs(root: string, roleName: string, tail: number = 500):
 export function sendInput(root: string, roleName: string, input: string): boolean {
   const name = containerName(projectSlugFromRoot(root), roleName);
   try {
+    execFileSync("tmux", ["has-session", "-t", name], { stdio: "ignore" });
+    if (!isPaneReady(name)) return false;
+    execFileSync("tmux", ["send-keys", "-t", name, "C-u"], { stdio: "ignore" });
+    execFileSync("tmux", ["send-keys", "-t", name, "-l", input], { stdio: "ignore" });
+    execFileSync("bash", ["-lc", `sleep 0.12; tmux send-keys -t '${name.replace(/'/g, "'\\''")}' C-m`], { stdio: "ignore" });
+    return true;
+  } catch { /* not a host tmux session — fall through to docker */ }
+  try {
     execFileSync("docker", [
       "exec", "-e", `EVOMESH_INPUT=${input}`,
-      name, "sh", "-c", 'printf "%s\\n" "$EVOMESH_INPUT" > /proc/1/fd/0',
+      name, "sh", "-c", 'printf "\\025%s\\r" "$EVOMESH_INPUT" > /proc/1/fd/0',
     ], { stdio: "ignore" });
     return true;
   } catch (err) {

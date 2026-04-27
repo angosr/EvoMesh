@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { readYaml } from "../utils/fs.js";
 import { evomeshDir, expandHome, requireProjectRoot } from "../utils/paths.js";
+import { getAccountProfiles } from "./accounts.js";
 import type { ProjectConfig } from "./schema.js";
 
 // mtime-based cache: avoids re-parsing YAML when file hasn't changed
@@ -49,9 +50,9 @@ export function resolveAccountPath(
   config: ProjectConfig,
   accountName: string
 ): string {
-  const raw = config.accounts[accountName];
-  if (!raw) {
+  const profile = getAccountProfiles(config)[accountName];
+  if (!profile) {
     throw new Error(`Account "${accountName}" not found in project.yaml`);
   }
-  return expandHome(raw);
+  return expandHome(profile.path);
 }

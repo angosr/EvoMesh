@@ -7,6 +7,27 @@
 // Cached to avoid flicker — only update DOM when data actually changes
 let _lastAccountHtml = '';
 
+function formatAccountOptionLabel(account) {
+  const email = account.email ? ` - ${account.email}` : '';
+  const login = account.needsLogin ? ' (login)' : '';
+  return `${account.name} (${account.path})${email}${login}`;
+}
+
+function accountOptionsForProvider(provider, selectedPath = '', includeDefault = true) {
+  const providerName = provider || 'claude';
+  const defaultLabel = providerName === 'codex' ? 'Provider Default (~/.codex)' : 'Provider Default (~/.claude)';
+  const options = [];
+  if (includeDefault) {
+    options.push(`<option value=""${selectedPath ? '' : ' selected'}>${esc(defaultLabel)}</option>`);
+  }
+  state.accounts
+    .filter(a => (a.provider || 'claude') === providerName)
+    .forEach(a => {
+      options.push(`<option value="${esc(a.path)}"${selectedPath === a.path ? ' selected' : ''} data-path="${esc(a.path)}">${esc(formatAccountOptionLabel(a))}</option>`);
+    });
+  return options.join('');
+}
+
 async function renderAccountUsage() {
   const section = document.getElementById('account-usage-section');
   if (!section) return;
@@ -30,16 +51,17 @@ async function renderAccountUsage() {
         const loginBtn = `<button class="dash-action acct-login-btn" data-path="${esc(a.path)}" style="margin-left:6px;${loginBtnStyle}">${loginBtnText}</button>`;
         const shareBtn = `<button class="dash-action acct-share-btn" data-path="${esc(a.path)}" data-name="${esc(a.name)}" style="margin-left:4px" title="Generate one-time login link">🔗 Share</button>`;
         const isClaude = (a.provider || 'claude') === 'claude';
-        // Stats row: Claude shows token usage, Codex shows email + plan info
+        const emailHtml = a.email ? `<span title="Email">${esc(a.email)}</span>` : '';
         let statsHtml;
         if (isClaude && u) {
-          statsHtml = `<span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
+          statsHtml = `${emailHtml}
+            <span title="Output tokens (24h)">out <b>${fmtNum(u.outputTokens||0)}</b></span>
             <span title="Input tokens (24h)">in <b>${fmtNum(u.inputTokens||0)}</b></span>
             <span title="Cache read tokens (24h)">cache <b>${fmtNum(u.cacheRead||0)}</b></span>
             <span title="Total tokens (24h)">total <b>${fmtNum(u.total||0)}</b></span>
             <span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>`;
         } else {
-          statsHtml = (a.email ? `<span title="Email">${esc(a.email)}</span>` : '') +
+          statsHtml = emailHtml +
             `<span title="Roles using this account">roles <b>${a.roleCount||0}</b></span>`;
         }
         return `<div class="card acct-card-v2" ${isExpired?'style="border-color:var(--red);box-shadow:0 0 8px rgba(248,113,113,0.15)"':''}>
@@ -232,7 +254,6 @@ async function renderDashboard() {
     projectsEl.innerHTML = '';
     renderAccountUsage();
   }
-  const ao = state.accounts.map(a => `<option value="${esc(a.name)}" data-path="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
   let html = '';
   if (!state.projects.length) {
     html += `<div class="card onboarding" style="margin-top:20px"><h3>Welcome to EvoMesh</h3>
@@ -245,9 +266,17 @@ async function renderDashboard() {
   for (const p of state.projects) {
     const isOwner = p.myRole === 'owner';
     const rows = p.roles.map(r => {
+      const isCodex = (r.provider || 'claude') === 'codex';
+      const loopEnabled = isCodex && r.automation_mode === 'prompt';
       const statusBadge = `<span class="badge ${r.running?'running':'stopped'}">${r.running?'running':'stopped'}</span>`;
       const loginBadge = r.needsLogin ? ' <span class="badge login-needed">login</span>' : '';
-      const acctCol = isOwner ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${ao}</select>` : `<span style="color:var(--text-faint)">${esc(r.account)}</span>`;
+      const kindBadge = r.kind === 'terminal' ? ' <span class="badge" style="background:rgba(34,211,238,0.12);color:var(--cyan)">terminal</span>' : '';
+      const loopBadge = isCodex
+        ? ` <span class="badge" style="background:${loopEnabled ? 'rgba(56,189,248,0.16)' : 'rgba(120,120,140,0.1)'};color:${loopEnabled ? 'var(--accent)' : 'var(--text-faint)'}">${loopEnabled ? 'loop on' : 'loop off'}</span>`
+        : '';
+      const acctCol = isOwner
+        ? `<select class="acct-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${accountOptionsForProvider(r.provider || 'claude', r.account_path || '')}</select>`
+        : `<span style="color:var(--text-faint)">${esc(r.account_label || 'provider default')}</span>`;
       // Resources: show actual usage as visible labels + input for limits
       let resCol = '';
       if (isOwner) {
@@ -270,19 +299,21 @@ async function renderDashboard() {
       const modelVal = r.model || (providerVal === 'codex' ? 'o4-mini' : 'sonnet');
       const modelOpts = Object.entries(models).map(([v,l]) => `<option value="${esc(v)}"${modelVal===v?' selected':''}>${esc(l)}</option>`).join('');
       const modelSelect = `<select class="model-select" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}" title="Model">${modelOpts}</select>`;
-      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}</div><div class="act-row">${providerSelect}${modeSelect}${idleSelect}${modelSelect}</div>` : '';
+      const loopBtn = isCodex ? `<button class="dash-action${loopEnabled ? ' active-loop' : ''}" data-action="automation" data-slug="${esc(p.slug)}" data-role="${esc(r.name)}">${loopEnabled ? 'Loop On' : 'Loop'}</button>` : '';
+      const actCol = isOwner ? `<div class="act-row">${startRestartBtn}${stopBtn}${loopBtn}</div><div class="act-row">${providerSelect}${modeSelect}${idleSelect}${modelSelect}</div>` : '';
       return `<tr>
-        <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span>${statusBadge}${loginBadge}</td>
+        <td><strong>${esc(r.name)}</strong> <span class="badge ${esc(r.type)}">${esc(r.type)}</span>${kindBadge}${statusBadge}${loopBadge}${loginBadge}</td>
         <td>${acctCol}</td>
         <td class="res-cell">${resCol}</td>
         <td class="act-cell">${actCol}</td>
       </tr>`;
     }).join('');
     const roleLabel = isOwner ? `${esc(p.name)}` : `${esc(p.name)} <span class="badge" style="font-size:10px;background:rgba(129,140,248,0.12);color:var(--blue)">${esc(p.myRole||'')}</span>`;
-    const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="margin-left:auto;font-size:11px">Members</button>` : '';
+    const addRoleBtn = isOwner ? ` <button class="dash-action" data-action="add-role" data-slug="${esc(p.slug)}" style="margin-left:auto;font-size:11px">Add Role</button>` : '';
+    const membersBtn = isOwner ? ` <button class="dash-action" data-action="members" data-slug="${esc(p.slug)}" style="font-size:11px">Members</button>` : '';
     const membersOpen = state.membersOpen === p.slug;
     const membersPanel = membersOpen ? `<div class="members-panel" id="members-${esc(p.slug)}"></div>` : '';
-    html += `<div class="card"><h3>${roleLabel}${membersBtn}</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>${membersPanel}</div>`;
+    html += `<div class="card"><h3>${roleLabel}${addRoleBtn}${membersBtn}</h3><table><thead><tr><th>Role</th><th>Account</th><th>Resources</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>${membersPanel}</div>`;
   }
   // Claims Board — fetch and render per-project claims
   for (const p of state.projects) {
@@ -318,7 +349,7 @@ async function renderDashboard() {
     const cs = await centralRes.json();
     const statusBadge = cs.enabled === false ? '<span class="badge stopped">disabled</span>'
       : cs.running ? '<span class="badge running">running</span>' : '<span class="badge stopped">stopped</span>';
-    const centralAo = state.accounts.map(a => `<option value="${esc(a.path)}">${esc(a.name)} (${esc(a.path)})${a.needsLogin?' (login)':''}</option>`).join('');
+    const centralAo = state.accounts.map(a => `<option value="${esc(a.path)}">${esc(formatAccountOptionLabel(a))}</option>`).join('');
     const acctCol = `<select class="acct-select" id="central-acct-select">${centralAo}</select>`;
     const startStopBtn = cs.running
       ? `<button class="dash-action danger" id="central-stop-btn">■ Stop</button>`
@@ -336,12 +367,6 @@ async function renderDashboard() {
 
   projectsEl.innerHTML = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:16px;font-family:var(--font-display);font-weight:700;letter-spacing:-0.03em">Project Overview</h2>` + centralHtml + html;
   // Set select values after innerHTML
-  for (const p of state.projects) {
-    for (const r of p.roles) {
-      const s = projectsEl.querySelector(`select[data-slug="${p.slug}"][data-role="${r.name}"]`);
-      if (s) s.value = r.account;
-    }
-  }
   // Set Central AI account select
   try {
     const cs = await (await authFetch(`${API}/admin/status`)).json();
@@ -372,6 +397,12 @@ async function renderDashboard() {
   });
   projectsEl.querySelectorAll('.dash-action[data-action="members"]').forEach(btn => {
     btn.addEventListener('click', () => toggleMembers(btn.dataset.slug));
+  });
+  projectsEl.querySelectorAll('.dash-action[data-action="add-role"]').forEach(btn => {
+    btn.addEventListener('click', () => openCreateRoleModal(btn.dataset.slug));
+  });
+  projectsEl.querySelectorAll('.dash-action[data-action="automation"]').forEach(btn => {
+    btn.addEventListener('click', () => openRoleAutomationModal(btn.dataset.slug, btn.dataset.role));
   });
   // Central AI event listeners
   const centralAcctSel = document.getElementById('central-acct-select');

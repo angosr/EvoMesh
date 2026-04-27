@@ -17,6 +17,8 @@ import { writeRegistry, autoRestartCrashed, cleanupIdleRoles, statsCache, restor
 import type { TtydProcess } from "./terminal.js";
 import { registerRoutes, allocatePort } from "./routes.js";
 import { bootstrapGlobalConfig } from "../workspace/bootstrap.js";
+import { getProvider } from "../provider.js";
+import type { ProviderName } from "../provider.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,7 +34,7 @@ export interface ServerContext {
   ttydProcesses: Map<string, TtydProcess>;
   getProjects: (linuxUser?: string) => ProjectEntry[];
   getProject: (slug: string, linuxUser?: string) => ProjectEntry | undefined;
-  checkNeedsLogin: (accountDir: string) => boolean;
+  checkNeedsLogin: (accountDir: string, providerName?: ProviderName) => boolean;
   extractToken: (req: { headers: { authorization?: string }; query?: any; url?: string }) => string | undefined;
 }
 
@@ -200,14 +202,9 @@ export function startServer(port: number, initialRoot?: string) {
     return getProjects(linuxUser).find(p => p.slug === slug);
   }
 
-  function checkNeedsLogin(accountDir: string): boolean {
+  function checkNeedsLogin(accountDir: string, providerName: ProviderName = "claude"): boolean {
     try {
-      const dotCreds = path.join(accountDir, ".credentials.json");
-      const plainCreds = path.join(accountDir, "credentials.json");
-      const credsPath = fs.existsSync(dotCreds) ? dotCreds : plainCreds;
-      if (!fs.existsSync(credsPath)) return true;
-      const creds = fs.readFileSync(credsPath, "utf-8").trim();
-      return !creds || creds === "{}" || creds === "null";
+      return getProvider(providerName).needsLogin(accountDir);
     } catch (e) { console.error("[auth] Failed to check credentials:", e); return true; }
   }
 
@@ -347,6 +344,13 @@ export function startServer(port: number, initialRoot?: string) {
     res.type("js").sendFile(path.resolve(p));
   });
 
+  app.get("/app-role-tools.js", (_req, res) => {
+    const p = resolveAsset("frontend-role-tools.js");
+    if (!p) { res.status(404).send("Not found"); return; }
+    res.set("Cache-Control", "no-store");
+    res.type("js").sendFile(path.resolve(p));
+  });
+
   app.get("/app-layout.js", (_req, res) => {
     const p = resolveAsset("frontend-layout.js");
     if (!p) { res.status(404).send("Not found"); return; }
@@ -376,6 +380,25 @@ export function startServer(port: number, initialRoot?: string) {
   };
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
+
+  // Prevent ECONNRESET / socket errors from crashing the server
+  server.on("clientError", (err, socket) => {
+    if ((err as any).code === "ECONNRESET") {
+      socket.destroy();
+      return;
+    }
+    console.error("[server] clientError:", err.message);
+    socket.destroy();
+  });
+
+  process.on("uncaughtException", (err) => {
+    if ((err as any).code === "ECONNRESET" || (err as any).code === "EPIPE") {
+      console.error("[server] Ignored socket error:", err.message);
+      return;
+    }
+    console.error("[server] Uncaught exception:", err);
+    process.exit(1);
+  });
 
   // IMPORTANT: Must bind 0.0.0.0 — remote servers need external access, do not change to 127.0.0.1 (see shared/decisions.md)
   server.listen(port, "0.0.0.0", () => {

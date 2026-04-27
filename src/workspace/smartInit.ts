@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { exists, ensureDir, writeFile, writeYaml } from "../utils/fs.js";
+import { ensureAccountProfile } from "../config/accounts.js";
 import { defaultConfig } from "../config/defaults.js";
 import { createRole } from "../roles/manager.js";
 import { loadConfig } from "../config/loader.js";
@@ -69,8 +70,10 @@ export function smartInit(root: string, name: string, lang: Lang = "zh"): Projec
       return config; // fully set up
     }
     // Has config but no roles — create defaults
-    createRole(root, "lead", "lead", config, "main");
-    createRole(root, "executor", "executor", config, "main");
+    const mainAccount = config.accounts?.main || "~/.claude";
+    const mainProfileId = ensureAccountProfile(config, "claude", mainAccount, "main");
+    createRole(root, "lead", "lead", config, undefined, mainProfileId);
+    createRole(root, "executor", "executor", config, undefined, mainProfileId);
     return loadConfig(root);
   }
 
@@ -104,12 +107,9 @@ export function smartInit(root: string, name: string, lang: Lang = "zh"): Projec
     const rendered = renderTemplate(projectTmpl, vars);
     fs.writeFileSync(projectYaml, rendered, "utf-8");
     config = loadConfig(root);
-    // Assign different accounts to lead vs executor if available
-    if (config.roles.lead) config.roles.lead.account = "default";
-    if (config.roles.executor) config.roles.executor.account = "default";
+    config.accounts = config.accounts || {};
     if (leadAccount !== executorAccount && Object.keys(config.accounts).length <= 1) {
       config.accounts["alt"] = executorAccount;
-      if (config.roles.executor) config.roles.executor.account = "alt";
     }
     writeYaml(projectYaml, config);
   } else {
@@ -174,8 +174,10 @@ export function smartInit(root: string, name: string, lang: Lang = "zh"): Projec
   }
 
   // Create default roles — template-based ROLE.md if available
-  createRole(root, "lead", "lead", config, config.roles.lead?.account || "default");
-  createRole(root, "executor", "executor", config, config.roles.executor?.account || "default");
+  const leadProfileId = ensureAccountProfile(config, "claude", leadAccount, "default");
+  const executorProfileId = ensureAccountProfile(config, "claude", executorAccount, leadAccount === executorAccount ? "default" : "alt");
+  createRole(root, "lead", "lead", config, undefined, leadProfileId);
+  createRole(root, "executor", "executor", config, undefined, executorProfileId);
 
   return loadConfig(root);
 }

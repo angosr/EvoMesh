@@ -5,6 +5,7 @@ import { spawn as ptySpawn } from "node-pty";
 import { roleDir, expandHome, runtimeDir } from "../utils/paths.js";
 import { ensureDir } from "../utils/fs.js";
 import { slugify } from "../workspace/config.js";
+import { resolveRoleAccount } from "../config/accounts.js";
 import { writePid, removePid, readPid } from "./registry.js";
 import { containerName } from "./container.js";
 import type { ProjectConfig, RoleConfig } from "../config/schema.js";
@@ -42,7 +43,7 @@ export function spawnRole(
     throw new Error(`Role "${roleName}" is already running (PID ${existing.pid}).`);
   }
 
-  const accountPath = expandHome(config.accounts[roleConfig.account] || "~/.claude");
+  const accountPath = resolveRoleAccount(config, roleConfig).path;
   const interval = roleConfig.loop_interval || "10m";
   const roleRoot = `.evomesh/roles/${roleName}`;
   const projectSlug = slugify(path.basename(root));

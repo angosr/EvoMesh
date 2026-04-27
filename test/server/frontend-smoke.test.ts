@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverDir = path.resolve(__dirname, "../../src/server");
 
 describe("frontend static files", () => {
-  const jsFiles = ["frontend.js", "frontend-dashboard.js", "frontend-panels.js", "frontend-settings.js", "frontend-feed.js", "frontend-layout.js", "frontend-actions.js"];
+  const jsFiles = ["frontend.js", "frontend-dashboard.js", "frontend-panels.js", "frontend-settings.js", "frontend-feed.js", "frontend-layout.js", "frontend-actions.js", "frontend-role-tools.js"];
   const htmlFiles = ["frontend.html", "login.html"];
 
   describe("JS syntax validation", () => {
@@ -34,8 +34,10 @@ describe("frontend static files", () => {
     it("frontend.html references all JS files with cache bust", () => {
       const html = fs.readFileSync(path.join(serverDir, "frontend.html"), "utf8");
       assert.ok(html.includes("app.js?v="), "Missing app.js with cache bust");
+      assert.ok(html.includes("app-dashboard.js?v="), "Missing app-dashboard.js with cache bust");
       assert.ok(html.includes("app-panels.js?v="), "Missing app-panels.js with cache bust");
       assert.ok(html.includes("app-settings.js?v="), "Missing app-settings.js with cache bust");
+      assert.ok(html.includes("app-role-tools.js?v="), "Missing app-role-tools.js with cache bust");
       assert.ok(html.includes("app.css?v="), "Missing app.css with cache bust");
     });
 

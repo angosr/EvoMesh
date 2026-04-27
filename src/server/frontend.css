@@ -94,6 +94,8 @@
   .role-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; cursor: pointer; border: none; background: none; color: var(--text-dim); font-size: 12px; width: 100%; text-align: left; transition: background 0.15s, color 0.15s; }
   .role-btn:hover { background: var(--bg-hover); color: var(--text); }
   .role-btn.active { background: var(--bg-active); color: var(--text); }
+  .role-btn .role-main { display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; }
+  .role-btn .role-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
   .dot.running { background: var(--green); }
   .dot.stopped { background: var(--text-faint); }
@@ -101,14 +103,17 @@
   .dot.loading { background: var(--accent); animation: dot-pulse 0.8s ease-in-out infinite; }
   @keyframes dot-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.5); } }
   .role-btn .login-warn { color: var(--red); font-size: 8px; margin-left: 2px; font-weight: 600; }
-  .role-btn .info { font-size: 9px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }
-  .role-btn .role-actions { opacity: 0; margin-left: 2px; display: flex; gap: 1px; transition: opacity 0.15s; }
+  .role-btn .info { font-size: 9px; color: var(--text-faint); margin-left: 2px; font-family: var(--font-mono); }
+  .role-btn .role-actions { opacity: 0; margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 1px; transition: opacity 0.15s; }
   .role-btn:hover .role-actions { opacity: 0.6; }
   .role-btn .role-actions span { cursor: pointer; font-size: 10px; padding: 0 2px; }
   .role-btn .role-actions span:hover { opacity: 1; }
   .role-btn .role-actions .act-cfg { color: var(--text-dim); }
+  .role-btn .role-actions .act-loop { color: var(--text-faint); }
+  .role-btn .role-actions .act-loop.on { color: var(--accent); }
   .role-btn .role-actions .act-restart { color: var(--yellow); }
   .role-btn .role-actions .act-del { color: var(--red); }
+  .role-btn .info.loop-on { color: var(--accent); }
   .add-role-btn { padding: 4px 10px; cursor: pointer; border: none; background: none; color: var(--text-faint); font-size: 10px; width: 100%; text-align: left; transition: color 0.15s; }
   .add-role-btn:hover { color: var(--accent); }
   .login-alert { background: rgba(248, 113, 113, 0.08); border: 1px solid var(--red); color: var(--red); padding: 4px 8px; margin: 4px 10px; border-radius: var(--radius-sm); font-size: 9px; }
@@ -250,6 +255,7 @@
   .act-row:last-child { margin-bottom: 0; }
   .dash-action { padding: 4px 10px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; font-family: var(--font-mono); transition: all 0.2s; font-weight: 500; }
   .dash-action:hover { background: var(--accent-glow); color: var(--accent); border-color: var(--accent); }
+  .dash-action.active-loop { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,0.08); }
   .dash-action.danger { color: var(--red); border-color: rgba(251, 113, 133, 0.2); }
   .dash-action.danger:hover { background: rgba(251, 113, 133, 0.1); color: var(--red); border-color: var(--red); }
   .dash-action.loading, .dash-action:disabled { opacity: 0.5; cursor: wait; pointer-events: none; }

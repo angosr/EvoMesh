@@ -178,6 +178,15 @@ export function buildCLIArgs(providerName: ProviderName, opts: {
     args.push(prov.modelFlag, opts.model);
   }
 
+  if (providerName === "codex") {
+    args.push(
+      "--ask-for-approval", "never",
+      "--sandbox", "danger-full-access",
+      "--config", 'model_reasoning_effort="high"',
+    );
+    return args;
+  }
+
   // Auto-approve
   args.push(prov.autoApproveFlag);
 

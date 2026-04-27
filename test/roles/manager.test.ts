@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import YAML from "yaml";
-import { createRole, deleteRole, listRoles } from "../../src/roles/manager.js";
+import { createRole, createBareRole, deleteRole, listRoles } from "../../src/roles/manager.js";
 import type { ProjectConfig } from "../../src/config/schema.js";
 
 describe("roles/manager", () => {
@@ -81,5 +81,24 @@ describe("roles/manager", () => {
       fs.readFileSync(path.join(tmpDir, ".evomesh", "project.yaml"), "utf-8")
     );
     assert.ok(!updated.roles["to-delete"]);
+  });
+
+  it("createBareRole creates minimal terminal role without ROLE.md", () => {
+    createBareRole(tmpDir, "codex-shell", config, {
+      account: "main",
+      provider: "codex",
+      automation_mode: "prompt",
+    });
+    const roleDir = path.join(tmpDir, ".evomesh", "roles", "codex-shell");
+    assert.ok(fs.existsSync(roleDir));
+    assert.ok(!fs.existsSync(path.join(roleDir, "ROLE.md")));
+    assert.ok(fs.existsSync(path.join(roleDir, "inbox", "processed")));
+    assert.ok(fs.existsSync(path.join(roleDir, "memory", "short-term.md")));
+    const updated = YAML.parse(
+      fs.readFileSync(path.join(tmpDir, ".evomesh", "project.yaml"), "utf-8")
+    );
+    assert.equal(updated.roles["codex-shell"].kind, "terminal");
+    assert.equal(updated.roles["codex-shell"].provider, "codex");
+    assert.equal(updated.roles["codex-shell"].automation_mode, "prompt");
   });
 });

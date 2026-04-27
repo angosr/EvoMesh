@@ -100,7 +100,7 @@ export function ensureCentralAI(ctx: ServerContext): { port: number; terminal: s
         const projects = ctx.getProjects();
         if (projects.length > 0) {
           const config = loadConfig(projects[0].root);
-          const firstAccount = Object.values(config.accounts)[0];
+          const firstAccount = Object.values(config.accounts || {})[0];
           if (firstAccount) {
             const candidate = expandHome(firstAccount);
             if (fs.existsSync(path.join(candidate, ".credentials.json"))) {

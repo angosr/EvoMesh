@@ -11,6 +11,7 @@ import { errorMessage } from "../utils/error.js";
 import {
   isRoleRunning, sendInput, containerName,
 } from "../process/container.js";
+import { getAccountProfiles, resolveRoleAccount } from "../config/accounts.js";
 import { startRoleManaged, stopRoleManaged } from "./health.js";
 import {
   hasMinProjectRole, getProjectRole, setProjectOwner, grantAccess, revokeAccess,
@@ -207,11 +208,13 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
     if (!requireProjectRole(req, res, project.root, "viewer")) return;
     try {
       const config = loadConfig(project.root);
+      const accountProfiles = getAccountProfiles(config);
       const roles = Object.entries(config.roles).map(([name, rc]) => {
         const running = isRoleRunning(project.root, name);
         const key = `${project.slug}/${name}`;
         const ttyd = ctx.ttydProcesses.get(key);
-        const accountDir = expandHome(config.accounts[rc.account] || "~/.claude");
+        const account = resolveRoleAccount(config, rc);
+        const accountDir = account.path;
         let actualMem: string | null = null, actualCpu: string | null = null;
         if (running) {
           const lu = reqLinuxUser(req) || process.env.USER || "user";
@@ -222,17 +225,26 @@ export function registerRoutes(app: import("express").Express, ctx: ServerContex
         return {
           name, type: rc.type, loop_interval: rc.loop_interval, description: rc.description,
           running, terminal: ttyd ? `/terminal/${project.slug}/${name}/` : null,
-          account: rc.account, needsLogin: ctx.checkNeedsLogin(accountDir),
+          account: rc.account || null,
+          account_profile: rc.account_profile || null,
+          account_label: account.label,
+          account_path: account.rawPath,
+          account_provider: account.provider,
+          account_is_default: account.isDefault,
+          needsLogin: ctx.checkNeedsLogin(accountDir, account.provider),
           memory: rc.memory || null, cpus: rc.cpus || null, launch_mode: rc.launch_mode || "docker",
           idle_policy: rc.idle_policy || "ignore",
           provider: rc.provider || "claude",
           model: rc.model || (rc.provider === "codex" ? "gpt-5.4" : "sonnet"),
+          kind: rc.kind || "agent",
+          automation_mode: rc.automation_mode || null,
+          automation_prompt: rc.automation_prompt || null,
           actualMem, actualCpu,
         };
       });
       const session = (req as any)._session as SessionInfo | undefined;
       const myRole = session ? getProjectRole(session.username, session.role, project.root) : null;
-      res.json({ project: project.name, slug: project.slug, roles, accounts: config.accounts, myRole });
+      res.json({ project: project.name, slug: project.slug, roles, accountProfiles, myRole });
     } catch (e: unknown) { res.status(500).json({ error: errorMessage(e) }); }
   });
 

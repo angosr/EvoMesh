@@ -7,11 +7,14 @@ import fs from "node:fs";
 import os from "node:os";
 import { execFileSync, execFile } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
+import { resolveRoleAccount } from "../config/accounts.js";
 import { isRoleRunning, getContainerPort, getContainerState, startRole, stopRole, containerName, centralContainerName } from "../process/container.js";
 import { roleDir } from "../utils/paths.js";
 import { ensureCentralAI, isCentralEnabled } from "./routes-admin.js";
 import { allocatePort } from "./routes.js";
 import type { ServerContext } from "./index.js";
+import { clearRoleAutomation, configureRoleAutomation } from "./role-automation.js";
+import { buildLoopCommand, resolveAutomationMode, resolveRoleKind } from "../roles/runtime.js";
 
 let lastGoodProjects: Record<string, any> = {};
 let centralRestartFails = 0;
@@ -239,6 +242,7 @@ export function startRoleManaged(
   ctx.ttydProcesses.set(key, { port: ttydPort, roleName, projectSlug });
   markRoleRunning(key);
   recordRoleStart(key);
+  configureRoleAutomation(projectRoot, projectSlug, roleName, rc);
   return result;
 }
 
@@ -253,6 +257,7 @@ export function stopRoleManaged(
 ): void {
   const key = `${projectSlug}/${roleName}`;
   console.log(`[lifecycle] ${roleName} stopped by ${opts.reason || "unknown"}`);
+  clearRoleAutomation(key);
   stopRole(projectRoot, roleName);
   if (!opts.keepDesiredState) {
     markRoleStopped(key);
@@ -282,6 +287,7 @@ export function restoreDesiredRoles(ctx: ServerContext): void {
       if (isRoleRunning(project.root, roleName)) {
         // Already running — seed prevRunning so crash detection works from first cycle
         prevRunning.set(key, true);
+        configureRoleAutomation(project.root, slug, roleName, rc);
         continue;
       }
       const ttydPort = allocatePort(ctx);
@@ -398,7 +404,7 @@ export function writeRegistry(ctx: ServerContext, port: number): void {
         for (const [name, rc] of Object.entries(config.roles)) {
           const running = isRoleRunning(p.root, name);
           const cname = containerName(p.slug, name);
-          const accountPath = path.join(os.homedir(), config.accounts[rc.account] || ".claude");
+          const accountPath = resolveRoleAccount(config, rc).path;
           const accountDown = isAccountDown(accountPath);
           // Use cached ttyd port from server context if available, avoid sync docker inspect
           const ttyd = ctx.ttydProcesses.get(`${p.slug}/${name}`);
@@ -562,6 +568,8 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
       for (const [name, rc] of Object.entries(config.roles)) {
         if (!isRoleRunning(p.root, name)) continue;
         const key = `${p.slug}/${name}`;
+        if (resolveRoleKind(rc) === "terminal") continue;
+        if (resolveAutomationMode(rc) !== "loop") continue;
 
         // Skip roles in grace period or suspended by circuit breaker
         if (isInGracePeriod(key)) continue;
@@ -626,9 +634,7 @@ export function cleanupIdleRoles(ctx: ServerContext): void {
             } catch (e) { console.error(`[idle-cleanup] Failed to send /compact to ${name}:`, e); }
           } else if (policy === "reset") {
             // Reset = /clear + /loop (context reset, NOT container restart)
-            const roleRootRel = `.evomesh/roles/${name}`;
-            const loopInterval = rc.loop_interval || "10m";
-            const loopCmd = `/loop ${loopInterval} You are the ${name} role. FIRST: cat and read ${roleRootRel}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${roleRootRel}/`;
+            const loopCmd = buildLoopCommand(name, rc);
             try {
               sendToRoleSequence(sessionName, rc.launch_mode, [
                 { message: "/clear", delaySec: 0 },

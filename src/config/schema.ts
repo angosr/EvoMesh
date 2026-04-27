@@ -4,14 +4,24 @@ export interface McpServerConfig {
 }
 
 export type ProviderType = "claude" | "codex";
+export type RoleKind = "agent" | "terminal";
+export type AutomationMode = "loop" | "prompt" | "manual";
+
+export interface AccountProfile {
+  provider: ProviderType;
+  path: string;
+  label?: string;
+}
 
 export interface RoleConfig {
   type: "lead" | "worker";
   loop_interval: string;
-  account: string;
+  account?: string; // legacy account alias
+  account_profile?: string;
   evolution_upgrade_every: number;
   scope: string[];
   description: string;
+  kind?: RoleKind;
   memory?: string;  // e.g. "2g" → docker --memory
   cpus?: string;    // e.g. "1.5" → docker --cpus
   mcp?: Record<string, McpServerConfig>;  // MCP servers for this role
@@ -19,6 +29,8 @@ export interface RoleConfig {
   idle_policy?: "reset" | "compact" | "ignore";  // Idle policy; default: ignore
   provider?: ProviderType;  // AI CLI provider; default: "claude"
   model?: string;   // Model name (provider-specific); default varies by provider
+  automation_mode?: AutomationMode;
+  automation_prompt?: string;
 }
 
 export interface Claim {
@@ -52,7 +64,8 @@ export interface ProjectConfig {
   created: string;
   repo: string;
   lang: Lang;
-  accounts: Record<string, string>;
+  accounts?: Record<string, string>; // legacy account alias map
+  account_profiles?: Record<string, AccountProfile>;
   roles: Record<string, RoleConfig>;
   git: GitConfig;
 }

@@ -19,6 +19,7 @@ export EVOMESH_CONTAINER=1
 
 # Provider detection — supports claude (default) and codex
 PROVIDER="${EVOMESH_PROVIDER:-claude}"
+AUTOMATION_MODE="${AUTOMATION_MODE:-manual}"
 WORK_DIR="${PWD:-/project}"
 ROLE_SESSION_DIR="${ROLE_ROOT_OVERRIDE:-.evomesh/roles/${ROLE_NAME:-role}}"
 ROLE_SESSION_FILE="${WORK_DIR}/${ROLE_SESSION_DIR}/.session-id"
@@ -108,7 +109,7 @@ ttyd \
   -- tmux -f /dev/null attach-session -t claude &
 TTYD_PID=$!
 
-if [ "$PROVIDER" != "codex" ]; then
+if [ "$PROVIDER" != "codex" ] && [ "$AUTOMATION_MODE" = "loop" ]; then
   # Claude-specific: send /loop command + save session ID
   (
     LOOP_CMD="/loop ${LOOP_INTERVAL:-10m} You are the ${ROLE_NAME} role. FIRST: cat and read ${ROLE_ROOT}/ROLE.md completely. Then follow CLAUDE.md loop flow. Working directory: ${ROLE_ROOT}/"

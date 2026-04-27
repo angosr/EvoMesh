@@ -49,7 +49,8 @@ export function createRole(
   name: string,
   templateName: string,
   config: ProjectConfig,
-  account: string = "main"
+  account?: string,
+  accountProfile?: string,
 ): void {
   const defaults = loadRoleDefaults();
   const defaultConfig = defaults[templateName];
@@ -80,7 +81,59 @@ export function createRole(
   writeFile(path.join(dir, "memory", "long-term.md"), "# Long-term Memory\n\n(empty)\n");
 
   // Update project.yaml
-  const roleConfig: RoleConfig = { ...defaultConfig, account } as RoleConfig;
+  const roleConfig: RoleConfig = {
+    ...defaultConfig,
+    account: account || undefined,
+    account_profile: accountProfile,
+  } as RoleConfig;
+  config.roles[name] = roleConfig;
+  writeYaml(path.join(root, ".evomesh", "project.yaml"), config);
+}
+
+export function createBareRole(
+  root: string,
+  name: string,
+  config: ProjectConfig,
+  opts: {
+    account?: string;
+    account_profile?: string;
+    description?: string;
+    loop_interval?: string;
+    launch_mode?: "docker" | "host";
+    provider?: "claude" | "codex";
+    model?: string;
+    automation_mode?: "loop" | "prompt" | "manual";
+    automation_prompt?: string;
+  } = {},
+): void {
+  const dir = roleDir(root, name);
+  if (exists(dir)) {
+    throw new Error(`Role "${name}" already exists.`);
+  }
+
+  ensureDir(dir);
+  ensureDir(path.join(dir, "inbox", "processed"));
+  ensureDir(path.join(dir, "memory"));
+
+  writeFile(path.join(dir, "memory", "short-term.md"), "# Short-term Memory\n\n(manual terminal role)\n");
+  writeFile(path.join(dir, "memory", "long-term.md"), "# Long-term Memory\n\n(empty)\n");
+
+  const roleConfig: RoleConfig = {
+    type: "worker",
+    kind: "terminal",
+    loop_interval: opts.loop_interval || "10m",
+    account: opts.account || undefined,
+    account_profile: opts.account_profile,
+    evolution_upgrade_every: 0,
+    scope: [],
+    description: opts.description || "Bare terminal role",
+    launch_mode: opts.launch_mode,
+    provider: opts.provider,
+    model: opts.model,
+    idle_policy: "ignore",
+    automation_mode: opts.automation_mode,
+    automation_prompt: opts.automation_prompt,
+  };
   config.roles[name] = roleConfig;
   writeYaml(path.join(root, ".evomesh", "project.yaml"), config);
 }
